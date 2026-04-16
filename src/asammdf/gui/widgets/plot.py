@@ -4018,9 +4018,9 @@ class PlotGraphics(pg.PlotWidget):
 
     def auto_clip_rect(self, painter, viewbox_rect):
         rect = QtCore.QRectF(viewbox_rect)
-        rect.setX(rect.x() + 5 )
-        rect.setWidth(rect.width() - 5 )
-        rect.setHeight(rect.height() - 1 )
+        rect.setX(rect.x() + 5)
+        rect.setWidth(rect.width() - 5)
+        rect.setHeight(rect.height() - 1)
         painter.setClipRect(rect)
         painter.setClipping(True)
 
@@ -4757,7 +4757,7 @@ class PlotGraphics(pg.PlotWidget):
                 start, stop = self.viewbox.viewRange()[0]
 
                 if start <= self.cursor1.value() <= stop:
-                    mid = (stop + start) / 2 
+                    mid = (stop + start) / 2
                     start, stop = sorted([mid, self.cursor1.value()])
 
                 else:
@@ -4848,9 +4848,7 @@ class PlotGraphics(pg.PlotWidget):
             )
 
             common_axis_signals = [
-                sig
-                for sig in self.signals
-                if sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+                sig for sig in self.signals if sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
             ]
 
             if common_axis_signals:
@@ -4947,7 +4945,7 @@ class PlotGraphics(pg.PlotWidget):
             )
 
             if count:
-            
+
                 common_axis_handled = False
                 position = 0
                 for uuid in uuids:
@@ -4961,7 +4959,10 @@ class PlotGraphics(pg.PlotWidget):
                             common_axis_signals = [
                                 sig
                                 for sig in self.signals
-                                if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+                                if sig.uuid in uuids_set
+                                and sig.min != "n.a."
+                                and sig.enable
+                                and sig.uuid in self.common_axis_items
                             ]
 
                             min_ = np.nanmin([sig.min for sig in common_axis_signals])
@@ -4978,7 +4979,6 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = max_ - 1
                         elif max_ == float("inf"):
                             max_ = min_ + 1
-
 
                         min_, max_ = float(min_), float(max_)
 
@@ -5296,7 +5296,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 if self.cursor1:
                     self.cursor_moved.emit(self.cursor1)
-            
+
         elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.AltModifier:
             if len(self.all_timebase):
                 start_ts = np.amin(self.all_timebase)
@@ -5367,12 +5367,7 @@ class PlotGraphics(pg.PlotWidget):
             self.x_range, self.y_range = vb_x_range, vb_y_range
 
             rect = QtCore.QRectF(viewbox_rect)
-            rect.setSize(
-                QtCore.QSize(
-                    ceil(ceil(rect.width()) * ratio), 
-                    ceil(ceil(rect.height()) * ratio)
-                )
-            )
+            rect.setSize(QtCore.QSize(ceil(ceil(rect.width()) * ratio), ceil(ceil(rect.height()) * ratio)))
             rect.moveTo(rect.topLeft() * ratio)
 
             self.px = (vb_x_range[1] - vb_x_range[0]) / rect.width()
@@ -5532,9 +5527,7 @@ class PlotGraphics(pg.PlotWidget):
 
                                 x = sig.plot_timestamps
 
-                                x, y = self.scale_curve_to_pixmap(
-                                    x, y, y_range=sig.y_range, x_start=x_start
-                                )
+                                x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start)
 
                                 pen.setWidth(dots_with)
                                 pen.setCapStyle(cap_style)
@@ -5686,7 +5679,7 @@ class PlotGraphics(pg.PlotWidget):
                 y1, y2 = sorted([y1, y2])
 
                 rect = QtCore.QRectF(
-                    x1+delta,
+                    x1 + delta,
                     y1,
                     x2 - x1,
                     y2 - y1,

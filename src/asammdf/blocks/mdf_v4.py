@@ -356,9 +356,9 @@ class MDF4(MDF_Common[Group]):
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups
         self.virtual_groups_map: dict[int, int] = {}  # group index 2 master group
 
-        self.vlsd_max_length: dict[
-            tuple[int, str], int
-        ] = {}  # hint about the maximum vlsd length for group_index, name pairs
+        self.vlsd_max_length: dict[tuple[int, str], int] = (
+            {}
+        )  # hint about the maximum vlsd length for group_index, name pairs
 
         self._master = None
 
@@ -399,7 +399,9 @@ class MDF4(MDF_Common[Group]):
                         self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
                         shutil.copy(name, self.name)
                         self._mapped_file = open(self.name, "rb+")
-                        self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=(mmap.ACCESS_READ | mmap.ACCESS_WRITE))
+                        self._file = mmap.mmap(
+                            self._mapped_file.fileno(), 0, access=(mmap.ACCESS_READ | mmap.ACCESS_WRITE)
+                        )
                         self._from_filelike = False
                         self._delete_on_close = True
                         self._read(self._file, mapped=False, progress=progress)
@@ -883,9 +885,7 @@ class MDF4(MDF_Common[Group]):
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(
-                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
-                    )
+                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
                     if use_display_names:
                         comment = get_text_v4(
                             comment_addr,
@@ -910,9 +910,7 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
-                    name = get_text_v4(
-                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
-                    )
+                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
 
                     if use_display_names:
                         comment = get_text_v4(
@@ -1006,7 +1004,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     parsed_strings=None,
                     file_limit=self.file_limit,
-                    units_map=self._units_map
+                    units_map=self._units_map,
                 )
 
             if channel.data_type not in VALID_DATA_TYPES:
@@ -1121,7 +1119,7 @@ class MDF4(MDF_Common[Group]):
                         if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                             logger.warning("Only CN template arrays are supported")
                             break
-                        
+
                         (
                             ch_cntr,
                             ret_composition,
@@ -1147,9 +1145,7 @@ class MDF4(MDF_Common[Group]):
                             stream.seek(component_addr)
                             blk_id = stream.read(4)
                             if blk_id != b"##CA":
-                                logger.warning(
-                                    f"expected b'##CA' header but found {blk_id}"
-                                )
+                                logger.warning(f"expected b'##CA' header but found {blk_id}")
                                 break
 
                             ca_block = ChannelArrayBlock(
@@ -1348,7 +1344,9 @@ class MDF4(MDF_Common[Group]):
                                         + new_data[matrix_size:]
                                     )
                                 else:
-                                    new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    new_data = (
+                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    )
 
                         data_list.append(new_data)
 
@@ -1408,7 +1406,9 @@ class MDF4(MDF_Common[Group]):
                                         + new_data[matrix_size:]
                                     )
                                 else:
-                                    new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    new_data = (
+                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    )
 
                         if start_offset > current_offset:
                             data_array.extend(new_data[start_offset - current_offset :])
@@ -1668,7 +1668,12 @@ class MDF4(MDF_Common[Group]):
                                         + new_invalidation_data[matrix_size:]
                                     )
                                 else:
-                                    new_invalidation_data = frombuffer(new_invalidation_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    new_invalidation_data = (
+                                        frombuffer(new_invalidation_data, dtype=uint8)
+                                        .reshape((cols, lines))
+                                        .T.ravel()
+                                        .tobytes()
+                                    )
 
                         if invalidation_info.block_limit is not None:
                             new_invalidation_data = new_invalidation_data[: invalidation_info.block_limit]
@@ -2072,7 +2077,7 @@ class MDF4(MDF_Common[Group]):
                                 return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             # can be a DataBlock
-                            if id_string != b'##DZ':
+                            if id_string != b"##DZ":
                                 size = block_len - 24
                                 if size:
                                     size = min(size, total_size)
@@ -2205,12 +2210,16 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                                        return handle_incomplete_block(
+                                            original_address, self.file_limit, self.original_name
+                                        )
 
                                     id_string, block_len = COMMON_SHORT_uf(stream, inval_addr)
 
                                     if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                                        return handle_incomplete_block(
+                                            original_address, self.file_limit, self.original_name
+                                        )
 
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2292,7 +2301,7 @@ class MDF4(MDF_Common[Group]):
 
                 if original_address + block_len > self.file_limit:
                     return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-                
+
                 # can be a DataBlock
                 if id_string in (b"##DT", b"##DV"):
                     size = block_len - 24
@@ -2507,13 +2516,17 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                                        return handle_incomplete_block(
+                                            original_address, self.file_limit, self.original_name
+                                        )
 
                                     stream.seek(inval_addr)
                                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                                     if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                                        return handle_incomplete_block(
+                                            original_address, self.file_limit, self.original_name
+                                        )
 
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2779,9 +2792,8 @@ class MDF4(MDF_Common[Group]):
 
         key = (group_index, offset, _count, pos_invalidation_bit)
         if key not in self._invalidation_cache:
-            inv =  get_invalidation_bits_array(
-                invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit, _count,
-                one_piece
+            inv = get_invalidation_bits_array(
+                invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit, _count, one_piece
             )
             if inv is None:
                 self._invalidation_cache[key] = None
@@ -3274,7 +3286,9 @@ class MDF4(MDF_Common[Group]):
 
                         match signal.attachment:
                             case at_data, at_name, hash_sum, compression_type:
-                                attachment_index = self.attach(at_data, at_name, hash_sum, compression_type=compression_type)
+                                attachment_index = self.attach(
+                                    at_data, at_name, hash_sum, compression_type=compression_type
+                                )
                                 attachment = attachment_index
                             case at_data, at_name, hash_sum:
                                 attachment_index = self.attach(at_data, at_name, hash_sum)
@@ -3561,27 +3575,20 @@ class MDF4(MDF_Common[Group]):
                 names_nr = len(names)
 
                 metadata = array_dtype[array_name].metadata or array_dtype[array_name].base.metadata or {}
-                if 'axes' in metadata:
-                    array_axes = metadata['axes']
+                if "axes" in metadata:
+                    array_axes = metadata["axes"]
 
                 else:
                     if len(names) == 1:
-                        array_axes = [
-                            {
-                                "type": 'NO_AXIS',
-                                'conversion': None,
-                                'size': size
-                            }
-                            for size in shape[::-1]
-                        ]
+                        array_axes = [{"type": "NO_AXIS", "conversion": None, "size": size} for size in shape[::-1]]
                     else:
                         names = [name for name in names if name != array_name][::-1]
                         array_axes = [
                             {
-                                "type": 'REF_AXIS',
-                                'conversion': None,
-                                'size': size,
-                                'dtype_field_name': name,
+                                "type": "REF_AXIS",
+                                "conversion": None,
+                                "size": size,
+                                "dtype_field_name": name,
                             }
                             for size, name in zip(shape[::-1], names, strict=False)
                         ]
@@ -3590,12 +3597,9 @@ class MDF4(MDF_Common[Group]):
                 # MDF axes are stored in ZYX order
                 array_axes = array_axes[::-1]
 
-                ref_names = {
-                    ax.get('dtype_field_name', ''): i
-                    for i, ax in enumerate(array_axes)
-                }
+                ref_names = {ax.get("dtype_field_name", ""): i for i, ax in enumerate(array_axes)}
 
-                if len(names) == 1 and all(axis['type'] == 'NO_AXIS' for axis in array_axes):
+                if len(names) == 1 and all(axis["type"] == "NO_AXIS" for axis in array_axes):
                     # add channel dependency block for composed parent channel
                     ca_kwargs = {
                         "dims": dims_nr,
@@ -3608,21 +3612,21 @@ class MDF4(MDF_Common[Group]):
 
                     parent_deps = [ChannelArrayBlock(**ca_kwargs)]
 
-                elif len(array_axes) == 1 and array_axes[0]['type'] == 'SCALE_AXIS':
+                elif len(array_axes) == 1 and array_axes[0]["type"] == "SCALE_AXIS":
                     ca_kwargs = {
                         "dims": 1,
                         "ca_type": v4c.CA_TYPE_SCALE_AXIS,
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0]
+                        "dim_size_0": shape[0],
                     }
 
                     parent_deps = [ChannelArrayBlock(**ca_kwargs)]
 
                 else:
                     parent_dep_with_refs = None
-                    
-                    if all(axis['type'] == 'REF_AXIS' for axis in array_axes):
+
+                    if all(axis["type"] == "REF_AXIS" for axis in array_axes):
                         ca_kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
@@ -3631,7 +3635,7 @@ class MDF4(MDF_Common[Group]):
                         }
 
                         for i, size in enumerate(shape):
-                            conv = array_axes[i]['conversion']
+                            conv = array_axes[i]["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
                             ca_kwargs[f"axis_conversion_{i}"] = conv
@@ -3640,7 +3644,7 @@ class MDF4(MDF_Common[Group]):
                         parent_dep_with_refs = ChannelArrayBlock(**ca_kwargs)
                         parent_deps = [parent_dep_with_refs]
 
-                    elif all(axis['type'] == 'FIXED_AXIS' for axis in array_axes):
+                    elif all(axis["type"] == "FIXED_AXIS" for axis in array_axes):
                         ca_kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
@@ -3648,14 +3652,14 @@ class MDF4(MDF_Common[Group]):
                             "byte_offset_base": samples.dtype.itemsize,
                         }
 
-                        for i, size  in enumerate(shape):
-                            conv = array_axes[i]['conversion']
+                        for i, size in enumerate(shape):
+                            conv = array_axes[i]["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
                             ca_kwargs[f"axis_conversion_{i}"] = conv
                             ca_kwargs[f"dim_size_{i}"] = size  # type: ignore[literal-required]
                             for j in range(size):
-                                ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]['values'][j]
+                                ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]["values"][j]
 
                         parent_dep_with_refs = None
                         parent_deps = [ChannelArrayBlock(**ca_kwargs)]
@@ -3664,18 +3668,18 @@ class MDF4(MDF_Common[Group]):
                         parent_deps = []
                         byte_offset_base = samples.dtype.itemsize
                         for i, (axis, shp) in enumerate(zip(array_axes, shape, strict=False)):
-                            conv = axis['conversion']
+                            conv = axis["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
 
-                            if axis['type'] == 'REF_AXIS':
+                            if axis["type"] == "REF_AXIS":
                                 ca_kwargs = {
                                     "dims": 1,
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS,
                                     "byte_offset_base": byte_offset_base,
                                     "axis_conversion_0": conv,
-                                    "dim_size_0": shp
+                                    "dim_size_0": shp,
                                 }
 
                                 parent_dep_with_refs = dep = ChannelArrayBlock(**ca_kwargs)
@@ -3686,14 +3690,14 @@ class MDF4(MDF_Common[Group]):
                                     "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
                                     "byte_offset_base": byte_offset_base,
                                     "axis_conversion_0": conv,
-                                    "dim_size_0": shp
+                                    "dim_size_0": shp,
                                 }
                                 for j in range(shp):
-                                    ca_kwargs[f"axis_0_value_{j}"] = axis['values'][j]
+                                    ca_kwargs[f"axis_0_value_{j}"] = axis["values"][j]
                                 dep = ChannelArrayBlock(**ca_kwargs)
-                            
+
                             byte_offset_base *= shp
-                            
+
                             parent_deps.insert(0, dep)
 
                 current_dt_offset = 0
@@ -3702,12 +3706,12 @@ class MDF4(MDF_Common[Group]):
                     shape = samples.shape[1:]
 
                     if delta := (dt_offset - current_dt_offset):
-                        padding = np.zeros((samples.shape[0], delta), dtype='u1')
+                        padding = np.zeros((samples.shape[0], delta), dtype="u1")
                         fields.append((padding, delta))
                         offset += delta
 
                     current_dt_offset = dt_offset + dt_dtype.itemsize
-                    
+
                     if name == array_name:
                         metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
                         conversion = signal.conversion or metadata.get("conversion", None)
@@ -3803,7 +3807,7 @@ class MDF4(MDF_Common[Group]):
 
                         axis = array_axes[idx]
 
-                        if axis['type'] == 'FIXED_AXIS':
+                        if axis["type"] == "FIXED_AXIS":
                             itemsize = samples.dtype.itemsize
                             fields.append((samples, itemsize))
                             offset += itemsize
@@ -3843,9 +3847,9 @@ class MDF4(MDF_Common[Group]):
                                 cn_kwargs["pos_invalidation_bit"] = origin[1]
 
                             ch = Channel(**cn_kwargs)
-                            ch.name = axis.get('ref_name', '') or name
+                            ch.name = axis.get("ref_name", "") or name
                             ch.unit = metadata.get("unit", "")
-                            ch.comment = f'{array_name} axis {idx}'
+                            ch.comment = f"{array_name} axis {idx}"
                             ch.dtype_fmt = samples.dtype
 
                             record.append(
@@ -3876,7 +3880,7 @@ class MDF4(MDF_Common[Group]):
                             ch_cntr += 1
 
                 if delta := (signal.samples.dtype.itemsize - current_dt_offset):
-                    padding = np.zeros((signal.samples.shape[0], delta), dtype='u1')
+                    padding = np.zeros((signal.samples.shape[0], delta), dtype="u1")
                     fields.append((padding, delta))
             else:
                 encoding = signal.encoding
@@ -5488,8 +5492,8 @@ class MDF4(MDF_Common[Group]):
                 ch.dtype_fmt = np.dtype((samples.dtype, samples.shape[1:]))
 
                 if dtype.metadata:
-                    ch.conversion = dtype.metadata.get('conversion', None)
-                    ch.unit = dtype.metadata.get('unit', "")
+                    ch.conversion = dtype.metadata.get("conversion", None)
+                    ch.unit = dtype.metadata.get("unit", "")
 
                 record.append(
                     (
@@ -5531,34 +5535,20 @@ class MDF4(MDF_Common[Group]):
                 array_dtype = array_samples.dtype
                 dt_fields = [(name, *val) for name, val in array_dtype.fields.items()]
                 dt_fields.sort(key=lambda x: x[-1])  # sort by offset
-                
+
                 dims_nr = len(shape)
                 names_nr = len(names)
 
                 metadata = array_dtype[array_name].metadata or array_dtype[array_name].base.metadata or {}
                 if metadata:
-                    array_axes = metadata['axes']
+                    array_axes = metadata["axes"]
                 else:
                     if len(names) == 1:
-                        array_axes = [
-                            {
-                                "type": 'NO_AXIS',
-                                'conversion': None,
-                                'size': size
-                            }
-                            for size in shape
-                        ]
+                        array_axes = [{"type": "NO_AXIS", "conversion": None, "size": size} for size in shape]
                     else:
-                        array_axes = [
-                            {
-                                "type": 'REF_AXIS',
-                                'conversion': None,
-                                'size': size
-                            }
-                            for size in shape
-                        ]
+                        array_axes = [{"type": "REF_AXIS", "conversion": None, "size": size} for size in shape]
 
-                if len(names) == 1 and all(axis['type'] == 'NO_AXIS' for axis in array_axes):
+                if len(names) == 1 and all(axis["type"] == "NO_AXIS" for axis in array_axes):
                     # add channel dependency block for composed parent channel
                     ca_kwargs = {
                         "dims": dims_nr,
@@ -5571,21 +5561,21 @@ class MDF4(MDF_Common[Group]):
 
                     parent_deps = [ChannelArrayBlock(**ca_kwargs)]
 
-                elif len(array_axes) == 1 and array_axes[0]['type'] == 'SCALE_AXIS':
+                elif len(array_axes) == 1 and array_axes[0]["type"] == "SCALE_AXIS":
                     ca_kwargs = {
                         "dims": 1,
                         "ca_type": v4c.CA_TYPE_SCALE_AXIS,
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0]
+                        "dim_size_0": shape[0],
                     }
 
                     parent_deps = [ChannelArrayBlock(**ca_kwargs)]
 
                 else:
                     parent_dep_with_refs = None
-                    
-                    if all(axis['type'] == 'REF_AXIS' for axis in array_axes):
+
+                    if all(axis["type"] == "REF_AXIS" for axis in array_axes):
                         ca_kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
@@ -5594,7 +5584,7 @@ class MDF4(MDF_Common[Group]):
                         }
 
                         for i in range(dims_nr):
-                            conv = array_axes[i]['conversion']
+                            conv = array_axes[i]["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
                             ca_kwargs[f"axis_conversion_{i}"] = conv
@@ -5603,7 +5593,7 @@ class MDF4(MDF_Common[Group]):
                         parent_dep_with_refs = ChannelArrayBlock(**ca_kwargs)
                         parent_deps = [parent_dep_with_refs]
 
-                    elif all(axis['type'] == 'FIXED_AXIS' for axis in array_axes):
+                    elif all(axis["type"] == "FIXED_AXIS" for axis in array_axes):
                         ca_kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
@@ -5611,13 +5601,13 @@ class MDF4(MDF_Common[Group]):
                             "byte_offset_base": samples.dtype.itemsize,
                         }
                         for i in range(dims_nr):
-                            conv = array_axes[i]['conversion']
+                            conv = array_axes[i]["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
                             ca_kwargs[f"axis_conversion_{i}"] = conv
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
                             for j in range(shape[i]):
-                                ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]['values'][j]
+                                ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]["values"][j]
 
                         parent_dep_with_refs = None
                         parent_deps = [ChannelArrayBlock(**ca_kwargs)]
@@ -5625,11 +5615,11 @@ class MDF4(MDF_Common[Group]):
                     else:
                         parent_deps = []
                         for i, axis in enumerate(array_axes):
-                            conv = axis['conversion']
+                            conv = axis["conversion"]
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
 
-                            if axis['type'] == 'REF_AXIS':
+                            if axis["type"] == "REF_AXIS":
                                 ca_kwargs[f"axis_conversion_{i}"] = conv
                                 ca_kwargs = {
                                     "dims": 1,
@@ -5637,7 +5627,7 @@ class MDF4(MDF_Common[Group]):
                                     "flags": v4c.FLAG_CA_AXIS,
                                     "byte_offset_base": samples.dtype.itemsize,
                                     "axis_conversion_0": conv,
-                                    "dim_size_0": shape[i]
+                                    "dim_size_0": shape[i],
                                 }
 
                                 parent_dep_with_refs = dep = ChannelArrayBlock(**ca_kwargs)
@@ -5648,12 +5638,12 @@ class MDF4(MDF_Common[Group]):
                                     "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
                                     "byte_offset_base": samples.dtype.itemsize,
                                     "axis_conversion_0": conv,
-                                    "dim_size_0": shape[i]
+                                    "dim_size_0": shape[i],
                                 }
                                 for j in range(shape[i]):
-                                    ca_kwargs[f"axis_0_value_{j}"] = axis['values'][j]
+                                    ca_kwargs[f"axis_0_value_{j}"] = axis["values"][j]
                                 dep = ChannelArrayBlock(**ca_kwargs)
-                            
+
                             parent_deps.append(dep)
 
                 current_dt_offset = 0
@@ -5662,12 +5652,12 @@ class MDF4(MDF_Common[Group]):
                     shape = samples.shape[1:]
 
                     if delta := (dt_offset - current_dt_offset):
-                        padding = np.zeros((samples.shape[0], delta), dtype='u1')
+                        padding = np.zeros((samples.shape[0], delta), dtype="u1")
                         fields.append((padding, delta))
                         offset += delta
 
                     current_dt_offset = dt_offset + dt_dtype.itemsize
-                    
+
                     if name == array_name:
                         gp_dep.append(parent_deps)
 
@@ -5743,7 +5733,7 @@ class MDF4(MDF_Common[Group]):
 
                         ch_cntr += 1
 
-                    elif not name.startswith('axis_'):
+                    elif not name.startswith("axis_"):
                         itemsize = samples.dtype.itemsize
                         fields.append((samples, itemsize))
                         offset += itemsize
@@ -5751,11 +5741,11 @@ class MDF4(MDF_Common[Group]):
                     else:
 
                         metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
-                        axes = metadata.get('axes', [])
+                        axes = metadata.get("axes", [])
 
-                        idx = int(name.split('_')[-1])
+                        idx = int(name.split("_")[-1])
 
-                        if array_axes[idx]['type'] == 'FIXED_AXIS':
+                        if array_axes[idx]["type"] == "FIXED_AXIS":
                             itemsize = samples.dtype.itemsize
                             fields.append((samples, itemsize))
                             offset += itemsize
@@ -5797,7 +5787,7 @@ class MDF4(MDF_Common[Group]):
                             ch = Channel(**cn_kwargs)
                             ch.name = name
                             ch.unit = metadata.get("unit", "")
-                            ch.comment = f'{array_name} axis {idx}'
+                            ch.comment = f"{array_name} axis {idx}"
                             ch.dtype_fmt = samples.dtype
 
                             record.append(
@@ -5828,7 +5818,7 @@ class MDF4(MDF_Common[Group]):
                             ch_cntr += 1
 
                 if delta := (array_samples.dtype.itemsize - current_dt_offset):
-                    padding = np.zeros((array_samples.shape[0], delta), dtype='u1')
+                    padding = np.zeros((array_samples.shape[0], delta), dtype="u1")
                     fields.append((padding, delta))
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
@@ -6073,7 +6063,7 @@ class MDF4(MDF_Common[Group]):
                 names = samples.dtype.names
                 if names is None:
                     raise RuntimeError("'names' is None")
-                
+
                 array_name = name
                 samples = array_samples[array_name]
                 shape = samples.shape[1:]
@@ -6114,7 +6104,6 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -6402,7 +6391,7 @@ class MDF4(MDF_Common[Group]):
                 case v4c.SIGNAL_TYPE_ARRAY:
                     if signal.dtype.fields is None:
                         raise RuntimeError("'names' is None")
-                    
+
                     dt_fields = [(name, *val) for name, val in signal.dtype.fields.items()]
                     dt_fields.sort(key=lambda x: x[-1])  # sort by offset
 
@@ -6411,7 +6400,7 @@ class MDF4(MDF_Common[Group]):
                         samples = signal[name]
 
                         if delta := (dt_offset - current_dt_offset):
-                            padding = np.zeros((samples.shape[0], delta), dtype='u1')
+                            padding = np.zeros((samples.shape[0], delta), dtype="u1")
                             fields.append((padding, delta))
 
                         size = dt_dtype.itemsize
@@ -6424,7 +6413,7 @@ class MDF4(MDF_Common[Group]):
                         fields.append((samples, size))
 
                     if delta := (signal.dtype.itemsize - current_dt_offset):
-                        padding = np.zeros((signal.shape[0], delta), dtype='u1')
+                        padding = np.zeros((signal.shape[0], delta), dtype="u1")
                         fields.append((padding, delta))
 
                 case _:
@@ -6797,7 +6786,7 @@ class MDF4(MDF_Common[Group]):
             .. versionadded:: 7.0.0
 
         compression_type : str, default "deflate"
-            compression type starting with MDF v4.30. Can be "deflate", 
+            compression type starting with MDF v4.30. Can be "deflate",
             "lz4" or "zstd"
 
             .. versionadded:: 8.8.0
@@ -7385,7 +7374,7 @@ class MDF4(MDF_Common[Group]):
                         dependency_list=dependency_list,
                         raster=raster,
                         data=data,
-                        ignore_invalidation_bits=ignore_invalidation_bits, 
+                        ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
                         master_is_required=master_is_required,
@@ -7412,14 +7401,17 @@ class MDF4(MDF_Common[Group]):
                 blocks = grp.data_blocks
                 record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
                 cycles_nr = grp.channel_group.cycles_nr
- 
+
                 if (
                     data is None
                     and validate_blocks(blocks, record_size)
                     and not self._from_filelike
                     and not grp.signal_data[ch_nr]
                     and grp.record[ch_nr]
-                    and (not master_is_required or (master_is_required and master_index is not None and grp.record[master_index]))
+                    and (
+                        not master_is_required
+                        or (master_is_required and master_index is not None and grp.record[master_index])
+                    )
                 ):
                     if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
                         file_name = self._mapped_file.name
@@ -7429,18 +7421,16 @@ class MDF4(MDF_Common[Group]):
                     signals = []
                     channels = []
                     info_rec = []
-                    
+
                     if master_is_required:
                         master_channel = grp.channels[master_index]
                         channel_dtype, byte_size, byte_offset, bit_offset = info = typing.cast(
                             tuple[np.dtype[Any], int, int, int], grp.record[master_index]
                         )
-                        signals.append(
-                            (byte_offset, byte_size, master_channel.pos_invalidation_bit)
-                        )
+                        signals.append((byte_offset, byte_size, master_channel.pos_invalidation_bit))
                         channels.append(master_channel)
                         info_rec.append(info)
-                    
+
                     channel_dtype, byte_size, byte_offset, bit_offset = info = grp.record[ch_nr]
                     signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
                     channels.append(channel)
@@ -7459,7 +7449,9 @@ class MDF4(MDF_Common[Group]):
 
                     extracted_signals = []
 
-                    for info, channel, (raw_data, invalidation_bits) in zip(info_rec, channels, raw_and_invalidation, strict=False):
+                    for info, channel, (raw_data, invalidation_bits) in zip(
+                        info_rec, channels, raw_and_invalidation, strict=False
+                    ):
 
                         channel_dtype, byte_size, byte_offset, bit_offset = info
 
@@ -7515,17 +7507,17 @@ class MDF4(MDF_Common[Group]):
                             if invalidation_bits is not None:
                                 invalidation_bits = invalidation_bits[record_offset:]
                         else:
-                            end = record_offset+ record_count
-                            samples = samples[record_offset: end]
-                            timestamps = timestamps[record_offset: end]
+                            end = record_offset + record_count
+                            samples = samples[record_offset:end]
+                            timestamps = timestamps[record_offset:end]
                             if invalidation_bits is not None:
-                                invalidation_bits = invalidation_bits[record_offset: end]
+                                invalidation_bits = invalidation_bits[record_offset:end]
                     else:
                         if record_count is not None:
-                            samples = samples[: record_count]
-                            timestamps = timestamps[: record_count]
+                            samples = samples[:record_count]
+                            timestamps = timestamps[:record_count]
                             if invalidation_bits is not None:
-                                invalidation_bits = invalidation_bits[: record_count]
+                                invalidation_bits = invalidation_bits[:record_count]
                 else:
                     if (
                         (fast_path := channel.fast_path) is not None
@@ -7566,7 +7558,12 @@ class MDF4(MDF_Common[Group]):
                 if conversion:
                     samples = conversion.convert(samples)
 
-            samples = samples.view(np.dtype(samples.dtype, metadata={'conversion': conversion, 'unit': (conversion and conversion.unit) or channel.unit}))
+            samples = samples.view(
+                np.dtype(
+                    samples.dtype,
+                    metadata={"conversion": conversion, "unit": (conversion and conversion.unit) or channel.unit},
+                )
+            )
 
             res = samples, invalidation_bits
 
@@ -7589,7 +7586,12 @@ class MDF4(MDF_Common[Group]):
 
             unit = (conversion and conversion.unit) or channel.unit
 
-            samples = samples.view(np.dtype(samples.dtype, metadata={'conversion': conversion, 'unit': (conversion and conversion.unit) or channel.unit}))
+            samples = samples.view(
+                np.dtype(
+                    samples.dtype,
+                    metadata={"conversion": conversion, "unit": (conversion and conversion.unit) or channel.unit},
+                )
+            )
 
             comment = channel.comment
 
@@ -7765,7 +7767,9 @@ class MDF4(MDF_Common[Group]):
 
         groups = self.groups
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
 
         _dtype = np.dtype(channel.dtype_fmt)
         conditions = [
@@ -8083,7 +8087,7 @@ class MDF4(MDF_Common[Group]):
         for dep in dependency_list:
             axes.extend(dep.get_axes_information())
 
-        shape = tuple(axis['size'] for axis in axes)
+        shape = tuple(axis["size"] for axis in axes)
         shape = shape or (1,)
 
         size = prod(shape, start=(channel.bit_count // 8) or 1)
@@ -8109,8 +8113,10 @@ class MDF4(MDF_Common[Group]):
             ]
         )
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
-        inverse_layout = any(axis['inverse_layout'] for axis in axes)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
+        inverse_layout = any(axis["inverse_layout"] for axis in axes)
 
         channel_group = grp.channel_group
         samples_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
@@ -8150,30 +8156,38 @@ class MDF4(MDF_Common[Group]):
 
             shape = vals.shape[1:]
             arrays.append(vals)
-            dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit, "axes": axes}), shape
+            dtype_pair = (
+                channel.name,
+                np.dtype(vals.dtype, metadata={"conversion": channel.conversion, "unit": channel.unit, "axes": axes}),
+                shape,
+            )
             types.append(dtype_pair)
 
             for i, axis in enumerate(axes):
-                shape = (axis['size'],)
+                shape = (axis["size"],)
 
-                match axis['type']:
-                    case 'NO_AXIS' | "SCALE_AXIS":
+                match axis["type"]:
+                    case "NO_AXIS" | "SCALE_AXIS":
                         pass
 
-                    case 'FIXED_AXIS':
-                        fix_axis = array(axis['values'])
+                    case "FIXED_AXIS":
+                        fix_axis = array(axis["values"])
                         if cycles_nr:
                             axis_array = array([fix_axis for _ in range(cycles_nr)])
                         else:
                             axis_array = array([fix_axis])[:0]
                         arrays.append(axis_array)
-                        dtype_pair = (f"axis_{i}", np.dtype(fix_axis.dtype, metadata={'axes': [axis], 'conversion': axis['conversion']}), shape)
+                        dtype_pair = (
+                            f"axis_{i}",
+                            np.dtype(fix_axis.dtype, metadata={"axes": [axis], "conversion": axis["conversion"]}),
+                            shape,
+                        )
                         types.append(dtype_pair)
-                        axis['dtype_field_name'] = f"axis_{i}"
+                        axis["dtype_field_name"] = f"axis_{i}"
 
-                    case 'REF_AXIS':
-                        axis_channel = axis['ref']
-                        
+                    case "REF_AXIS":
+                        axis_channel = axis["ref"]
+
                         if axis_channel is None:
                             axisname = f"axis_{i}"
                             axis_values = array(
@@ -8183,7 +8197,7 @@ class MDF4(MDF_Common[Group]):
 
                         else:
                             try:
-                                (ref_dg_nr, ref_ch_nr) = axis_channel
+                                ref_dg_nr, ref_ch_nr = axis_channel
                             except:
                                 debug_channel(self, grp, channel, dependency_list)
                                 raise
@@ -8222,11 +8236,17 @@ class MDF4(MDF_Common[Group]):
                             if len(axis_values) == 0 and cycles:
                                 axis_values = array([arange(shape[0])] * cycles)
 
-                        axis['ref_name'] = axisname
-                        axis['dtype_field_name'] = axisname
+                        axis["ref_name"] = axisname
+                        axis["dtype_field_name"] = axisname
 
                         arrays.append(axis_values)
-                        dtype_pair = (axisname, np.dtype(axis_values.dtype.base, metadata={"conversion": axis['conversion'], "axes": [axis]}), shape)
+                        dtype_pair = (
+                            axisname,
+                            np.dtype(
+                                axis_values.dtype.base, metadata={"conversion": axis["conversion"], "axes": [axis]}
+                            ),
+                            shape,
+                        )
                         types.append(dtype_pair)
 
             vals = np.rec.fromarrays(arrays, np.dtype(types))
@@ -8234,7 +8254,9 @@ class MDF4(MDF_Common[Group]):
             if master_is_required:
                 masters.append(self.get_master(gp_nr, fragment, one_piece=True))
             if channel_invalidation_present:
-                invalidation_arrays.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece))
+                invalidation_arrays.append(
+                    self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
+                )
 
             channel_values.append(vals)
             count += 1
@@ -8457,7 +8479,9 @@ class MDF4(MDF_Common[Group]):
         gp_nr = group_index
         ch_nr = channel_index
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
 
         data_type = channel.data_type
         channel_type = channel.channel_type
@@ -8476,16 +8500,16 @@ class MDF4(MDF_Common[Group]):
             v4c.CHANNEL_TYPE_VIRTUAL,
             v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
-            
+
             channel_values: list[NDArray[Any]] = []
             masters: list[NDArray[Any]] = []
-            invalidation_arrays: list[InvalidationArray |None] = []
+            invalidation_arrays: list[InvalidationArray | None] = []
 
             channel_group = grp.channel_group
             record_size = channel_group.samples_byte_nr
             record_size += channel_group.invalidation_bytes_nr
 
-            ch_dtype = np.min_scalar_type(channel_group.cycles_nr) 
+            ch_dtype = np.min_scalar_type(channel_group.cycles_nr)
             channel.dtype_fmt = ch_dtype
 
             count = 0
@@ -8546,7 +8570,7 @@ class MDF4(MDF_Common[Group]):
                     invalidation_array = invalidation_arrays[0]
                     if invalidation_array is None:
                         invalidation_bits = None
-                    
+
                     elif not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_array)[0]]
                         if master_is_required:
@@ -8680,7 +8704,9 @@ class MDF4(MDF_Common[Group]):
                     timestamps = None
 
                 if channel_invalidation_present:
-                    invalidation_array = self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
+                    invalidation_array = self.get_invalidation_bits(
+                        gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece
+                    )
 
                     if invalidation_array is None:
                         invalidation_bits = None
@@ -8721,7 +8747,9 @@ class MDF4(MDF_Common[Group]):
                             masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
                             invalidation_arrays.append(
-                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
+                                self.get_invalidation_bits(
+                                    gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece
+                                )
                             )
 
                         channel_values.append(vals)
@@ -8751,7 +8779,9 @@ class MDF4(MDF_Common[Group]):
                             masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
                             invalidation_arrays.append(
-                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
+                                self.get_invalidation_bits(
+                                    gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece
+                                )
                             )
 
                     if count > 1:
@@ -11117,7 +11147,11 @@ class MDF4(MDF_Common[Group]):
                             if compression:
                                 if gp.channel_group.samples_byte_nr > 1:
                                     current_zip_type = zip_type
-                                    if compression in (v4c.CompressionAlgorithm.DEFLATE, v4c.CompressionAlgorithm.LZ4,v4c.CompressionAlgorithm.ZSTD):
+                                    if compression in (
+                                        v4c.CompressionAlgorithm.DEFLATE,
+                                        v4c.CompressionAlgorithm.LZ4,
+                                        v4c.CompressionAlgorithm.ZSTD,
+                                    ):
                                         param = 0
                                     else:
                                         param = gp.channel_group.samples_byte_nr
@@ -11145,7 +11179,11 @@ class MDF4(MDF_Common[Group]):
                             if inval_ is not None:
                                 inval_address = address = tell()
                                 if compression:
-                                    if compression in (v4c.CompressionAlgorithm.DEFLATE, v4c.CompressionAlgorithm.LZ4,v4c.CompressionAlgorithm.ZSTD):
+                                    if compression in (
+                                        v4c.CompressionAlgorithm.DEFLATE,
+                                        v4c.CompressionAlgorithm.LZ4,
+                                        v4c.CompressionAlgorithm.ZSTD,
+                                    ):
                                         param = 0
                                     else:
                                         param = gp.channel_group.invalidation_bytes_nr
@@ -11171,7 +11209,7 @@ class MDF4(MDF_Common[Group]):
                                 "data_block_nr": 1,
                                 "data_block_len": gp.channel_group.cycles_nr,
                                 "data_block_addr_0": data_address,
-                                "flags_ext": 0
+                                "flags_ext": 0,
                             }
                             if inval_:
                                 ld_kwargs["flags_ext"] |= v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
@@ -11271,7 +11309,7 @@ class MDF4(MDF_Common[Group]):
                                 "flags": v4c.FLAG_LD_EQUAL_LENGHT,
                                 "data_block_nr": len(dv_addr),
                                 "data_block_len": block_size // gp.channel_group.samples_byte_nr,
-                                "flags_ext": 0
+                                "flags_ext": 0,
                             }
                             for i, addr in enumerate(dv_addr):
                                 ld_kwargs[f"data_block_addr_{i}"] = addr  # type: ignore[literal-required]
@@ -11282,9 +11320,9 @@ class MDF4(MDF_Common[Group]):
                                     ld_kwargs[f"invalidation_bits_addr_{i}"] = addr  # type: ignore[literal-required]
 
                             if self.version >= "4.30":
-                                ld_kwargs['zip_info'] = zip_type
-                                ld_kwargs['zip_info_inval'] = zip_type
-                                ld_kwargs['flags'] |= v4c.FLAG_LD_ZIP_INFO_VALID
+                                ld_kwargs["zip_info"] = zip_type
+                                ld_kwargs["zip_info_inval"] = zip_type
+                                ld_kwargs["flags"] |= v4c.FLAG_LD_ZIP_INFO_VALID
 
                             ld_block = ListData(**ld_kwargs)
                             write(bytes(ld_block))
@@ -12480,7 +12518,9 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[0].astype("<u1")
+                )[
+                    0
+                ].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12488,7 +12528,9 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[0].astype("<u4")
+                    )[
+                        0
+                    ].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12516,7 +12558,9 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[0].astype("<u1")
+                )[
+                    0
+                ].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12524,7 +12568,9 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[0].astype("<u4")
+                    )[
+                        0
+                    ].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12575,7 +12621,9 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[0].astype("<u1")
+                )[
+                    0
+                ].astype("<u1")
 
                 msg_id_signal = (
                     self.get("CAN_DataFrame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
@@ -12732,7 +12780,9 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[0].astype("<u4")
+                    )[
+                        0
+                    ].astype("<u4")
                     & 0x1FFFFFFF
                 )
 

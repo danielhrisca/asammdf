@@ -206,7 +206,7 @@ def get_data(plot, items, uuids_only=False):
 
 
 def round_floats(obj, decimals=10):
-    
+
     if isinstance(obj, dict):
         new = {}
         for key, val in obj.items():
@@ -335,7 +335,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     )
 
             return data
-        
+
         if QtWidgets.QApplication.queryKeyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
             retain_structure = True
         else:
@@ -2010,9 +2010,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             )
 
             utils.ERROR_ICON = QtGui.QIcon()
-            utils.ERROR_ICON.addPixmap(
-                QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
+            utils.ERROR_ICON.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         super().__init__(parent, type)
         self.exists = True
@@ -2270,7 +2268,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def does_not_exist(self, exists=False):
         if exists == self.exists:
             return
-        
+
         self.exists = exists
 
         self._set_icon()
@@ -2455,8 +2453,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def set_conversion(self, conversion, is_original_conversion=False):
         if self.type() == self.Channel:
             if self.signal.flags & Signal.Flags.computed:
-                 return
-            
+                return
+
             self.signal.conversion = conversion
             if is_original_conversion:
                 self.signal.flags &= 0xFD

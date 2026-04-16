@@ -47,7 +47,7 @@ from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
 
-try: 
+try:
     from isal.isal_zlib import decompress as zlib_decompress
 except ImportError:
     from zlib import decompress as zlib_decompress
@@ -131,7 +131,7 @@ DECOMPRESS_FUNC_MAP = {
     v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
     v4c.DZ_BLOCK_LZ: lz_decompress,
     v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
-    v4c.DZ_BLOCK_ZSTD:zstd_decompress,
+    v4c.DZ_BLOCK_ZSTD: zstd_decompress,
     v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
 }
 
@@ -361,8 +361,6 @@ def get_text_v4(
     text : str | bytes
         Unicode string or bytes object depending on the `decode` argument.
     """
-
-
 
     if address == 0:
         return "" if decode else b""
@@ -1932,12 +1930,10 @@ class Timer:
                 tpi = round(self.total_time / self.count, r)
                 if tpi:
                     break
-            print(
-                f"""TIMER {self.name}:
+            print(f"""TIMER {self.name}:
 \t* {self.count} iterations in {self.total_time * 1000:.3f}ms
 \t* {self.count / self.total_time:.3f} iter/s
-\t* {self.total_time / self.count * factor:.3f} {unit}/iter"""
-            )
+\t* {self.total_time / self.count * factor:.3f} {unit}/iter""")
         else:
             print(f"TIMER {self.name}:\n\t* inactive")
 
@@ -1955,16 +1951,17 @@ def handle_incomplete_block(address: int, file_limit: int, file: StrPath | None 
         raise MdfException(msg)
 
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
+
     class NamedTemporaryFile:
-        def __init__(self, mode='w+b', dir=None):
+        def __init__(self, mode="w+b", dir=None):
             if dir is None:
                 self.dir = Path(gettempdir())
             else:
                 self.dir = Path(dir)
 
             self.name = str(self.dir / os.urandom(6).hex())
-            self.mode = 'w+b'
+            self.mode = "w+b"
             self.file = os.open(self.name, os.O_CREAT | os.O_RDWR | os.O_BINARY | os.O_RANDOM)
             self._closed = False
 
@@ -1972,83 +1969,83 @@ if sys.platform == 'win32':
             os.close(self.file)
             self._closed = True
             Path(self.name).unlink()
-        
+
         def closed(self):
             return self._closed
-        
+
         def fileno(self):
             return self.file
-        
+
         def flush(self):
             return os.fsync(self.file)
-        
+
         def isatty(self):
             return os.isatty(self.file)
-        
+
         def __iter__(self):
             while byte := os.read(self.file, 1):
                 yield byte
-        
+
         def peek(self, size=0):
             pos = self.tell()
             data = os.read(self.file, size)
             self.seek(pos)
             return data
-        
+
         @property
         def raw(self):
             return None
-        
+
         def read(self, size=-1):
             if size == -1:
                 pos = self.tell()
                 self.seek(0, os.SEEK_END)
-                size = self.tell()-pos
+                size = self.tell() - pos
                 self.seek(pos)
 
             return os.read(self.file, size)
-        
+
         def read1(self):
             return os.read(self.file, 1)
-        
+
         def readable(self):
             return True
-        
+
         def readinto(self, buffer):
             buffer[:] = self.read()
-        
+
         def readinto1(self, buffer):
             buffer[:1] = self.read1()
-        
+
         def readline(self):
-            return b''
-        
+            return b""
+
         def readlines(self):
             return []
-        
+
         def seek(self, target, whence=os.SEEK_SET):
             return os.lseek(self.file, target, whence)
-        
+
         def seekable(self):
             return True
-        
+
         def tell(self):
             return os.lseek(self.file, 0, os.SEEK_CUR)
-        
+
         def truncate(self, length=None):
             if length is not None:
                 return os.ftruncate(self.file, length)
-        
+
         def writeable(self):
             return True
-        
+
         def write(self, buffer):
             return os.write(self.file, buffer)
-        
+
         def writelines(self, lines):
             for line in lines:
                 return os.write(self.file, line)
-    
+
 
 def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
     location = None
@@ -2058,10 +2055,10 @@ def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
             location = block.location
         elif location != block.location:
             return False
-        
+
         if block.original_size % record_size or block.invalidation_block is not None:
             return False
-        
+
         size += block.original_size
 
     if size < 200 * 1024 * 1024:

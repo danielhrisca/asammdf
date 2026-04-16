@@ -37,7 +37,7 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
 
     def update(self, *args, initial=False):
         import scipy.signal as scipy_signal
-        
+
         xrange, yrange = self.fft_plot.plot.viewbox.viewRange()
 
         if self.signal_plot.plot.region:

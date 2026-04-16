@@ -1526,7 +1526,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
                 )
 
-                inplace=not opts.cut_time_from_zero
+                inplace = not opts.cut_time_from_zero
 
                 # cut self.mdf
                 target = mdf.cut
@@ -1542,7 +1542,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 if not inplace:
                     mdf.close()
-                    
+
                 mdf = result
 
                 mdf.configure(
@@ -1845,13 +1845,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             with open(file_name, "w") as output:
                 if suffix == ".lab":
-                    output.write(
-                        """[SETTINGS]
+                    output.write("""[SETTINGS]
 Version;V1.1
 MultiRasterSeparator;&
 
-"""
-                    )
+""")
                     output.write(f"[{section_name}]\n")
                 output.write("\n".join(natsorted(signals)))
 

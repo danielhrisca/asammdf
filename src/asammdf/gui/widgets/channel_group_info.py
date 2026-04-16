@@ -86,12 +86,10 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         data = pd.Series(list(np.frombuffer(data, dtype=f"({self.record_size},)u1")))
         data = list(csv_bytearray2hex(data))
 
-        lines = [
-            """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+        lines = ["""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
 <html><head><meta name="qrichtext" content="1" /><style type="text/css">
 p, li { white-space: pre-wrap; }
-</style></head><body style=" font-size:8pt; font-style:normal;">"""
-        ]
+</style></head><body style=" font-size:8pt; font-style:normal;">"""]
 
         if self.byte_count == 0:
             template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:{BLUE};">{{index: >{self.index_size}}}: </span>{{line}}</p>'

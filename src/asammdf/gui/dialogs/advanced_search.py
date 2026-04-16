@@ -30,7 +30,7 @@ class SearchItem:
         for child in self._children:
             if item in child:
                 return True
-            
+
         return tuple(self) == tuple(item)
 
     def appendChild(self, item):
@@ -39,10 +39,10 @@ class SearchItem:
 
     def child(self, row):
         return self._children[row]
-    
+
     def childCount(self):
         return len(self._children)
-    
+
     def clear(self):
         for child in self._children:
             child.clear()
@@ -51,7 +51,7 @@ class SearchItem:
 
     def copy(self):
         return SearchItem(tuple(self))
-    
+
     def data(self, return_names=False):
         if return_names:
             res = set()
@@ -69,27 +69,23 @@ class SearchItem:
                 res[(self[GroupColumn], self[ChannelColumn])] = self[NameColumn]
 
         return res
-    
+
     @property
     def parent(self):
         return self._parent
-    
+
     @parent.setter
     def parent(self, v):
         self._parent = v
 
     def remove(self, item):
-        self._children = [
-            child
-            for child in self._children
-            if tuple(child) != tuple(item)
-        ]
+        self._children = [child for child in self._children if tuple(child) != tuple(item)]
         for child in self._children:
             child.remove(item)
 
     def row(self):
         return self._parent._children.index(self) if self._parent else 0
-    
+
     def sort(self, column, order=QtCore.Qt.SortOrder.AscendingOrder):
         reverse = order == QtCore.Qt.SortOrder.DescendingOrder
 
@@ -103,7 +99,7 @@ class SearchItem:
 
     def __getitem__(self, idx):
         return self._values[idx]
-    
+
     def __iter__(self):
         yield from self._values
 
@@ -119,11 +115,11 @@ class Model(QtCore.QAbstractItemModel):
 
     def __contains__(self, item):
         return item in self._root
-    
+
     def add(self, data):
         if not data:
             return
-        
+
         if isinstance(data, SearchItem):
             data = [data]
 
@@ -152,12 +148,9 @@ class Model(QtCore.QAbstractItemModel):
                 item = index.internalPointer()
                 return item[index.column()]
 
-
     def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            return [
-                "Name", "Group", "Index", "Unit", "Source name", "Source path", "Comment"
-            ][section]
+            return ["Name", "Group", "Index", "Unit", "Source name", "Source path", "Comment"][section]
 
     def index(self, row, column, parent=QtCore.QModelIndex()):
         if not self.hasIndex(row, column, parent):
@@ -185,7 +178,7 @@ class Model(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
 
         return self.createIndex(parent.row(), 0, parent)
-    
+
     def remove(self, data):
         if isinstance(data, SearchItem):
             data = [data]
@@ -367,7 +360,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             if match_kind == "Wildcard":
                 wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
                 if self._settings.value("search/add_wildcards", False, type=bool):
-                    text = f'*{text}*'
+                    text = f"*{text}*"
                 pattern = text.replace("*", wildcard)
                 pattern = re.escape(pattern)
                 pattern = pattern.replace(wildcard, ".*")
@@ -455,7 +448,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     matches = {}
                     for name in found_names:
                         for entry in self.channels_db[name]:
-                            (group_index, channel_index) = entry
+                            group_index, channel_index = entry
                             ch = self.mdf.groups[group_index].channels[channel_index]
 
                             if entry not in matches:
@@ -479,7 +472,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 info["names"].append(name)
 
                 matches = [(group_index, channel_index, info) for (group_index, channel_index), info in matches.items()]
-                
+
                 new_matches = SearchItem()
                 for group_index, channel_index, info in matches:
                     names = info["names"]
@@ -493,23 +486,23 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             info["source_path"],
                             info["comment"],
                         ],
-                        parent=new_matches
+                        parent=new_matches,
                     )
                     new_matches.appendChild(item)
 
                     for name in names[1:]:
                         child = SearchItem(
-                                [
-                                    name,
-                                    group_index,
-                                    channel_index,
-                                    info["unit"],
-                                    info["source_name"],
-                                    info["source_path"],
-                                    info["comment"],
-                                ],
-                                parent=item
-                            )
+                            [
+                                name,
+                                group_index,
+                                channel_index,
+                                info["unit"],
+                                info["source_name"],
+                                info["source_path"],
+                                info["comment"],
+                            ],
+                            parent=item,
+                        )
                         item.appendChild(child)
 
                 if new_matches:
@@ -529,9 +522,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         indexes = list({index.row(): index for index in self.matches.selectedIndexes() if index.isValid()}.values())
         if not indexes:
             return
-        
+
         data = []
-        
+
         for index in indexes:
             new_data = index.internalPointer()
 
@@ -628,14 +621,16 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if action is None:
             return
 
-        if action.text() == 'Delete':
+        if action.text() == "Delete":
 
-            indexes = list({index.row(): index for index in self.selection.selectedIndexes() if index.isValid()}.values())
+            indexes = list(
+                {index.row(): index for index in self.selection.selectedIndexes() if index.isValid()}.values()
+            )
             if not indexes:
                 return
-            
+
             data = []
-        
+
             for index in indexes:
                 to_delete = index.internalPointer()
 
@@ -668,10 +663,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         ]
         if not indexes:
             return
-        
+
         for index in indexes:
             item = index.internalPointer()
-        
+
             group_index, channel_index = item[GroupColumn], int(item[ChannelColumn])
 
         try:

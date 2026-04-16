@@ -556,13 +556,18 @@ def compute_signal(
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                timestamps = [sig.timestamps for sig in signals if sig is not None and not isinstance(sig, (int, float))]
+                timestamps = [
+                    sig.timestamps for sig in signals if sig is not None and not isinstance(sig, (int, float))
+                ]
 
                 if timestamps:
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [
+                    sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig
+                    for sig in signals
+                ]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -571,7 +576,10 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [
+                    sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig
+                    for sig in signals
+                ]
             else:
                 step = float(description["triggering_value"])
 
@@ -596,7 +604,10 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [
+                    sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig
+                    for sig in signals
+                ]
 
             if not isinstance(common_timebase, np.ndarray):
                 common_timebase = np.array(common_timebase)
@@ -1116,9 +1127,9 @@ def get_color_using_ranges(
 def value_as_bin(value, dtype):
     try:
         byte_string = value.tobytes()
-    except AttributeError:    
+    except AttributeError:
         byte_string = np.array([value], dtype=dtype).tobytes()
-        
+
     if dtype.byteorder != ">":
         byte_string = byte_string[::-1]
 
@@ -1132,7 +1143,7 @@ def value_as_bin(value, dtype):
 def value_as_hex(value, dtype):
     try:
         byte_string = value.tobytes()
-    except AttributeError:    
+    except AttributeError:
         byte_string = np.array([value], dtype=dtype).tobytes()
 
     if dtype.byteorder != ">":
@@ -1249,7 +1260,7 @@ def generate_python_function_globals() -> dict:
         import scipy as sp
 
         func_globals["sp"] = sp
-        
+
     except ImportError:
         pass
 

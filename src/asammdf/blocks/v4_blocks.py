@@ -53,7 +53,7 @@ AT_COMPRESSION_LEVEL = 9
 try:
     from deflate import zlib_compress as compress
     from deflate import zlib_decompress
-    
+
     def decompress(data, bufsize):
         return zlib_decompress(data, originalsize=bufsize)
 
@@ -222,18 +222,12 @@ class AttachmentBlock:
                 self.links_nr,
             ) = v4c.COMMON_u(stream.read(v4c.COMMON_SIZE))
 
-            if self.id != b'##AT':
+            if self.id != b"##AT":
                 raise MdfException(f"expected ATBLOCK (b'##AT') at {address=:X} but found {self.id}")
 
-            links = unpack(f'<{self.links_nr}Q', stream.read(self.links_nr * 8))
+            links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
-            (   
-                self.next_at_addr,
-                self.file_name_addr,
-                self.mime_addr,
-                self.comment_addr, 
-                *links
-            ) = links
+            self.next_at_addr, self.file_name_addr, self.mime_addr, self.comment_addr, *links = links
 
             (
                 self.flags,
@@ -243,7 +237,7 @@ class AttachmentBlock:
                 self.reserved1,
                 self.md5_sum,
                 self.original_size,
-                self.embedded_size
+                self.embedded_size,
             ) = v4c.AT_TAIL_u(stream.read(v4c.AT_TAIL_SIZE))
 
             if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
@@ -265,9 +259,7 @@ class AttachmentBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.file_name = get_text_v4(
-                self.file_name_addr, stream, mapped=mapped, file_limit=file_limit
-            )
+            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped, file_limit=file_limit)
             self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped, file_limit=file_limit)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 
@@ -295,7 +287,7 @@ class AttachmentBlock:
                     match compression_type:
                         case "deflate":
 
-                            flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED 
+                            flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
                             data = compress(data, AT_COMPRESSION_LEVEL)
                             embedded_size = len(data)
 
@@ -310,15 +302,14 @@ class AttachmentBlock:
                             self.path_syntax = ord(pathlib.os.sep)
 
                         case "lz4":
-                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED  
+                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED
                             data = lz_compress(data, AT_COMPRESSION_LEVEL)
                             embedded_size = len(data)
 
                             self.zip_type = v4c.AT_ZIP_TYPE_LZ4
-                            self.path_syntax = ord(pathlib.os.sep) 
+                            self.path_syntax = ord(pathlib.os.sep)
 
                 self.file_name = file_name.name
-
 
             else:
                 self.file_name = str(file_name)
@@ -466,34 +457,34 @@ class AttachmentBlock:
         setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
-        fmt = f'<4sI{self.links_nr + 2}Q2H2BH16s2Q{self.embedded_size}s'
+        fmt = f"<4sI{self.links_nr + 2}Q2H2BH16s2Q{self.embedded_size}s"
         keys = (
-            'id', 
-            'reserved0', 
-            'block_len', 
-            'links_nr', 
-            'next_at_addr',
-            'file_name_addr',
-            'mime_addr',
-            'comment_addr'
+            "id",
+            "reserved0",
+            "block_len",
+            "links_nr",
+            "next_at_addr",
+            "file_name_addr",
+            "mime_addr",
+            "comment_addr",
         )
 
         if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
-            keys = (*keys, 'file_name_zip_addr')
+            keys = (*keys, "file_name_zip_addr")
 
         if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
-            keys = (*keys, 'mime_zip_addr')
+            keys = (*keys, "mime_zip_addr")
 
         keys = keys + (
-            'flags',
-            'creator_index',
-            'zip_type',
-            'path_syntax',
-            'reserved1',
-            'md5_sum',
-            'original_size',
-            'embedded_size',
-            'embedded_data'
+            "flags",
+            "creator_index",
+            "zip_type",
+            "path_syntax",
+            "reserved1",
+            "md5_sum",
+            "original_size",
+            "embedded_size",
+            "embedded_data",
         )
 
         result = pack(fmt, *[self[key] for key in keys])
@@ -683,7 +674,7 @@ class Channel:
                 raise KeyError
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -837,9 +828,7 @@ class Channel:
                 parsed_strings = kwargs["parsed_strings"]
                 if parsed_strings is None:
                     self.name = get_text_v4(self.name_addr, stream, mapped=mapped, file_limit=file_limit)
-                    self.comment = get_text_v4(
-                        self.comment_addr, stream, mapped=mapped, file_limit=file_limit
-                    )
+                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
@@ -882,7 +871,6 @@ class Channel:
                                     stream=stream,
                                     address=address,
                                     mapped=mapped,
-                                   
                                     file_limit=file_limit,
                                 )
                                 cc_map[raw_bytes] = cc_map[address] = conv
@@ -918,7 +906,6 @@ class Channel:
                                     stream=stream,
                                     address=address,
                                     mapped=mapped,
-                                   
                                     file_limit=file_limit,
                                 )
                                 si_map[raw_bytes] = si_map[address] = source
@@ -941,7 +928,7 @@ class Channel:
 
                 block = stream.read(CN_SINGLE_ATTACHMENT_BLOCK_SIZE)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(block)
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -1135,7 +1122,6 @@ class Channel:
                                     raw_bytes=raw_bytes,
                                     stream=stream,
                                     address=address,
-                                   
                                     mapped=mapped,
                                     file_limit=file_limit,
                                 )
@@ -1169,7 +1155,6 @@ class Channel:
                                     raw_bytes=raw_bytes,
                                     stream=stream,
                                     address=address,
-                                   
                                     mapped=mapped,
                                     file_limit=file_limit,
                                 )
@@ -1641,7 +1626,7 @@ class ChannelArrayBlockKwargs(BlockKwargs, total=False):
     flags: int
     byte_offset_base: int
     invalidation_bit_base: int
-    file_limit : int | float
+    file_limit: int | float
     cc_map: dict[bytes | int, "ChannelConversion"]
 
 
@@ -1684,7 +1669,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 raise KeyError
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if self.id != b"##CA":
                     message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
@@ -1759,7 +1744,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         self[f"axis_conversion_{i}_addr"] = address
 
                         if address:
-                    
+
                             if address in cc_map:
                                 conv = cc_map[address]
                             else:
@@ -1783,7 +1768,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                                         stream=stream,
                                         address=address,
                                         mapped=mapped,
-                                        
                                         file_limit=file_limit,
                                     )
                                     cc_map[raw_bytes] = cc_map[address] = conv
@@ -1810,7 +1794,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             else:
                 stream.seek(address)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(24))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(24))
 
                 if self.id != b"##CA":
                     message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
@@ -1888,7 +1872,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                                 if address + 16 > file_limit:
                                     handle_incomplete_block(address, file_limit)
                                     raise MdfException(f"Incomplete block at {address:x}")
-                                
+
                                 stream.seek(address + 8)
 
                                 (size,) = UINT64_uf(stream.read(8))
@@ -1915,7 +1899,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                             conv = None
 
                         self[f"axis_conversion_{i}"] = conv
-                    
+
                     links = links[dims_nr:]
 
                     stream.seek(current_address)
@@ -2108,7 +2092,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
-    
+
     def get_axes_information(self) -> list:
         axes = []
 
@@ -2117,39 +2101,41 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
             match self.ca_type:
                 case v4c.CA_TYPE_ARRAY:
-                    info['type'] = "NO_AXIS"
-                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                    info["type"] = "NO_AXIS"
+                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
 
                 case v4c.CA_TYPE_SCALE_AXIS:
-                    info['type'] = "SCALE_AXIS"
-                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                    info["type"] = "SCALE_AXIS"
+                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
 
                 case _:
-        
+
                     if self.flags & v4c.FLAG_CA_FIXED_AXIS:
 
-                        info['type'] = "FIXED_AXIS"
-                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
-                        info['values'] = [self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
-                    
+                        info["type"] = "FIXED_AXIS"
+                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+                        info["values"] = [
+                            self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))
+                        ]
+
                     else:
 
-                        info['type'] = "REF_AXIS"
-                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
-                        info['ref'] = self.axis_channels[i]
-                        info['ref_name'] = ''
+                        info["type"] = "REF_AXIS"
+                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+                        info["ref"] = self.axis_channels[i]
+                        info["ref_name"] = ""
 
             if self.flags & v4c.FLAG_CA_AXIS:
-                info['conversion'] = self[f"axis_conversion_{i}"]
+                info["conversion"] = self[f"axis_conversion_{i}"]
             else:
-                info['conversion'] = None
+                info["conversion"] = None
 
-            info['inverse_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
-            info['byte_offset_base'] = self.byte_offset_base
-            info['dtype_field_name'] = ""
+            info["inverse_layout"] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
+            info["byte_offset_base"] = self.byte_offset_base
+            info["dtype_field_name"] = ""
 
             axes.append(info)
-        
+
         return axes
 
     def get_byte_offset_factors(self) -> list[int]:
@@ -2175,7 +2161,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             factors = factors[::-1]
 
         return factors
-    
+
     def to_blocks(
         self,
         address: int,
@@ -2304,7 +2290,7 @@ class ChannelGroup:
                 raise KeyError
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -2424,7 +2410,6 @@ class ChannelGroup:
                             stream=stream,
                             address=address,
                             mapped=mapped,
-                           
                             file_limit=file_limit,
                         )
                         si_map[raw_bytes] = source
@@ -2829,7 +2814,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             try:
                 tx_block = kwargs["raw_bytes"]
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(tx_block)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(tx_block)
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -2845,7 +2830,7 @@ class ChannelConversion(_ChannelConversionBase):
             except KeyError:
                 stream.seek(address)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -2969,7 +2954,7 @@ class ChannelConversion(_ChannelConversionBase):
                 nr = self.val_param_nr
                 values = unpack_from(f"<{nr}d", tx_block, 56)
                 for i in range((nr - 1) // 3):
-                    (self[f"lower_{i}"], self[f"upper_{i}"], self[f"phys_{i}"]) = (
+                    self[f"lower_{i}"], self[f"upper_{i}"], self[f"phys_{i}"] = (
                         values[i * 3],
                         values[3 * i + 1],
                         values[3 * i + 2],
@@ -3141,9 +3126,9 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(
-                    self.formula_addr, stream, mapped=mapped, file_limit=file_limit
-                ).replace("x", "X")
+                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped, file_limit=file_limit).replace(
+                    "x", "X"
+                )
             else:
                 self.formula = ""
 
@@ -3209,7 +3194,6 @@ class ChannelConversion(_ChannelConversionBase):
                                         stream=stream,
                                         mapped=mapped,
                                         decode=False,
-                                        
                                         file_limit=file_limit,
                                     )
                                 elif _id == b"##CC":
@@ -3217,7 +3201,6 @@ class ChannelConversion(_ChannelConversionBase):
                                         address=address,
                                         stream=stream,
                                         mapped=mapped,
-                                        
                                         file_limit=file_limit,
                                     )
                                     refs["default_addr"] = cc_block
@@ -3240,18 +3223,17 @@ class ChannelConversion(_ChannelConversionBase):
                                 stream=stream,
                                 mapped=mapped,
                                 decode=False,
-                                
                                 file_limit=file_limit,
                             )
 
                     address = self.default_addr
                     refs["default_addr"] = get_text_v4(
-                            address=address,
-                            stream=stream,
-                            mapped=mapped,
-                            decode=False,
-                            file_limit=file_limit,
-                        )
+                        address=address,
+                        stream=stream,
+                        mapped=mapped,
+                        decode=False,
+                        file_limit=file_limit,
+                    )
 
         else:
             self.name = kwargs.get("name", "")
@@ -4934,7 +4916,7 @@ class DataBlock:
                 raise KeyError
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -4949,7 +4931,7 @@ class DataBlock:
             else:
                 stream.seek(address)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address, file_limit)
@@ -5477,7 +5459,7 @@ class DataList(_DataListBase):
                     self.data_block_nr = 0
                     return
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if self.id != b"##DL":
                     message = f'Expected "##DL" block @{hex(address)} but found "{self.id!r}"'
@@ -5504,13 +5486,11 @@ class DataList(_DataListBase):
 
                 self.flags = stream.read_byte()
                 if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
-                    (self.reserved1, self.data_block_nr, self.data_block_len) = typing.cast(
+                    self.reserved1, self.data_block_nr, self.data_block_len = typing.cast(
                         tuple[bytes, int, int], unpack("<3sIQ", stream.read(15))
                     )
                 else:
-                    (self.reserved1, self.data_block_nr) = typing.cast(
-                        tuple[bytes, int], unpack("<3sI", stream.read(7))
-                    )
+                    self.reserved1, self.data_block_nr = typing.cast(tuple[bytes, int], unpack("<3sI", stream.read(7)))
                     offsets: tuple[int, ...] = unpack(
                         f"<{self.links_nr - 1}Q",
                         stream.read((self.links_nr - 1) * 8),
@@ -5526,7 +5506,7 @@ class DataList(_DataListBase):
 
                 stream.seek(address)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
                 if self.address + self.block_len > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
@@ -5549,13 +5529,11 @@ class DataList(_DataListBase):
 
                 self.flags = stream.read(1)[0]
                 if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
-                    (self.reserved1, self.data_block_nr, self.data_block_len) = typing.cast(
+                    self.reserved1, self.data_block_nr, self.data_block_len = typing.cast(
                         tuple[bytes, int, int], unpack("<3sIQ", stream.read(15))
                     )
                 else:
-                    (self.reserved1, self.data_block_nr) = typing.cast(
-                        tuple[bytes, int], unpack("<3sI", stream.read(7))
-                    )
+                    self.reserved1, self.data_block_nr = typing.cast(tuple[bytes, int], unpack("<3sI", stream.read(7)))
                     offsets = unpack(
                         f"<{self.links_nr - 1}Q",
                         stream.read((self.links_nr - 1) * 8),
@@ -5720,7 +5698,7 @@ class EventBlock(_EventBlockBase):
 
             stream.seek(address)
 
-            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+            self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
             if address + self.block_len > file_limit:
                 handle_incomplete_block(address, file_limit)
@@ -6443,7 +6421,7 @@ class HeaderBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream,file_limit=file_limit)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, file_limit=file_limit)
 
         except KeyError:
             self.address = 0x40
@@ -6902,7 +6880,7 @@ class ListData(_ListDataBase):
                     self.data_block_nr = 0
                     return
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 if self.id != b"##LD":
                     message = f'Expected "##LD" block @{hex(address)} but found "{self.id!r}"'
@@ -6922,7 +6900,9 @@ class ListData(_ListDataBase):
 
                 address += self.links_nr * 8
 
-                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = unpack_from("<4BI", stream, address)
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = unpack_from(
+                    "<4BI", stream, address
+                )
                 address += 8
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_uf(stream, address)
@@ -6968,7 +6948,7 @@ class ListData(_ListDataBase):
 
                 stream.seek(address)
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
                 if self.id != b"##LD":
                     message = f'Expected "##LD" block @{hex(address)} but found "{self.id!r}"'
@@ -6984,7 +6964,9 @@ class ListData(_ListDataBase):
 
                 links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
-                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = typing.cast(tuple[int, int], unpack("<4BI", stream.read(8)))
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = typing.cast(
+                    tuple[int, int], unpack("<4BI", stream.read(8))
+                )
 
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_u(stream.read(8))
@@ -7196,15 +7178,9 @@ class SourceInformation:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(
-                address=self.name_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
-            self.path = get_text_v4(
-                address=self.path_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
-            self.comment = get_text_v4(
-                address=self.comment_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
+            self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped, file_limit=file_limit)
+            self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped, file_limit=file_limit)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped, file_limit=file_limit)
 
         else:
             self.address = 0
@@ -7442,7 +7418,7 @@ class TextBlock:
             self.address = address = kwargs["address"]
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
 
                 size = self.block_len - COMMON_SIZE
 
@@ -7455,7 +7431,7 @@ class TextBlock:
 
             else:
                 stream.seek(address)
-                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(COMMON_SIZE))
 
                 size = self.block_len - COMMON_SIZE
 

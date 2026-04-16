@@ -57,11 +57,7 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion: dict[str, Any] = {
-            "conversion_type": (
-                v4c.CONVERSION_TYPE_LIN
-                if version >= "4.00"
-                else v3c.CONVERSION_TYPE_LINEAR
-            ),
+            "conversion_type": (v4c.CONVERSION_TYPE_LIN if version >= "4.00" else v3c.CONVERSION_TYPE_LINEAR),
             "a": float(i),
             "b": -0.5,
         }
@@ -80,11 +76,7 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": (
-                v4c.CONVERSION_TYPE_ALG
-                if version >= "4.00"
-                else v3c.CONVERSION_TYPE_FORMULA
-            ),
+            "conversion_type": (v4c.CONVERSION_TYPE_ALG if version >= "4.00" else v3c.CONVERSION_TYPE_FORMULA),
             "formula": f"{i} * sin(X)",
         }
         sig = Signal(
@@ -102,11 +94,7 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": (
-                v4c.CONVERSION_TYPE_RAT
-                if version >= "4.00"
-                else v3c.CONVERSION_TYPE_RAT
-            ),
+            "conversion_type": (v4c.CONVERSION_TYPE_RAT if version >= "4.00" else v3c.CONVERSION_TYPE_RAT),
             "P1": 0,
             "P2": i,
             "P3": -0.5,
@@ -161,9 +149,7 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     conversion = {
         "raw": np.arange(255, dtype=np.float64),
         "phys": np.array([f"Value {i}".encode("ascii") for i in range(255)]),
-        "conversion_type": (
-            v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX
-        ),
+        "conversion_type": (v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX),
         "links_nr": 260,
         "ref_param_nr": 255,
     }

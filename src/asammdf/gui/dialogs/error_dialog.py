@@ -71,7 +71,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
                 flags = window.flags()
             else:
                 flags = window.windowFlags()
-                
+
             if (flags & QtCore.Qt.WindowFlags.SplashScreen) == QtCore.Qt.WindowFlags.SplashScreen:
                 window.close()
 

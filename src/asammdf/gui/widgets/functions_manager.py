@@ -35,16 +35,14 @@ class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
 
         self.definitions = definitions
 
-        self.globals_definition.setPlaceholderText(
-            """The global variables definition is written as Python code.
+        self.globals_definition.setPlaceholderText("""The global variables definition is written as Python code.
 
 Here is a minimalistic example:
 
 PI = 3.1415 # float value
 magic_number =  9  # integer value
 initial_samples = [3, 5, 6]  # list of integers
-"""
-        )
+""")
         self.globals_definition.setPlainText(global_variables)
         self.globals_definition.setTabStopDistance(
             QtGui.QFontMetricsF(self.globals_definition.font()).horizontalAdvance(" ") * 4
@@ -58,8 +56,7 @@ initial_samples = [3, 5, 6]  # list of integers
         self.globals_definition.setPalette(p)
         self.globals_highlighter = PythonHighlighter(self.globals_definition.document())
 
-        self.function_definition.setPlaceholderText(
-            """The virtual channel definition is written as a Python function.
+        self.function_definition.setPlaceholderText("""The virtual channel definition is written as a Python function.
 Use the 'return' statement to return a value, otherwise 'None' will automatically be returned by the function.
 The last function argument must be 't=0'.
 
@@ -75,8 +72,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             return avg
         else:
             return avg + 9
-"""
-        )
+""")
         self.function_definition.setTabStopDistance(
             QtGui.QFontMetricsF(self.function_definition.font()).horizontalAdvance(" ") * 4
         )

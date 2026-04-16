@@ -992,7 +992,7 @@ class ChannelConversion(_ChannelConversionBase):
             self.address = address = kwargs.get("address", 0)
             try:
                 block = kwargs["raw_bytes"]
-                (self.id, self.block_len) = COMMON_uf(block)
+                self.id, self.block_len = COMMON_uf(block)
                 size = self.block_len
                 block_size = len(block)
                 block = block[4:]
@@ -1001,13 +1001,13 @@ class ChannelConversion(_ChannelConversionBase):
             except KeyError:
                 stream = kwargs["stream"]
                 if mapped:
-                    (self.id, self.block_len) = COMMON_uf(stream, address)
+                    self.id, self.block_len = COMMON_uf(stream, address)
                     block_size = size = self.block_len
                     block = stream[address + 4 : address + size]
                 else:
                     stream.seek(address)
                     block = stream.read(4)
-                    (self.id, self.block_len) = COMMON_u(block)
+                    self.id, self.block_len = COMMON_u(block)
 
                     block_size = size = self.block_len
                     block = stream.read(size - 4)
@@ -1026,9 +1026,7 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = self.conversion_type
 
             if conv_type == v23c.CONVERSION_TYPE_LINEAR:
-                (self.b, self.a) = typing.cast(
-                    tuple[float, float], unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE)
-                )
+                self.b, self.a = typing.cast(tuple[float, float], unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE))
                 if size != v23c.CC_LIN_BLOCK_SIZE:
                     self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
                     size = len(self.CANapeHiddenExtra)
@@ -1036,7 +1034,7 @@ class ChannelConversion(_ChannelConversionBase):
                     values = unpack_from("<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE)
 
                     for i in range(nr):
-                        (self[f"param_val_{i}"], self[f"text_{i}"]) = (
+                        self[f"param_val_{i}"], self[f"text_{i}"] = (
                             values[i * 2],
                             values[2 * i + 1],
                         )
@@ -1067,13 +1065,13 @@ class ChannelConversion(_ChannelConversionBase):
                 else:
                     float_values: tuple[float, ...] = unpack_from(f"<{2 * nr}d", block, v23c.CC_COMMON_SHORT_SIZE)
                     for i in range(nr):
-                        (self[f"raw_{i}"], self[f"phys_{i}"]) = (
+                        self[f"raw_{i}"], self[f"phys_{i}"] = (
                             float_values[i * 2],
                             float_values[2 * i + 1],
                         )
 
             elif conv_type in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-                (self.P1, self.P2, self.P3, self.P4, self.P5, self.P6) = typing.cast(
+                self.P1, self.P2, self.P3, self.P4, self.P5, self.P6 = typing.cast(
                     tuple[float, float, float, float, float, float],
                     unpack_from("<6d", block, v23c.CC_COMMON_SHORT_SIZE),
                 )
@@ -1112,7 +1110,7 @@ class ChannelConversion(_ChannelConversionBase):
                     values = unpack_from("<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE)
 
                     for i in range(nr):
-                        (self[f"param_val_{i}"], self[f"text_{i}"]) = (
+                        self[f"param_val_{i}"], self[f"text_{i}"] = (
                             values[i * 2],
                             values[2 * i + 1],
                         )
@@ -1152,7 +1150,7 @@ class ChannelConversion(_ChannelConversionBase):
                     values = unpack_from("<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20)
 
                     for i in range(nr):
-                        (self[f"lower_{i}"], self[f"upper_{i}"], self[f"text_{i}"]) = (
+                        self[f"lower_{i}"], self[f"upper_{i}"], self[f"text_{i}"] = (
                             values[i * 3],
                             values[3 * i + 1],
                             values[3 * i + 2],
@@ -1830,7 +1828,7 @@ class ChannelDependency:
             self.address = address = kwargs["address"]
             stream.seek(address)
 
-            (self.id, self.block_len, self.dependency_type, self.sd_nr) = typing.cast(
+            self.id, self.block_len, self.dependency_type, self.sd_nr = typing.cast(
                 tuple[bytes, int, int, int], unpack("<2s3H", stream.read(8))
             )
 
@@ -1981,7 +1979,7 @@ class ChannelExtension:
         if "stream" in kwargs:
             stream = kwargs["stream"]
             try:
-                (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(kwargs["raw_bytes"])
+                self.id, self.block_len, self.type = SOURCE_COMMON_uf(kwargs["raw_bytes"])
                 if self.type == v23c.SOURCE_ECU:
                     (
                         self.module_nr,
@@ -2004,7 +2002,7 @@ class ChannelExtension:
                 if kwargs.get("mapped", False):
                     self.address = address = kwargs["address"]
 
-                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(stream, address)
+                    self.id, self.block_len, self.type = SOURCE_COMMON_uf(stream, address)
 
                     if self.type == v23c.SOURCE_ECU:
                         (
@@ -2026,7 +2024,7 @@ class ChannelExtension:
                     self.address = address = kwargs["address"]
                     stream.seek(address)
                     block = stream.read(v23c.CE_BLOCK_SIZE)
-                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(block)
+                    self.id, self.block_len, self.type = SOURCE_COMMON_uf(block)
 
                     if self.type == v23c.SOURCE_ECU:
                         (
@@ -3131,7 +3129,7 @@ class ProgramBlock:
             self.address = address = kwargs["address"]
             stream.seek(address)
 
-            (self.id, self.block_len) = COMMON_u(stream.read(4))
+            self.id, self.block_len = COMMON_u(stream.read(4))
             self.data = stream.read(self.block_len - 4)
 
             if self.id != b"PR":
@@ -3199,7 +3197,7 @@ class TextBlock:
             mapped = kwargs.get("mapped", False)
             self.address = address = kwargs["address"]
             if mapped:
-                (self.id, self.block_len) = COMMON_uf(stream, address)
+                self.id, self.block_len = COMMON_uf(stream, address)
                 if self.id != b"TX":
                     message = f'Expected "TX" block @{hex(address)} but found "{self.id!r}"'
                     logger.exception(message)
@@ -3208,7 +3206,7 @@ class TextBlock:
                 self.text = stream[address + 4 : address + self.block_len]
             else:
                 stream.seek(address)
-                (self.id, self.block_len) = COMMON_u(stream.read(4))
+                self.id, self.block_len = COMMON_u(stream.read(4))
                 if self.id != b"TX":
                     message = f'Expected "TX" block @{hex(address)} but found "{self.id!r}"'
                     logger.exception(message)
@@ -3290,7 +3288,7 @@ class TriggerBlock:
             stream.seek(address)
             block = stream.read(size)
 
-            (self.id, self.block_len, self.text_addr, self.trigger_events_nr) = typing.cast(
+            self.id, self.block_len, self.text_addr, self.trigger_events_nr = typing.cast(
                 tuple[bytes, int, int, int], unpack("<2sHIH", block[:10])
             )
 

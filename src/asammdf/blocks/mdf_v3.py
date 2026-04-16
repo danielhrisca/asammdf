@@ -242,7 +242,7 @@ class MDF3(MDF_Common[Group]):
 
         progress = kwargs.get("progress", None)
 
-        self._mapped_file = None 
+        self._mapped_file = None
 
         super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
@@ -1310,7 +1310,7 @@ class MDF3(MDF_Common[Group]):
             cc_block = conversion_transfer(signal.conversion)
             cc_block.unit = unit = signal.unit
 
-            israw = bool(signal.conversion) 
+            israw = bool(signal.conversion)
 
             if not israw and not unit:
                 conversion = None

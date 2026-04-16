@@ -772,7 +772,9 @@ class MDF:
             self._mdf._integer_interpolation = from_other._mdf._integer_interpolation
             self._mdf._float_interpolation = from_other._mdf._float_interpolation
             self._mdf._raise_on_multiple_occurrences = from_other._mdf._raise_on_multiple_occurrences
-            self._mdf._fill_0_for_missing_computation_channels = from_other._mdf._fill_0_for_missing_computation_channels
+            self._mdf._fill_0_for_missing_computation_channels = (
+                from_other._mdf._fill_0_for_missing_computation_channels
+            )
 
         if read_fragment_size is not None:
             self._mdf._read_fragment_size = int(read_fragment_size)
@@ -1008,7 +1010,7 @@ class MDF:
         mime: str = r"application/octet-stream",
         embedded: bool = True,
         password: str | bytes | None = None,
-        compression_type: str = "deflate"
+        compression_type: str = "deflate",
     ) -> int:
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("Attachments are only supported in MDF4 files")
@@ -1021,7 +1023,7 @@ class MDF:
             mime=mime,
             embedded=embedded,
             password=password,
-            compression_type=compression_type
+            compression_type=compression_type,
         )
 
     def close(self) -> None:
@@ -1144,7 +1146,7 @@ class MDF:
             Start timestamps from 0s in the cut measurement.
         inplace : bool, default False
             Cut the measurement inplace modifying the original `MDF` object. This argument
-            overrides the arguments `version` (gets set to self.version), 
+            overrides the arguments `version` (gets set to self.version),
             `include_ends` (gets set to False) and `time_from_zero` (gets set to False) and is
             done only for MDF v4 files.
 
@@ -1156,11 +1158,7 @@ class MDF:
             New `MDF` object.
         """
 
-        if (
-            inplace 
-            and all(not gp.uses_ld for gp in self.groups) 
-            and self.version>= "4.00"
-        ):
+        if inplace and all(not gp.uses_ld for gp in self.groups) and self.version >= "4.00":
             return self._cut_inplace(start=start, stop=stop, whence=whence, progress=progress)
 
         if version is None:
@@ -1381,7 +1379,7 @@ class MDF:
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
 
         return out
-    
+
     def _cut_inplace(
         self,
         start: float | None = None,
@@ -1412,7 +1410,7 @@ class MDF:
         Returns
         -------
         out : MDF
-            New `MDF` object if the inplace cut cannot be done, or `self` if 
+            New `MDF` object if the inplace cut cannot be done, or `self` if
             the inplace cut is possible
 
         """
@@ -1447,7 +1445,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
         for i, group in enumerate(self.groups):
-            
+
             channel_group = group.channel_group
             record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
@@ -1564,11 +1562,11 @@ class MDF:
 
                 if needs_cutting:
                     data = new_data[start_index * record_size : stop_index * record_size]
-                    count = (stop_index - start_index)
+                    count = stop_index - start_index
 
                 else:
                     data = new_data
-                
+
                 out_seek(0, 2)
 
                 raw_size = len(data)
@@ -1580,13 +1578,13 @@ class MDF:
                 out_write(data)
 
                 info = DataBlockInfo(
-                        address=data_address,
-                        block_type=v4c.DZ_BLOCK_LZ,
-                        original_size=raw_size,
-                        compressed_size=size,
-                        param=0,
-                        location=v4c.LOCATION_TEMPORARY_FILE,
-                    )
+                    address=data_address,
+                    block_type=v4c.DZ_BLOCK_LZ,
+                    original_size=raw_size,
+                    compressed_size=size,
+                    param=0,
+                    location=v4c.LOCATION_TEMPORARY_FILE,
+                )
 
                 new_blocks.append(info)
                 new_cycles_nr += count
@@ -1604,7 +1602,7 @@ class MDF:
                     if progress.stop:
                         print("return terminated")
                         raise Terminated
-                    
+
         return self
 
     @overload
@@ -3253,13 +3251,13 @@ class MDF:
                                 if (
                                     new_group.channel_group.acq_name == org_group.channel_group.acq_name
                                     and (
-                                        ((new_group_source and org_group_source)
-                                        and new_group_source.name == org_group_source.name
-                                        and new_group_source.path == org_group_source.path
+                                        (
+                                            (new_group_source and org_group_source)
+                                            and new_group_source.name == org_group_source.name
+                                            and new_group_source.path == org_group_source.path
                                         )
                                         or (new_group_source is None and org_group_source is None)
                                     )
-
                                     and new_group.channel_group.samples_byte_nr
                                     == org_group.channel_group.samples_byte_nr
                                 ):
@@ -3612,9 +3610,9 @@ class MDF:
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
-                        stacked.groups[
-                            index
-                        ].channel_group.comment = f'stacked from channel group {i} of "{mdf.name.parent}"'
+                        stacked.groups[index].channel_group.comment = (
+                            f'stacked from channel group {i} of "{mdf.name.parent}"'
+                        )
 
             if progress is not None:
                 if callable(progress):
@@ -4133,11 +4131,8 @@ class MDF:
                 comment="">
         ]
         """
-        
-        if (
-            not isinstance(self._mdf, mdf_v4.MDF4)
-            or self._mdf._from_filelike
-        ):
+
+        if not isinstance(self._mdf, mdf_v4.MDF4) or self._mdf._from_filelike:
             return self._select_fallback(
                 channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
             )
@@ -4166,14 +4161,14 @@ class MDF:
                 return self._select_fallback(
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
-            
+
             grp.load_all_data_blocks()
             blocks = grp.data_blocks
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
             if not validate_blocks(blocks, record_size):
                 return self._select_fallback(
-                channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
-            )
+                    channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+                )
             cycles_nr = grp.channel_group.cycles_nr
             channel_indexes = groups[group_index]
 
@@ -4194,7 +4189,11 @@ class MDF:
             for ch_index in channel_indexes:
                 channel = grp.channels[ch_index]
 
-                if (info := grp.record[ch_index]) is None or grp.signal_data[ch_index] or grp.channel_dependencies[ch_index]:
+                if (
+                    (info := grp.record[ch_index]) is None
+                    or grp.signal_data[ch_index]
+                    or grp.channel_dependencies[ch_index]
+                ):
                     return self._select_fallback(
                         channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                     )
@@ -4254,7 +4253,7 @@ class MDF:
                         vals = vals.view(view)
 
             master = vals
-            
+
             if master_channel.conversion:
                 master = master_channel.conversion.convert(master)
 
@@ -4262,10 +4261,10 @@ class MDF:
                 if record_count is None:
                     master = master[record_offset:]
                 else:
-                    master = master[record_offset: record_offset+ record_count]
+                    master = master[record_offset : record_offset + record_count]
             else:
                 if record_count is not None:
-                    master = master[: record_count]
+                    master = master[:record_count]
 
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
@@ -4325,15 +4324,15 @@ class MDF:
                         if invalidation_bits is not None:
                             invalidation_bits = invalidation_bits[record_offset:]
                     else:
-                        end = record_offset+ record_count
-                        vals = vals[record_offset: end]
+                        end = record_offset + record_count
+                        vals = vals[record_offset:end]
                         if invalidation_bits is not None:
-                            invalidation_bits = invalidation_bits[record_offset: end]
+                            invalidation_bits = invalidation_bits[record_offset:end]
                 else:
                     if record_count is not None:
-                        vals = vals[: record_count]
+                        vals = vals[:record_count]
                         if invalidation_bits is not None:
-                            invalidation_bits = invalidation_bits[: record_count]
+                            invalidation_bits = invalidation_bits[:record_count]
 
                 output_signals[pair] = Signal(
                     samples=vals,

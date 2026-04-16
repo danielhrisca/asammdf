@@ -1,4 +1,3 @@
-
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
@@ -17,7 +16,7 @@ class Bookmark(pg.InfiniteLine):
             text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n "
 
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
-        text=text.replace('{', '{{').replace('}', '}}')
+        text = text.replace("{", "{{").replace("}", "}}")
 
         super().__init__(
             movable=False,

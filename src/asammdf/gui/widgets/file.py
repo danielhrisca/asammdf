@@ -312,8 +312,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.channel_search_update_timer = QtCore.QTimer(self)
             self.channel_search_update_timer.setSingleShot(True)
-            self.channel_search_update_timer.setInterval(200) # ms delay
-            self.channel_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.channels_tree))
+            self.channel_search_update_timer.setInterval(200)  # ms delay
+            self.channel_search_update_timer.timeout.connect(
+                partial(self._update_inline_search, widget=self.channels_tree)
+            )
             self.channels_search_name.textChanged.connect(self.channel_search_update_timer.start)
             self.channels_search_name.pattern = None
             self.channels_search_bus.textChanged.connect(self.channel_search_update_timer.start)
@@ -322,8 +324,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.filter_search_update_timer = QtCore.QTimer(self)
             self.filter_search_update_timer.setSingleShot(True)
-            self.filter_search_update_timer.setInterval(200) # ms delay
-            self.filter_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.filter_tree))
+            self.filter_search_update_timer.setInterval(200)  # ms delay
+            self.filter_search_update_timer.timeout.connect(
+                partial(self._update_inline_search, widget=self.filter_tree)
+            )
             self.filter_search_name.textChanged.connect(self.filter_search_update_timer.start)
             self.filter_search_name.pattern = None
             self.filter_search_bus.textChanged.connect(self.filter_search_update_timer.start)
@@ -644,12 +648,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if group.channel_group.acq_source:
                         bus = group.channel_group.acq_source.path or "None"
                     else:
-                        bus =  "None"
-                        
+                        bus = "None"
+
                     if search_bus.pattern and not search_bus.pattern.search(bus):
                         continue
 
-                    channel = MinimalTreeItem(entry, ch.name, strings=[f"{ch.name} —— {bus:<10}"], origin_uuid=self.uuid)
+                    channel = MinimalTreeItem(
+                        entry, ch.name, strings=[f"{ch.name} —— {bus:<10}"], origin_uuid=self.uuid
+                    )
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
 
                     if entry in signals:
@@ -1099,7 +1105,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder), encoding='utf-8')
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder), encoding="utf-8")
 
             worker = md5()
             worker.update(file_name.read_bytes())
@@ -1395,7 +1401,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.clear_windows()
 
         if extension in (".dspf", ".dsp", ".dict"):
-            new_global_vars = "\n".join(line.strip() for line in info.get('global_variables', '').splitlines() if line.strip())
+            new_global_vars = "\n".join(
+                line.strip() for line in info.get("global_variables", "").splitlines() if line.strip()
+            )
             global_vars = "\n".join(line.strip() for line in self.global_variables.splitlines() if line.strip())
 
             if new_global_vars not in global_vars:
@@ -1481,7 +1489,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     break
 
         worker = md5()
-        worker.update(json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+        worker.update(
+            json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode(
+                "utf-8", errors="ignore"
+            )
+        )
         self._previous_window_config = worker.hexdigest()
 
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
@@ -1537,13 +1549,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             with open(file_name, "w") as output:
                 if suffix == ".lab":
-                    output.write(
-                        """[SETTINGS]
+                    output.write("""[SETTINGS]
 Version;V1.1
 MultiRasterSeparator;&
 
-"""
-                    )
+""")
                     output.write(f"[{section_name}]\n")
                 output.write("\n".join(natsorted(signals)))
 
@@ -1748,7 +1758,11 @@ MultiRasterSeparator;&
                 if hexdigest:
                     worker = md5()
                     try:
-                        worker.update(json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
+                        worker.update(
+                            json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode(
+                                "utf-8"
+                            )
+                        )
                         unsaved = worker.hexdigest() != hexdigest
                     except:
                         unsaved = False
@@ -1762,7 +1776,7 @@ MultiRasterSeparator;&
                         "Unsaved display windows",
                         f"{self.mdf.original_name.name} contains unsaved display changes.\n"
                         "Do you want to save the windows to a display file?",
-                        detailed_text=f'Complete file path:\n{self.mdf.original_name}',
+                        detailed_text=f"Complete file path:\n{self.mdf.original_name}",
                     )
 
                     if answer == MessageBox.StandardButton.Yes:
@@ -2122,7 +2136,6 @@ MultiRasterSeparator;&
                 self._progress.error[-1],
                 self,
             ).exec()
-
 
         self._progress = None
         self.processing_executed.emit("extract_bus_csv_logging")
@@ -2946,8 +2959,7 @@ MultiRasterSeparator;&
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
 
         if opts.needs_cut and not opts.cut_time_from_zero:
-            mdf = mdf_module.MDF(self.mdf.original_name, password=self.mdf._mdf._password,
-                    use_display_names=True)
+            mdf = mdf_module.MDF(self.mdf.original_name, password=self.mdf._mdf._password, use_display_names=True)
             mdf.configure(read_fragment_size=split_size)
         else:
             mdf = self.mdf
@@ -2988,7 +3000,7 @@ MultiRasterSeparator;&
             progress.signals.setWindowTitle.emit("Cutting measurement")
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
-            inplace=not opts.cut_time_from_zero
+            inplace = not opts.cut_time_from_zero
 
             # cut self.mdf
             result = mdf.cut(
@@ -3613,5 +3625,9 @@ MultiRasterSeparator;&
     def finalize_init(self):
         if self.mdi_area.subWindowList():
             worker = md5()
-            worker.update(json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+            worker.update(
+                json.dumps(self.to_config(check_save=True), indent=2, cls=ExtendedJsonEncoder).encode(
+                    "utf-8", errors="ignore"
+                )
+            )
             self._previous_window_config = worker.hexdigest()

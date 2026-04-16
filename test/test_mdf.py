@@ -661,7 +661,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    @unittest.skipIf(sys.platform !="win32", "skip for unix for now")
+    @unittest.skipIf(sys.platform != "win32", "skip for unix for now")
     def test_filter(self) -> None:
         print("MDF read tests")
 

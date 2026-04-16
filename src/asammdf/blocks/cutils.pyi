@@ -19,7 +19,7 @@ def get_channel_raw_bytes(
     data_block: bytes | bytearray, record_size: int, byte_offset: int, byte_count: int
 ) -> bytearray: ...
 def get_invalidation_bits_array(
-    data_block: bytes | bytearray, invalidation_size: int, invalidation_pos: int, one_piece: bool = False 
+    data_block: bytes | bytearray, invalidation_size: int, invalidation_pos: int, one_piece: bool = False
 ) -> NDArray[np.uint8] | None: ...
 def get_channel_raw_bytes_parallel(
     data_block: bytes | bytearray, record_size: int, signals: list[list[int]], thread_count: int = 11

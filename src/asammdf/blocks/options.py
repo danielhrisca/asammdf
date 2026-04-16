@@ -31,7 +31,7 @@ class _GlobalOptions(TypedDict):
     fill_0_for_missing_computation_channels: bool
     ignore_invalidation_bits: bool
     check_unsaved_display_file: bool
-    add_array_components : bool
+    add_array_components: bool
 
 
 GLOBAL_OPTIONS: Final[_GlobalOptions] = {

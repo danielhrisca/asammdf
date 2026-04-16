@@ -45,15 +45,13 @@ class MessageBox(QtWidgets.QMessageBox):
 
         if self.defaultButton() is not None:
             if markdown:
-                self.setText(
-                    f"""{self.original_text}
+                self.setText(f"""{self.original_text}
 
 * * *
 
 This message will be closed in {self.timeout}s
 * Default button - [{self.defaultButton().text().strip("&")}]
-* Abort the countdown - [F1]"""
-                )
+* Abort the countdown - [F1]""")
             else:
                 self.setText(
                     f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
@@ -62,14 +60,12 @@ This message will be closed in {self.timeout}s
                 )
         else:
             if markdown:
-                self.setText(
-                    f"""{self.original_text}
+                self.setText(f"""{self.original_text}
 
 * * *
 
 This message will be closed in {self.timeout}s
-* Abort the countdown - [F1]"""
-                )
+* Abort the countdown - [F1]""")
 
             else:
                 self.setText(
@@ -115,9 +111,9 @@ This message will be closed in {self.timeout}s
                 flags = window.flags()
             else:
                 flags = window.windowFlags()
-                
+
             if (flags & QtCore.Qt.WindowFlags.SplashScreen) == QtCore.Qt.WindowFlags.SplashScreen:
-                print('closing', window, flags)
+                print("closing", window, flags)
                 print(int(flags), int(QtCore.Qt.WindowFlags.SplashScreen), flags & QtCore.Qt.WindowFlags.SplashScreen)
                 window.close()
 
@@ -142,15 +138,13 @@ This message will be closed in {self.timeout}s
         else:
             if self.defaultButton() is not None:
                 if self.textFormat() == QtCore.Qt.TextFormat.MarkdownText:
-                    self.setText(
-                        f"""{self.original_text}
+                    self.setText(f"""{self.original_text}
 
 * * *
 
 This message will be closed in {self.timeout}s
 * Default button - [{self.defaultButton().text().strip("&")}]
-* Abort the countdown - [F1]"""
-                    )
+* Abort the countdown - [F1]""")
                 else:
                     self.setText(
                         f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
@@ -159,14 +153,12 @@ This message will be closed in {self.timeout}s
                     )
             else:
                 if self.textFormat() == QtCore.Qt.TextFormat.MarkdownText:
-                    self.setText(
-                        f"""{self.original_text}
+                    self.setText(f"""{self.original_text}
 
 * * *
 
 This message will be closed in {self.timeout}s
-* Abort the countdown - [F1]"""
-                    )
+* Abort the countdown - [F1]""")
 
                 else:
                     self.setText(
