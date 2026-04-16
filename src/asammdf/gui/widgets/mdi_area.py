@@ -22,7 +22,13 @@ import asammdf.mdf as mdf_module
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
-from ...blocks.utils import csv_bytearray2hex, extract_xml_comment, load_can_database, MdfException, UniqueDB
+from ...blocks.utils import (
+    csv_bytearray2hex,
+    extract_xml_comment,
+    load_can_database,
+    MdfException,
+    UniqueDB,
+)
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
 from .. import utils
@@ -138,7 +144,13 @@ def deepcopy_cfg_item(item):
             "origin_uuid": item["origin_uuid"],
         }
 
-        for key in ("computation", "conversion", "user_defined_name", "individual_axis_width", "user_defined_unit"):
+        for key in (
+            "computation",
+            "conversion",
+            "user_defined_name",
+            "individual_axis_width",
+            "user_defined_unit",
+        ):
             if key in item:
                 new_item[key] = deepcopy(item[key])
 
@@ -293,7 +305,12 @@ def build_mime_from_config(
 
 
 def extract_signals_using_pattern(
-    mdf, channels_db, pattern_info, ignore_value2text_conversions, uuid=None, as_names=False
+    mdf,
+    channels_db,
+    pattern_info,
+    ignore_value2text_conversions,
+    uuid=None,
+    as_names=False,
 ):
     if not mdf and not channels_db:
         if as_names:
@@ -560,7 +577,7 @@ def get_required_from_computed(channel):
 def substitude_mime_uuids(mime, uuids=None, force=False):
     if not mime:
         return mime
-    
+
     if uuids is None:
         uuids = [None]
     elif not isinstance(uuids, (tuple, list)):
@@ -574,7 +591,7 @@ def substitude_mime_uuids(mime, uuids=None, force=False):
         if item.get("type", "channel") == "channel":
             for uuid in uuids:
                 new_item = deepcopy(item)
-                new_item['uuid'] = os.urandom(6).hex()
+                new_item["uuid"] = os.urandom(6).hex()
                 if force or new_item["origin_uuid"] is None:
                     new_item["origin_uuid"] = uuid
                 new_mime.append(new_item)
@@ -1008,7 +1025,8 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             data = event.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 dialog = WindowSelectionDialog(
-                    options=("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular"), parent=self
+                    options=(("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular")),
+                    parent=self,
                 )
                 dialog.setModal(True)
                 dialog.exec()
@@ -1393,7 +1411,12 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    for sig, sig_, sig_uuid in zip(selected_signals, uuids_signals, uuids_signals_uuid, strict=False):
+                    for sig, sig_, sig_uuid in zip(
+                        selected_signals,
+                        uuids_signals,
+                        uuids_signals_uuid,
+                        strict=False,
+                    ):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
                         sig.flags &= ~sig.Flags.computed
@@ -1693,24 +1716,24 @@ class WithMDIArea:
             if window_type == "Plot":
                 target = self._add_plot_window
             elif window_type == "Numeric":
-                target =self._add_numeric_window
+                target = self._add_numeric_window
             else:
                 target = None
         else:
             if window_type == "CAN Bus Trace":
-                target =self._add_can_bus_trace_window
+                target = self._add_can_bus_trace_window
                 func_args = ()
             elif window_type == "FlexRay Bus Trace":
                 target = self._add_flexray_bus_trace_window
                 func_args = ()
 
             elif window_type == "LIN Bus Trace":
-                target =self._add_lin_bus_trace_window
+                target = self._add_lin_bus_trace_window
                 func_args = ()
             elif window_type == "GPS":
-                target =self._add_gps_window
+                target = self._add_gps_window
             elif window_type == "Plot":
-                target =self._add_plot_window
+                target = self._add_plot_window
             elif window_type == "Numeric":
                 target = self._add_numeric_window
             elif window_type == "Tabular":
@@ -1973,7 +1996,11 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_can.png"),
+            QtGui.QIcon.Mode.Normal,
+            QtGui.QIcon.State.Off,
+        )
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -2213,7 +2240,11 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_flx.png"),
+            QtGui.QIcon.Mode.Normal,
+            QtGui.QIcon.State.Off,
+        )
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -2245,7 +2276,6 @@ class WithMDIArea:
         return trace
 
     def _add_gps_window(self, signals, tile_provider=None):
-        print(f'gps {tile_provider=}')
         signals = [sig[:3] for sig in signals]
         latitude_channel, longitude_channel = self.mdf.select(signals, validate=True)
 
@@ -2520,7 +2550,11 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_lin.png"),
+            QtGui.QIcon.Mode.Normal,
+            QtGui.QIcon.State.Off,
+        )
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -3067,7 +3101,7 @@ class WithMDIArea:
                                 "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
                             }
                             events.append(event)
-                            
+
             mdf = self.mdf
 
         else:
@@ -3103,7 +3137,7 @@ class WithMDIArea:
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
         sub.pattern_modified.connect(self.window_pattern_modified)
-        
+
         if not self.subplots:
             self.mdi_area.clear_windows()
             w = self.mdi_area.addSubWindow(sub)
@@ -3756,7 +3790,15 @@ class WithMDIArea:
             raw=False,
         )
 
-        gps = GPS(latitude, longitude, zoom=window_info["configuration"]["zoom"])
+        if "tile_provider" in window_info["configuration"]:
+            gps = GPS(
+                latitude,
+                longitude,
+                zoom=window_info["configuration"]["zoom"],
+                tile_provider=window_info["tile_provider"],
+            )
+        else:
+            gps = GPS(latitude, longitude, zoom=window_info["configuration"]["zoom"])
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
@@ -4898,7 +4940,11 @@ class WithMDIArea:
                 alias = {}
                 for gp_index, gp in enumerate(file.mdf.groups):
                     for ch_index, ch in enumerate(gp.channels):
-                        if (gp_index, ch_index) != position and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
+                        if (gp_index, ch_index) != position and (
+                            ch.data_type,
+                            ch.byte_offset,
+                            ch.bit_count,
+                        ) == info:
                             alias[ch.name] = (gp_index, ch_index)
 
                 if alias:
