@@ -168,6 +168,80 @@ def get_descriptions_by_uuid(mime):
     return descriptions
 
 
+class TimevaseOverview(QtWidgets.QWidget):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setFixedHeight(16)
+        self.setMouseTracking(False)
+
+        self._x_range = (0, 1)
+        self._timebase = None
+
+    @property
+    def x_range(self):
+        return self._x_range
+    
+    @x_range.setter
+    def x_range(self, value):
+        self._x_range = sorted(value)
+        self.update()
+
+    @property
+    def timebase(self):
+        return self._timebase
+    
+    @timebase.setter
+    def timebase(self, value):
+        self._timebase = sorted(value)
+        self.update()
+        
+    def paintEvent(self, event):
+        rect = self.geometry()
+        width = rect.width()
+        height = rect.height()
+
+        if width < 3 or self.timebase is None:
+            super().paintEvent(event)
+        else:
+            width -= 2
+
+            painter = QtGui.QPainter(self)
+            
+            complete_range = sorted([*self.x_range, *self.timebase])
+            start = complete_range[0]
+            end = complete_range[-1]
+            complete_range = end - start
+
+            x_range = self.x_range
+            
+            x_start = (x_range[0] - start) / complete_range * width + 1
+            x_end = (x_range[1] - start) / complete_range * width + 1
+
+            timebase = self.timebase
+
+            t_start = (timebase[0] - start) / complete_range * width + 1
+            t_end = (timebase[1] - start) / complete_range * width + 1
+
+            pen = fn.mkPen('#00ff00')
+            pen.setWidth(3)
+            painter.setPen(pen)
+            painter.drawLine(
+                QtCore.QPointF(t_start, height / 2),
+                QtCore.QPointF(t_end, height / 2),
+            )
+
+            pen = fn.mkPen('#0000ff7f')
+            brush = fn.mkBrush('#0000ff7f')
+            painter.setPen(pen)
+            painter.setBrush(brush)
+            painter.drawRect(
+                QtCore.QRectF(x_start, 0, x_end - x_start, height),
+            )
+
+            painter.end()
+
+
 class PlotSignal(Signal):
     def __init__(self, signal, index=0, trim_info=None, duplication=1, allow_trim=True, allow_nans=False):
         super().__init__(
@@ -1488,6 +1562,8 @@ class Plot(QtWidgets.QWidget):
         self.pattern = {}
         self.mdf = mdf
 
+        self.timebase_overview = None
+
         self._settings = QtCore.QSettings()
 
         self.x_name = "t" if x_axis == "time" else "f"
@@ -1758,6 +1834,9 @@ class Plot(QtWidgets.QWidget):
 
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
+        if kwargs.get("timebase_overview", True):
+            self.timebase_overview = TimevaseOverview()
+            vbox.addWidget(self.timebase_overview)
 
         self.range_proxy = pg.SignalProxy(self.plot.range_modified, rateLimit=16, slot=self.range_modified)
         # self.plot.range_modified.connect(self.range_modified)
@@ -2136,6 +2215,9 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.update_channel_groups_count()
             self.channel_selection.refresh()
 
+        if len(self.plot.all_timebase) and self.timebase_overview:
+            self.timebase_overview.timebase = self.plot.all_timebase[0], self.plot.all_timebase[-1]
+            
         self.adjust_splitter(initial=initial)
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
@@ -3597,12 +3679,17 @@ class Plot(QtWidgets.QWidget):
         return self._visible_items
 
     def xrange_changed(self, *args):
+        vb, x_range = args
+
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
+        if self.timebase_overview:
+            self.timebase_overview.x_range = x_range
+
         if not self._inhibit_x_range_changed_signal:
-            self.x_range_changed_signal.emit(self, self.plot.viewbox.viewRange()[0])
+            self.x_range_changed_signal.emit(self, x_range)
 
     def zoom_changed(self, inplace=False):
         if self.enable_zoom_history and self.plot.signals and not self.plot.block_zoom_signal:

@@ -556,6 +556,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
             )
             painter.drawText(self.viewport().rect(), QtCore.Qt.AlignmentFlag.AlignCenter, elided_text)
             painter.restore()
+            painter.end()
 
     def search(self, attribute="", value=None):
         index = None
