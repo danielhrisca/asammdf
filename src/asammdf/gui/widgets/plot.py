@@ -1555,6 +1555,8 @@ class Plot(QtWidgets.QWidget):
         if not bookmarks:
             bookmarks = kwargs.pop("bookmarks", ())
 
+        timebase_overview = kwargs.pop("timebase_overview", True)
+
         super().__init__(*args, **kwargs)
         self.closed = False
         self.line_interconnect = line_interconnect
@@ -1834,7 +1836,7 @@ class Plot(QtWidgets.QWidget):
 
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
-        if kwargs.get("timebase_overview", True):
+        if timebase_overview:
             self.timebase_overview = TimevaseOverview()
             vbox.addWidget(self.timebase_overview)
 
