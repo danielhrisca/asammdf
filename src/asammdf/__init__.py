@@ -18,7 +18,6 @@ if not hasattr(np, "unicode_"):
 
 from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
-from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import InvalidationArray, Signal
 from .version import __version__
