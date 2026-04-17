@@ -181,7 +181,7 @@ class TimevaseOverview(QtWidgets.QWidget):
     @property
     def x_range(self):
         return self._x_range
-    
+
     @x_range.setter
     def x_range(self, value):
         self._x_range = sorted(value)
@@ -190,12 +190,12 @@ class TimevaseOverview(QtWidgets.QWidget):
     @property
     def timebase(self):
         return self._timebase
-    
+
     @timebase.setter
     def timebase(self, value):
         self._timebase = sorted(value)
         self.update()
-        
+
     def paintEvent(self, event):
         rect = self.geometry()
         width = rect.width()
@@ -207,14 +207,14 @@ class TimevaseOverview(QtWidgets.QWidget):
             width -= 2
 
             painter = QtGui.QPainter(self)
-            
+
             complete_range = sorted([*self.x_range, *self.timebase])
             start = complete_range[0]
             end = complete_range[-1]
             complete_range = end - start
 
             x_range = self.x_range
-            
+
             x_start = (x_range[0] - start) / complete_range * width + 1
             x_end = (x_range[1] - start) / complete_range * width + 1
 
@@ -223,7 +223,7 @@ class TimevaseOverview(QtWidgets.QWidget):
             t_start = (timebase[0] - start) / complete_range * width + 1
             t_end = (timebase[1] - start) / complete_range * width + 1
 
-            pen = fn.mkPen('#00ff00')
+            pen = fn.mkPen("#00ff00")
             pen.setWidth(3)
             painter.setPen(pen)
             painter.drawLine(
@@ -231,8 +231,8 @@ class TimevaseOverview(QtWidgets.QWidget):
                 QtCore.QPointF(t_end, height / 2),
             )
 
-            pen = fn.mkPen('#0000ff7f')
-            brush = fn.mkBrush('#0000ff7f')
+            pen = fn.mkPen("#0000ff7f")
+            brush = fn.mkBrush("#0000ff7f")
             painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawRect(
@@ -2217,7 +2217,7 @@ class Plot(QtWidgets.QWidget):
 
         if len(self.plot.all_timebase) and self.timebase_overview:
             self.timebase_overview.timebase = self.plot.all_timebase[0], self.plot.all_timebase[-1]
-            
+
         self.adjust_splitter(initial=initial)
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
