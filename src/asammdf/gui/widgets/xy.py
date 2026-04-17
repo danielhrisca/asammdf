@@ -19,6 +19,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         x_channel=None,
         y_channel=None,
         color="#00ff00",
+        timestamps_mode="All unique timestamps",
         *args,
         **kwargs,
     ):
@@ -73,6 +74,9 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
+
+        self.timestamps_mode.setCurrentText(timestamps_mode)
+        self.timestamps_mode.currentIndexChanged.connect(self.update_plot)
 
         self._inhibit = False
 
@@ -201,6 +205,9 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 y=y,
             )
 
+            self.x.setText(str(x[0]))
+            self.y.setText(str(y[0]))
+
             self._inhibit = True
             self.timestamp_slider.setValue(idx)
             self.timestamp.setValue(stamp)
@@ -253,11 +260,12 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         config = {
             "channels": [self._x.name if self._x else "", self._y.name if self._y else ""],
             "color": self._pen,
+            "timestamp_mode": self.timestamps_mode.currentText(),
         }
 
         return config
 
-    def update_plot(self):
+    def update_plot(self, *args, **kwrags):
         self.plot.plotItem.getAxis("left").setPen(self._pen)
         self.plot.plotItem.getAxis("left").setTextPen(self._pen)
 
@@ -273,9 +281,19 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self._timebase = None
 
         else:
-            self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
-            self._x_interp = x = x.interp(t)
-            self._y_interp = y = y.interp(t)
+            match self.timestamps_mode.currentText():
+                case "X channel timestamps":
+                    self._timebase = t = x.timestamps
+                    self._x_interp = x
+                    self._y_interp = y = y.interp(t)
+                case "X channel timestamps":
+                    self._timebase = t = y.timestamps
+                    self._x_interp = x = x.interp(t)
+                    self._y_interp = y
+                case _:
+                    self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
+                    self._x_interp = x = x.interp(t)
+                    self._y_interp = y = y.interp(t)
 
             transform = QtGui.QTransform()
 
@@ -315,6 +333,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             )
 
             self.set_timestamp(self._timestamp)
+
+        self.update_timebase()
 
     def update_timebase(self):
         if self._timebase is not None and len(self._timebase):

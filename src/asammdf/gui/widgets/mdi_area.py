@@ -4541,7 +4541,15 @@ class WithMDIArea:
         else:
             y = None
 
-        xy = XY(x, y, color=window_info["configuration"]["color"])
+        if "timestamps_mode" in window_info["configuration"]:
+            xy = XY(
+                x,
+                y,
+                color=window_info["configuration"]["color"],
+                timestamps_mode=window_info["configuration"]["timestamps_mode"],
+            )
+        else:
+            xy = XY(x, y, color=window_info["configuration"]["color"])
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(xy)
