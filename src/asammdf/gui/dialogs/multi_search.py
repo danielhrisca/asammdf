@@ -32,6 +32,8 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.measurements = measurements
 
         self.matches.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.matches.itemDoubleClicked.connect(self.match_double_clicked)
+        self.selection.itemDoubleClicked.connect(self.selection_double_clicked)
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
@@ -110,6 +112,40 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def _cancel(self, event):
         self.payload = set()
         self.close()
+
+    def match_double_clicked(self, item):
+        if not item:
+            return
+
+        count = self.selection.count()
+        names = {self.selection.item(i).text() for i in range(count)}
+
+        to_add = item.text()
+
+        if to_add not in names:
+
+            names.add(to_add)
+
+            names = natsorted(names)
+
+            self.selection.clear()
+            self.selection.addItems(names)
+
+    def selection_double_clicked(self, item):
+        if not item:
+            return
+
+        count = self.selection.count()
+        names = {self.selection.item(i).text() for i in range(count)}
+
+        to_remove = item.text()
+
+        names.remove(to_remove)
+
+        names = natsorted(names)
+
+        self.selection.clear()
+        self.selection.addItems(names)
 
     def show_measurement_list(self, event):
         info = []
