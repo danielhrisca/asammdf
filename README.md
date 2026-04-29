@@ -173,6 +173,9 @@ asammdf uses the following libraries
 - lxml : for canmatrix arxml support
 - lz4 : to speed up the disk IO performance
 - python-dateutil : measurement start time handling
+- chardet : to detect non-standard Unicode encodings
+- typing-extensions
+- zstd (if Python < 3.14)
 
 Optional dependencies needed for exports
 
@@ -180,16 +183,19 @@ Optional dependencies needed for exports
 - hdf5storage : for Matlab v7.3 .mat export
 - pyarrow : for parquet export
 - scipy: for Matlab v4 and v5 .mat export
+- python-snappy
+- polars
 
 Other optional dependencies
 
 - PySide6 : for GUI tool
 - pyqtgraph : for GUI tool and Signal plotting
 - matplotlib : as fallback for Signal plotting
-- chardet : to detect non-standard Unicode encodings
 - pyqtlet2 : for the GPS window
-- isal : for faster zlib compression/decompression
+- deflate : for faster zlib compression/decompression
 - fsspec : access files stored in the cloud
+- cryptography
+- keyring
 
 ## Benchmarks
 

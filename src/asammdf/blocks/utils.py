@@ -46,14 +46,10 @@ from . import v4_constants as v4c
 from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
-
-try:
-    from isal.isal_zlib import decompress as zlib_decompress
-except ImportError:
-    from zlib import decompress as zlib_decompress
+from .compression_utils import (
+    lz_compress, lz_decompress, zlib_compress, zlib_decompress, zstd_compress, zstd_decompress
+)
 from chardet import detect
-from lz4.frame import decompress as lz_decompress
-from zstd import decompress as zstd_decompress
 
 
 class Terminated(Exception):

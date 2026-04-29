@@ -18,17 +18,16 @@ from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
-from lz4.frame import compress as lz_compress
-from lz4.frame import decompress as lz_decompress
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
-from zstd import compress as zstd_compress
-from zstd import decompress as zstd_decompress
 
 from .. import tool
 from . import v4_constants as v4c
+from .compression_utils import (
+    lz_compress, lz_decompress, zlib_compress, zlib_decompress, zstd_compress, zstd_decompress
+)
 from .cutils import bytes_dtype_size
 from .types import StrPath
 from .utils import (
@@ -49,23 +48,6 @@ from .utils import (
 
 COMPRESSION_LEVEL = 1
 AT_COMPRESSION_LEVEL = 9
-
-try:
-    from deflate import zlib_compress as compress
-    from deflate import zlib_decompress
-
-    def decompress(data, bufsize):
-        return zlib_decompress(data, originalsize=bufsize)
-
-except ImportError:
-    try:
-        from isal.isal_zlib import compress, decompress
-
-    except ImportError:
-        from zlib import (  # type: ignore[assignment, no-redef, unused-ignore]
-            compress,
-            decompress,
-        )
 
 try:
     from sympy import lambdify, symbols
@@ -288,7 +270,7 @@ class AttachmentBlock:
                         case "deflate":
 
                             flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                            data = compress(data, AT_COMPRESSION_LEVEL)
+                            data = zlib_compress(data, AT_COMPRESSION_LEVEL)
                             embedded_size = len(data)
 
                             self.zip_type = v4c.AT_ZIP_TYPE_DEFLATE
@@ -344,7 +326,7 @@ class AttachmentBlock:
             if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED or self.flags & v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED:
                 match self.zip_type:
                     case v4c.AT_ZIP_TYPE_DEFLATE:
-                        data = typing.cast(bytes, decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
+                        data = typing.cast(bytes, zlib_decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
                     case v4c.AT_ZIP_TYPE_ZSTD:
                         data = typing.cast(bytes, zstd_decompress(self.embedded_data))  # type: ignore[redundant-cast, unused-ignore]
                     case v4c.AT_ZIP_TYPE_LZ4:
@@ -5146,7 +5128,7 @@ class DataZippedBlock:
                 original_size = self.original_size
 
                 if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
-                    data = decompress(data, bufsize=original_size)
+                    data = zlib_decompress(data, bufsize=original_size)
 
                 elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
                     data = lz_decompress(data)

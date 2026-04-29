@@ -36,8 +36,6 @@ keywords = [
 dependencies = [
     "chardet>=7.0.0",
     "canmatrix[arxml,dbc]>=1.2",
-    "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
-    "deflate; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
     "numexpr>=2.10.0",
@@ -45,11 +43,11 @@ dependencies = [
     "pandas>=2.2.2",
     "python-dateutil",
     "typing-extensions>=4.10",
-    "zstd",
+    "zstd; python_version < '3.14',
 ]
 
 [project.optional-dependencies]
-decode = ["chardet>=7.0.0"]
+compression = ["deflate"]
 export = [
     "pyarrow>=17.0.0",
     "h5py>=3.11",
@@ -99,7 +97,7 @@ test-command = "pytest {project}/test"
 build-frontend = "build"
 archs = ["auto64"]                        # only build for 64bit architectures
 # skip pypy and irrelevant architectures
-skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x", "cp314*"]
+skip = ["pp*", "*_ppc64le", "*_s390x", "cp314*"]
 
 [tool.mypy]
 files = "."
@@ -115,7 +113,6 @@ module = [
     "fsspec.*",
     "h5py.*",
     "hdf5storage.*",
-    "isal.*",
     "lz4.*",
     "mdfreader.*",
     "mfile.*",

@@ -1516,7 +1516,6 @@ class Plot(QtWidgets.QWidget):
     region_removed_signal = QtCore.Signal(object)
     show_overlapping_alias = QtCore.Signal(object)
     show_properties = QtCore.Signal(object)
-    splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
     verify_bookmarks = QtCore.Signal(object)
     x_range_changed_signal = QtCore.Signal(object, object)
@@ -1931,8 +1930,6 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.verticalScrollBar().valueChanged.connect(self.update_current_values)
 
         self.disabled_keyboard_events = set()
-
-        self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.hide_selected_channel_value(
             hide=self._settings.value("plot/hide_selected_channel_value", False, type=bool)
@@ -3387,9 +3384,6 @@ class Plot(QtWidgets.QWidget):
 
         self.locked = locked
         self.plot.set_locked(locked)
-
-    def set_splitter(self, pos, index):
-        self.splitter_moved.emit(self, pos)
 
     def set_timestamp(self, stamp):
         if self.plot.cursor1 is None:

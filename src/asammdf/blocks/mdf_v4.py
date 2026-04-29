@@ -26,7 +26,6 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
 from canmatrix.canmatrix import CanMatrix
-from lz4.frame import compress as lz_compress
 import numpy as np
 from numpy import (
     arange,
@@ -69,6 +68,7 @@ from ..signal import InvalidationArray, Signal
 from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer, from_dict
+from .compression_utils import lz_compress
 from .cutils import (
     data_block_from_arrays,
     extract,

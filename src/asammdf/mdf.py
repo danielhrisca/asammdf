@@ -26,7 +26,6 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from canmatrix import CanMatrix
-from lz4.frame import compress as lz_compress
 import numpy as np
 from numpy import (
     frombuffer,
@@ -44,6 +43,7 @@ from .blocks import v2_v3_constants as v3c
 from .blocks import v4_blocks as v4b
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
+from .blocks.compression_utils import lz_compress
 from .blocks.cutils import get_channel_raw_bytes_complete
 from .blocks.mdf_common import (
     LastCallInfo,
