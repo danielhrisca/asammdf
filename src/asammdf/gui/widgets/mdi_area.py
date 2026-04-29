@@ -3170,7 +3170,6 @@ class WithMDIArea:
             plot.cursor_moved_signal.connect(self.set_cursor)
             plot.region_removed_signal.connect(self.remove_region)
             plot.region_moved_signal.connect(self.set_region)
-            plot.splitter_moved.connect(self.set_splitter)
 
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 widget = mdi.widget()
@@ -4227,7 +4226,6 @@ class WithMDIArea:
             plot.cursor_moved_signal.connect(self.set_cursor)
             plot.region_removed_signal.connect(self.remove_region)
             plot.region_moved_signal.connect(self.set_region)
-            plot.splitter_moved.connect(self.set_splitter)
 
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 widget = mdi.widget()
@@ -4620,7 +4618,6 @@ class WithMDIArea:
                     widget.cursor_moved_signal.connect(self.set_cursor)
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
-                    widget.splitter_moved.connect(self.set_splitter)
                 elif widget:
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
@@ -4628,28 +4625,15 @@ class WithMDIArea:
                 widget = mdi.widget()
                 if isinstance(widget, Plot):
                     try:
-                        widget.cursor_moved_signal.disconnect(self.set_cursor)
-                    except:
-                        pass
-                    try:
-                        widget.x_range_changed_signal.disconnect(self.set_x_range)
-                    except:
-                        pass
-                    try:
-                        widget.region_removed_signal.disconnect(self.remove_region)
-                    except:
-                        pass
-                    try:
-                        widget.region_moved_signal.disconnect(self.set_region)
-                    except:
-                        pass
-                    try:
-                        widget.splitter_moved.disconnect(self.set_splitter)
+                        widget.cursor_moved_signal.disconnect()
+                        widget.x_range_changed_signal.disconnect()
+                        widget.region_removed_signal.disconnect()
+                        widget.region_moved_signal.disconnect()
                     except:
                         pass
                 elif widget:
                     try:
-                        widget.timestamp_changed_signal.disconnect(self.set_cursor)
+                        widget.timestamp_changed_signal.disconnect()
                     except:
                         pass
 
@@ -4753,33 +4737,6 @@ class WithMDIArea:
                     wid.plot.region.setRegion(region)
                 except:
                     print(format_exc())
-
-        self._busy = False
-
-    def set_splitter(self, widget, selection_width):
-        if self._busy:
-            return
-        else:
-            self._busy = True
-
-        if not self.subplots_link:
-            self._busy = False
-            return
-
-        if self._splitter_source is None:
-            self._splitter_source = widget
-            for mdi in self.mdi_area.subWindowList():
-                wid = mdi.widget()
-                if isinstance(wid, Plot) and wid is not widget:
-                    if selection_width is not None:
-                        try:
-                            total_size = sum(wid.splitter.sizes())
-                            if total_size > selection_width:
-                                wid.splitter.setSizes([selection_width, total_size - selection_width])
-                        except:
-                            print(format_exc())
-
-            self._splitter_source = None
 
         self._busy = False
 
