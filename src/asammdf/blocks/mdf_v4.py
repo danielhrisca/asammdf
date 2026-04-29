@@ -68,7 +68,7 @@ from ..signal import InvalidationArray, Signal
 from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer, from_dict
-from .compression_utils import lz_compress
+from .compression_utils import lz_compress, decompress
 from .cutils import (
     data_block_from_arrays,
     extract,
@@ -97,7 +97,6 @@ from .utils import (
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
-    DECOMPRESS_FUNC_MAP,
     extract_display_names,
     extract_encryption_information,
     extract_xml_comment,
@@ -1326,8 +1325,7 @@ class MDF4(MDF_Common[Group]):
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
                         if block_type:
-                            decompress = DECOMPRESS_FUNC_MAP[block_type]
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, block_type, original_size)
 
                             if block_type % 2 == 0:
                                 # tranposed data
@@ -1388,8 +1386,7 @@ class MDF4(MDF_Common[Group]):
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
                         if block_type:
-                            decompress = DECOMPRESS_FUNC_MAP[block_type]
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, block_type, original_size)
 
                             if block_type % 2 == 0:
                                 # tranposed data
@@ -1609,8 +1606,7 @@ class MDF4(MDF_Common[Group]):
                 ss += original_size
 
                 if block_type:
-                    decompress = DECOMPRESS_FUNC_MAP[block_type]
-                    new_data = decompress(new_data)
+                    new_data = decompress(new_data, block_type, original_size)
 
                     if block_type % 2 == 0:
                         # tranposed data
@@ -1650,8 +1646,9 @@ class MDF4(MDF_Common[Group]):
                         original_size = typing.cast(int, invalidation_info.original_size)
 
                         if invalidation_info.block_type:
-                            decompress = DECOMPRESS_FUNC_MAP[invalidation_info.block_type]
-                            new_invalidation_data = decompress(new_invalidation_data)
+                            new_invalidation_data = decompress(
+                                new_invalidation_data, invalidation_info.block_type, original_size
+                            )
 
                             if invalidation_info.block_type % 2 == 0:
                                 # tranposed data
@@ -12201,10 +12198,7 @@ class MDF4(MDF_Common[Group]):
 
                 if block_type:
                     partial_records: dict[int, list[bytes]] = {id_: [] for _, id_ in groups}
-                    new_data = read(dtblock_size)
-
-                    decompress = DECOMPRESS_FUNC_MAP[block_type]
-                    new_data = decompress(new_data)
+                    new_data = decompress(read(dtblock_size), block_type, dtblock_raw_size)
 
                     if block_type % 2 == 0:
                         # tranposed data

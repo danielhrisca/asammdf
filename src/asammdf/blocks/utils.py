@@ -46,9 +46,6 @@ from . import v4_constants as v4c
 from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
-from .compression_utils import (
-    lz_decompress, zlib_decompress, zstd_decompress
-)
 from chardet import detect
 
 
@@ -119,17 +116,6 @@ MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20
 SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
-
-DECOMPRESS_FUNC_MAP = {
-    # data block type
-    v4c.DT_BLOCK: lambda x: x,
-    v4c.DZ_BLOCK_DEFLATE: zlib_decompress,
-    v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
-    v4c.DZ_BLOCK_LZ: lz_decompress,
-    v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
-    v4c.DZ_BLOCK_ZSTD: zstd_decompress,
-    v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
-}
 
 
 class MdfException(Exception):

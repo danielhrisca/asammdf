@@ -43,7 +43,7 @@ from .blocks import v2_v3_constants as v3c
 from .blocks import v4_blocks as v4b
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
-from .blocks.compression_utils import lz_compress
+from .blocks.compression_utils import lz_compress, decompress
 from .blocks.cutils import get_channel_raw_bytes_complete
 from .blocks.mdf_common import (
     LastCallInfo,
@@ -71,7 +71,6 @@ from .blocks.utils import (
     csv_bytearray2hex,
     csv_int2hex,
     DataBlockInfo,
-    DECOMPRESS_FUNC_MAP,
     downcast,
     FileLike,
     Fragment,
@@ -1488,8 +1487,7 @@ class MDF:
                 new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
 
                 if block_type:
-                    decompress = DECOMPRESS_FUNC_MAP[block_type]
-                    new_data = decompress(new_data)
+                    new_data = decompress(new_data, block_type, original_size)
 
                     if block_type % 2 == 0:
                         # tranposed data

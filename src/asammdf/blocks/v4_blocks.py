@@ -26,7 +26,12 @@ from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, U
 from .. import tool
 from . import v4_constants as v4c
 from .compression_utils import (
-    lz_compress, lz_decompress, zlib_compress, zlib_decompress, zstd_compress, zstd_decompress
+    lz_compress,
+    lz_decompress,
+    zlib_compress,
+    zlib_decompress,
+    zstd_compress,
+    zstd_decompress,
 )
 from .cutils import bytes_dtype_size
 from .types import StrPath
