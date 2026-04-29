@@ -5090,7 +5090,7 @@ class DataZippedBlock:
 
             compress_func: Callable[[Buffer, int], bytes]
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
-                compress_func = compress
+                compress_func = zlib_compress
             elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
                 compress_func = lz_compress
             elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
