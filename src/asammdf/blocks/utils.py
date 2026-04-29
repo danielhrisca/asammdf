@@ -47,7 +47,7 @@ from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
 from .compression_utils import (
-    lz_compress, lz_decompress, zlib_compress, zlib_decompress, zstd_compress, zstd_decompress
+    lz_decompress, zlib_decompress, zstd_decompress
 )
 from chardet import detect
 

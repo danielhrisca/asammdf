@@ -1,8 +1,9 @@
 try:
-    from deflate import zlib_decompress, zlib_compress
+    from deflate import zlib_compress
+    from deflate import zlib_decompress as decompress
 
-    def decompress(data):
-        return zlib_decompress(data, len(data))
+    def zlib_decompress(data):
+        return decompress(data, len(data))
 
 except ImportError:
     from zlib import compress as zlib_compress
