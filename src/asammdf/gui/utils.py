@@ -650,6 +650,7 @@ def compute_signal(
 
             else:
                 signals = [sig.samples for sig in signals]
+                signals = [sig.view(np.lib.format.drop_metadata(sig.dtype)) for sig in signals]
 
                 signals.append(common_timebase)
 
