@@ -3794,7 +3794,7 @@ class PlotGraphics(pg.PlotWidget):
         self.signals = []
 
         self.axes = []
-        self._axes_layout_pos = 2
+        self._axes_layout_pos = 3
 
         self._timebase_db = {}
         self._timestamps_indexes = {}
@@ -3809,8 +3809,11 @@ class PlotGraphics(pg.PlotWidget):
 
         self.plot_item = self.plotItem
         self.plot_item.layout.removeItem(self.plot_item.titleLabel)
-        self.plot_item.layout.removeItem(self.plot_item.axes["top"]["item"])
-        self.plot_item.layout.removeItem(self.plot_item.axes["right"]["item"])
+        self.plot_item.titleLabel.setParent(None)
+        self.plot_item.titleLabel = None
+
+        self.plot_item.axes["top"]["item"].hide()
+        self.plot_item.axes["right"]["item"].hide()
 
         self.plot_item.layout.setContentsMargins(0, 0, 0, 0)
         self.plot_item.hideButtons()
@@ -5645,17 +5648,19 @@ class PlotGraphics(pg.PlotWidget):
         if self.x_axis.picture is None:
             self.x_axis.paint(paint, None, None)
 
-        paint.drawPixmap(
-            self.y_axis.sceneBoundingRect(),
-            self.y_axis.picture,
-            self.y_axis.picture.rect(),
-        )
+        if self.y_axis.isVisible():
+            paint.drawPixmap(
+                self.y_axis.sceneBoundingRect(),
+                self.y_axis.picture,
+                self.y_axis.picture.rect(),
+            )
 
-        paint.drawPixmap(
-            self.x_axis.sceneBoundingRect(),
-            self.x_axis.picture,
-            self.x_axis.picture.rect(),
-        )
+        if self.x_axis.isVisible():
+            paint.drawPixmap(
+                self.x_axis.sceneBoundingRect(),
+                self.x_axis.picture,
+                self.x_axis.picture.rect(),
+            )
 
         for ax in self.axes:
             if isinstance(ax, FormatedAxis) and ax.isVisible():
@@ -5680,6 +5685,7 @@ class PlotGraphics(pg.PlotWidget):
 
             if self.region is not None:
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
+
             elif self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
