@@ -10574,6 +10574,7 @@ class MDF4(MDF_Common[Group]):
                                                 f"{message.name}.{signal_name}": "message",
                                             },
                                             conversion=signal["conversion"],
+											encoding="utf-8",
                                         )
 
                                         sigs.append(sig)
