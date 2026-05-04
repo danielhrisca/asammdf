@@ -42,8 +42,8 @@ from .blocks import v2_v3_blocks as v3b
 from .blocks import v2_v3_constants as v3c
 from .blocks import v4_blocks as v4b
 from .blocks import v4_constants as v4c
+from .blocks.compression_utils import decompress, lz_compress
 from .blocks.conversion_utils import from_dict
-from .blocks.compression_utils import lz_compress, decompress
 from .blocks.cutils import get_channel_raw_bytes_complete
 from .blocks.mdf_common import (
     LastCallInfo,

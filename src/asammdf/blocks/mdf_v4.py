@@ -67,8 +67,8 @@ from .. import tool
 from ..signal import InvalidationArray, Signal
 from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
+from .compression_utils import decompress, lz_compress
 from .conversion_utils import conversion_transfer, from_dict
-from .compression_utils import lz_compress, decompress
 from .cutils import (
     data_block_from_arrays,
     extract,

@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
+from chardet import detect
 import numpy as np
 from numpy import arange, bool_, interp, where
 from numpy.typing import NDArray
@@ -46,7 +47,6 @@ from . import v4_constants as v4c
 from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
-from chardet import detect
 
 
 class Terminated(Exception):
