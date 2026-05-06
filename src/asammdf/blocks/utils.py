@@ -2047,3 +2047,19 @@ def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
         return False
     else:
         return True
+
+
+def astype(arr, dtype):
+    conv = None
+    if arr.dtype.metadata:
+        conv = arr.dtype.metadata.get("conversion", None)
+
+    if conv:
+        try:
+            vals = conv.convert(arr).astype(dtype)
+        except:
+            vals = arr.astype(dtype)
+    else:
+        vals = arr.astype(dtype)
+
+    return vals

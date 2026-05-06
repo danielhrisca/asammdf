@@ -92,6 +92,7 @@ from .types import (
 )
 from .utils import (
     all_blocks_addresses,
+    astype,
     as_non_byte_sized_signed_int,
     CHANNEL_COUNT,
     CONVERT,
@@ -10062,7 +10063,7 @@ class MDF4(MDF_Common[Group]):
             ignore_invalidation_bits=ignore_invalidation_bits,
             data=data,
         )
-        can_ids.samples = can_ids.samples.astype("<u4") & 0x1FFFFFFF
+        can_ids.samples = astype(can_ids.samples, "<u4") & 0x1FFFFFFF
 
         payload = self.get(
             "CAN_DataFrame.DataBytes",
@@ -10244,7 +10245,7 @@ class MDF4(MDF_Common[Group]):
             ignore_invalidation_bits=ignore_invalidation_bits,
             data=data,
         )
-        can_ids.samples = can_ids.samples.astype("<u4") & 0x1FFFFFFF
+        can_ids.samples = astype(can_ids.samples, "<u4") & 0x1FFFFFFF
         payload = self.get(
             "LIN_Frame.DataBytes",
             group=index,
@@ -10433,15 +10434,18 @@ class MDF4(MDF_Common[Group]):
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
-                    bus_ids = self.get(
-                        "CAN_DataFrame.BusChannel",
-                        group=i,
-                        data=fragment,
-                    ).samples.astype("<u1")
+                    bus_ids = astype(
+                        self.get(
+                            "CAN_DataFrame.BusChannel",
+                            group=i,
+                            data=fragment,
+                        ).samples,
+                        "<u1",
+                    )
 
-                    msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4")
+                    msg_ids = astype(self.get("CAN_DataFrame.ID", group=i, data=fragment), "<u4")
                     try:
-                        msg_ide = self.get("CAN_DataFrame.IDE", group=i, data=fragment).samples.astype("<u1")
+                        msg_ide = astype(self.get("CAN_DataFrame.IDE", group=i, data=fragment).samples, "<u1")
                     except:
                         msg_ide = ((msg_ids & 0x80000000) >> 31).samples
 
@@ -10771,7 +10775,7 @@ class MDF4(MDF_Common[Group]):
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
-                    msg_ids = self.get("LIN_Frame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
+                    msg_ids = astype(self.get("LIN_Frame.ID", group=i, data=fragment), "<u4") & 0x1FFFFFFF
 
                     original_ids = msg_ids.samples.copy()
 
@@ -10782,11 +10786,14 @@ class MDF4(MDF_Common[Group]):
                     ).samples
 
                     try:
-                        bus_ids = self.get(
-                            "LIN_Frame.BusChannel",
-                            group=i,
-                            data=fragment,
-                        ).samples.astype("<u1")
+                        bus_ids = astype(
+                            self.get(
+                                "LIN_Frame.BusChannel",
+                                group=i,
+                                data=fragment,
+                            ).samples,
+                            "<u1",
+                        )
                     except:
                         bus_ids = np.ones(len(original_ids), dtype="u1")
 
@@ -12507,24 +12514,26 @@ class MDF4(MDF_Common[Group]):
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
-                bus_ids = self.get(
-                    "CAN_DataFrame.BusChannel",
-                    group=group_index,
-                    data=fragment,
-                    samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
-
-                msg_ids = (
+                bus_ids = astype(
                     self.get(
-                        "CAN_DataFrame.ID",
+                        "CAN_DataFrame.BusChannel",
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0],
+                    "<u1",
+                )
+
+                msg_ids = (
+                    astype(
+                        self.get(
+                            "CAN_DataFrame.ID",
+                            group=group_index,
+                            data=fragment,
+                            samples_only=True,
+                        )[0],
+                        "<u4",
+                    )
                     & 0x1FFFFFFF
                 )
 
@@ -12547,24 +12556,26 @@ class MDF4(MDF_Common[Group]):
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
-                bus_ids = self.get(
-                    "CAN_DataFrame.BusChannel",
-                    group=group_index,
-                    data=fragment,
-                    samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
-
-                msg_ids = (
+                bus_ids = astype(
                     self.get(
-                        "CAN_DataFrame.ID",
+                        "CAN_DataFrame.BusChannel",
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0],
+                    "<u1",
+                )
+
+                msg_ids = (
+                    astype(
+                        self.get(
+                            "CAN_DataFrame.ID",
+                            group=group_index,
+                            data=fragment,
+                            samples_only=True,
+                        )[0],
+                        "<u4",
+                    )
                     & 0x1FFFFFFF
                 )
 
@@ -12610,17 +12621,18 @@ class MDF4(MDF_Common[Group]):
                     samples_only=True,
                 )[0]
 
-                bus_ids = self.get(
-                    "CAN_DataFrame.BusChannel",
-                    group=group_index,
-                    data=fragment,
-                    samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                bus_ids = astype(
+                    self.get(
+                        "CAN_DataFrame.BusChannel",
+                        group=group_index,
+                        data=fragment,
+                        samples_only=True,
+                    )[0],
+                    "<u1",
+                )
 
                 msg_id_signal = (
-                    self.get("CAN_DataFrame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
+                    astype(self.get("CAN_DataFrame.ID", group=group_index, data=fragment), "<u4") & 0x1FFFFFFF
                 )
 
                 if is_j1939:
@@ -12769,14 +12781,15 @@ class MDF4(MDF_Common[Group]):
                 self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 msg_ids = (
-                    self.get(
-                        "LIN_Frame.ID",
-                        group=group_index,
-                        data=fragment,
-                        samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    astype(
+                        self.get(
+                            "LIN_Frame.ID",
+                            group=group_index,
+                            data=fragment,
+                            samples_only=True,
+                        )[0],
+                        "<u4",
+                    )
                     & 0x1FFFFFFF
                 )
 
@@ -12801,7 +12814,7 @@ class MDF4(MDF_Common[Group]):
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
-                sig = self.get("LIN_Frame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
+                sig = astype(self.get("LIN_Frame.ID", group=group_index, data=fragment), "<u4") & 0x1FFFFFFF
 
                 data_bytes = self.get(
                     "LIN_Frame.DataBytes",

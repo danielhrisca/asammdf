@@ -65,6 +65,7 @@ from .blocks.types import (
     StrPath,
 )
 from .blocks.utils import (
+    astype,
     as_non_byte_sized_signed_int,
     ChannelsDB,
     components,
@@ -6447,7 +6448,7 @@ class MDF:
                                 sys.intern(name)
 
                     if data.name == "CAN_DataFrame":
-                        columns["Bus"] = data["CAN_DataFrame.BusChannel"].astype("u1")
+                        columns["Bus"] = astype(data["CAN_DataFrame.BusChannel"], "u1")
 
                         vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"] = vals
@@ -6471,20 +6472,20 @@ class MDF:
                                 ]
                             else:
                                 columns["Direction"] = [
-                                    "Tx" if dir else "Rx" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in astype(data["CAN_DataFrame.Dir"], "u1").tolist()
                                 ]
 
                         if "CAN_DataFrame.ESI" in names:
-                            columns["ESI"] = data["CAN_DataFrame.ESI"].astype("u1")
+                            columns["ESI"] = astype(data["CAN_DataFrame.ESI"], "u1")
 
                         if "CAN_DataFrame.EDL" in names:
-                            columns["EDL"] = data["CAN_DataFrame.EDL"].astype("u1")
+                            columns["EDL"] = astype(data["CAN_DataFrame.EDL"], "u1")
 
                         if "CAN_DataFrame.BRS" in names:
-                            columns["BRS"] = data["CAN_DataFrame.BRS"].astype("u1")
+                            columns["BRS"] = astype(data["CAN_DataFrame.BRS"], "u1")
 
                         if "CAN_DataFrame.IDE" in names:
-                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
+                            columns["IDE"] = astype(data["CAN_DataFrame.IDE"], "u1")
 
                     elif data.name == "CAN_RemoteFrame":
                         columns["Bus"] = data["CAN_RemoteFrame.BusChannel"].astype("u1")
@@ -6506,11 +6507,11 @@ class MDF:
                                 ]
                             else:
                                 columns["Direction"] = [
-                                    "Tx" if dir else "Rx" for dir in data["CAN_RemoteFrame.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in astype(data["CAN_RemoteFrame.Dir"], "u1").tolist()
                                 ]
 
                         if "CAN_RemoteFrame.IDE" in names:
-                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
+                            columns["IDE"] = astype(data["CAN_RemoteFrame.IDE"], "u1")
 
                     elif data.name == "CAN_ErrorFrame":
                         if data.samples.dtype.names is None:
@@ -6519,7 +6520,7 @@ class MDF:
                         names = set(data.samples.dtype.names)
 
                         if "CAN_ErrorFrame.BusChannel" in names:
-                            columns["Bus"] = data["CAN_ErrorFrame.BusChannel"].astype("u1")
+                            columns["Bus"] = astype(data["CAN_ErrorFrame.BusChannel"], "u1")
 
                         if "CAN_ErrorFrame.ID" in names:
                             vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
@@ -6538,7 +6539,9 @@ class MDF:
                         columns["Event Type"] = "Error Frame"
 
                         if "CAN_ErrorFrame.ErrorType" in names:
-                            error_types = typing.cast(list[int], data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist())
+                            error_types = typing.cast(
+                                list[int], astype(data["CAN_ErrorFrame.ErrorType"], "u1").tolist()
+                            )
                             details = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in error_types]
 
                             columns["Details"] = details
@@ -6551,7 +6554,7 @@ class MDF:
                                 ]
                             else:
                                 columns["Direction"] = [
-                                    "Tx" if dir else "Rx" for dir in data["CAN_ErrorFrame.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in astype(data["CAN_ErrorFrame.Dir"], "u1").tolist()
                                 ]
 
                     dfs.append(pd.DataFrame(columns, index=df_index))
@@ -6592,7 +6595,7 @@ class MDF:
                     }
 
                     if data.name == "FLX_Frame":
-                        columns["Bus"] = data["FLX_Frame.FlxChannel"].astype("u1")
+                        columns["Bus"] = astype(data["FLX_Frame.FlxChannel"], "u1")
                         columns["ID"] = data["FLX_Frame.ID"].astype("u2")
                         columns["Cycle"] = data["FLX_Frame.Cycle"].astype("u1")
                         columns["Data Length"] = data["FLX_Frame.DataLength"].astype("u1")
@@ -6614,7 +6617,7 @@ class MDF:
                                 ]
                             else:
                                 columns["Direction"] = [
-                                    "Tx" if dir else "Rx" for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in astype(data["FLX_Frame.Dir"], "u1").tolist()
                                 ]
 
                         if "FLX_Frame.ControllerFlags" in names:
@@ -6625,7 +6628,7 @@ class MDF:
                             columns["FrameFlags"] = np.frombuffer(data["FLX_Frame.FrameFlags"].tobytes(), dtype="<u4")
 
                     elif data.name == "FLX_NullFrame":
-                        columns["Bus"] = data["FLX_NullFrame.FlxChannel"].astype("u1")
+                        columns["Bus"] = astype(data["FLX_NullFrame.FlxChannel"], "u1")
                         columns["ID"] = data["FLX_NullFrame.ID"].astype("u2")
                         columns["Cycle"] = data["FLX_NullFrame.Cycle"].astype("u1")
 
@@ -6640,7 +6643,7 @@ class MDF:
                                 ]
                             else:
                                 columns["Direction"] = [
-                                    "Tx" if dir else "Rx" for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in astype(data["FLX_NullFrame.Dir"], "u1").tolist()
                                 ]
 
                     elif data.name == "FLX_StartCycle":
@@ -6648,7 +6651,7 @@ class MDF:
                         columns["Event Type"] = "FlexRay StartCycle"
 
                     elif data.name == "FLX_Status":
-                        vals = data["FLX_Status.StatusType"].astype("u1")
+                        vals = astype(data["FLX_Status.StatusType"], "u1")
                         columns["Details"] = vals.astype("U").astype("O")
 
                         columns["Event Type"] = "FlexRay Status"
