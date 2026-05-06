@@ -317,8 +317,14 @@ class DataTableModel(QtCore.QAbstractTableModel):
                 return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
+            elif isinstance(cell, str):
+                return cell
             else:
-                return value_as_str(cell, self.format, None, self.float_precision)
+                if col:
+                    return value_as_str(cell, self.format, cell.dtype, self.float_precision)
+                else:
+                    # always show the timestamps in the physical or ascii modes
+                    return value_as_str(cell, "phys" if self.format != "ascii" else "ascii", None, self.float_precision)
 
         elif role == QtCore.Qt.ItemDataRole.BackgroundRole:
             channel_ranges = self.pgdf.tabular.ranges[name]
