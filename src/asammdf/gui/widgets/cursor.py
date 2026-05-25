@@ -360,25 +360,30 @@ class Cursor(pg.InfiniteLine):
                         y += y_delta
 
                         if self.show_circle:
-                            paint.drawLine(QtCore.QPointF(x + x_delta, 0), QtCore.QPointF(x + x_delta, y - 5))
                             paint.drawLine(
-                                QtCore.QPointF(x + x_delta, y + 5), QtCore.QPointF(x + x_delta, height + y_delta)
+                                QtCore.QPointF(x + x_delta, y_delta), QtCore.QPointF(x + x_delta, y - 5 + y_delta)
+                            )
+                            paint.drawLine(
+                                QtCore.QPointF(x + x_delta, y + 5 + y_delta),
+                                QtCore.QPointF(x + x_delta, height + y_delta),
                             )
 
                             if self.show_horizontal_line:
-                                paint.drawLine(QtCore.QPointF(x_delta, y), QtCore.QPointF(x + x_delta - 5, y))
-                                paint.drawLine(QtCore.QPointF(x + x_delta + 5, y), QtCore.QPointF(width, y))
+                                paint.drawLine(
+                                    QtCore.QPointF(x_delta, y + y_delta), QtCore.QPointF(x + x_delta - 5, y + y_delta)
+                                )
+                                paint.drawLine(
+                                    QtCore.QPointF(x + x_delta + 5, y + y_delta), QtCore.QPointF(width, y + y_delta)
+                                )
 
                             paint.setRenderHints(paint.RenderHint.Antialiasing, True)
-                            paint.drawEllipse(QtCore.QPointF(x + x_delta, y), 5, 5)
+                            paint.drawEllipse(QtCore.QPointF(x + x_delta, y + y_delta), 5, 5)
                             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                         else:
-                            paint.drawLine(
-                                QtCore.QPointF(x + x_delta, 0), QtCore.QPointF(x + x_delta, height + y_delta)
-                            )
+                            paint.drawLine(QtCore.QPointF(x + x_delta, 0), QtCore.QPointF(x + x_delta, height))
                             if self.show_horizontal_line:
-                                paint.drawLine(QtCore.QPointF(x_delta, y), QtCore.QPointF(width, y))
+                                paint.drawLine(QtCore.QPointF(x_delta, y + y_delta), QtCore.QPointF(width, y + y_delta))
 
                     else:
                         x, y = plot.scale_curve_to_pixmap(
