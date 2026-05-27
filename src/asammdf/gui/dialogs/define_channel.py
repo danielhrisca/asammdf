@@ -13,6 +13,7 @@ from ..utils import (
     computation_to_python_function,
     generate_python_function_globals,
     generate_python_variables,
+    generate_python_function,
 )
 from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
@@ -221,46 +222,45 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         if name in FunctionLibrary:
             func = FunctionLibrary[name]
         else:
+            func, trace = generate_python_function(self._functions[name])
 
-            definition = self._functions[name]
-            exec(definition.replace("\t", "    "))
-            func = locals()[name]
+        if func is not None:
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.signature = inspect.signature(func)
+            self.signature = inspect.signature(func)
 
-        parameters = list(self.signature.parameters)[:-1]
-        for i, arg_name in enumerate(parameters):
-            row = i * 3 + 2  # function name and arguments label raws
+            parameters = list(self.signature.parameters)[:-1]
+            for i, arg_name in enumerate(parameters):
+                row = i * 3 + 2  # function name and arguments label raws
 
-            label = QtWidgets.QLabel(arg_name)
-            self.arg_layout.addWidget(label, row, 0)
-            text_edit = QtWidgets.QPlainTextEdit()
-            self.arg_layout.addWidget(text_edit, row, 1)
-            button = QtWidgets.QPushButton("")
-            button.setIcon(icon)
-            button.clicked.connect(partial(self.search_argument, index=i))
-            self.arg_layout.addWidget(button, row, 2)
-            check = QtWidgets.QCheckBox("use raw values")
-            self.arg_layout.addWidget(check, row + 1, 1)
+                label = QtWidgets.QLabel(arg_name)
+                self.arg_layout.addWidget(label, row, 0)
+                text_edit = QtWidgets.QPlainTextEdit()
+                self.arg_layout.addWidget(text_edit, row, 1)
+                button = QtWidgets.QPushButton("")
+                button.setIcon(icon)
+                button.clicked.connect(partial(self.search_argument, index=i))
+                self.arg_layout.addWidget(button, row, 2)
+                check = QtWidgets.QCheckBox("use raw values")
+                self.arg_layout.addWidget(check, row + 1, 1)
 
-            if i < len(parameters) - 1:
-                line = QtWidgets.QFrame()
-                line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-                line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-                self.arg_layout.addWidget(line, row + 2, 0, 1, 3)
-                self.arg_widgets.append([label, text_edit, button, check, line])
-            else:
-                self.arg_widgets.append((label, text_edit, button, check))
+                if i < len(parameters) - 1:
+                    line = QtWidgets.QFrame()
+                    line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+                    line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+                    self.arg_layout.addWidget(line, row + 2, 0, 1, 3)
+                    self.arg_widgets.append([label, text_edit, button, check, line])
+                else:
+                    self.arg_widgets.append((label, text_edit, button, check))
 
-        spacer = QtWidgets.QSpacerItem(
-            20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
-        )
+            spacer = QtWidgets.QSpacerItem(
+                20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
+            )
 
-        self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
-        self.arg_widgets.append(spacer)
+            self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
+            self.arg_widgets.append(spacer)
 
     def search_argument(self, *args, index=0):
         dlg = AdvancedSearch(
