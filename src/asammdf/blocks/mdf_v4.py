@@ -92,8 +92,8 @@ from .types import (
 )
 from .utils import (
     all_blocks_addresses,
-    astype,
     as_non_byte_sized_signed_int,
+    astype,
     CHANNEL_COUNT,
     CONVERT,
     count_channel_groups,

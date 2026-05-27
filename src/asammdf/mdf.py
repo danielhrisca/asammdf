@@ -65,8 +65,8 @@ from .blocks.types import (
     StrPath,
 )
 from .blocks.utils import (
-    astype,
     as_non_byte_sized_signed_int,
+    astype,
     ChannelsDB,
     components,
     csv_bytearray2hex,
