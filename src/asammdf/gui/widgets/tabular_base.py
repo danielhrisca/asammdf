@@ -562,12 +562,17 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
                 float_precision = self.pgdf.dataframe_viewer.dataView.model().float_precision
 
-                if np.issubdtype(dtype, np.integer):
-                    return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-                elif float_precision != -1 and np.issubdtype(dtype, np.floating):
-                    return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                if isinstance(dtype, np.dtype):
+                    if np.issubdtype(dtype, np.integer):
+                        return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                    elif float_precision != -1 and np.issubdtype(dtype, np.floating):
+                        return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                    else:
+                        return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                    
                 else:
-                    return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                    return QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+            
             else:
                 return QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
 
