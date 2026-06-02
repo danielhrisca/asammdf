@@ -645,7 +645,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if search_name.pattern and not search_name.pattern.search(ch.name):
                         continue
 
-                    if group.channel_group.acq_source:
+                    if self.mdf.version >= "4.00" and group.channel_group.acq_source:
                         bus = group.channel_group.acq_source.path or "None"
                     else:
                         bus = "None"
