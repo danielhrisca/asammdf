@@ -7520,7 +7520,8 @@ class MDF4(MDF_Common[Group]):
                                 invalidation_bits = invalidation_bits[:record_count]
                 else:
                     if (
-                        (fast_path := channel.fast_path) is not None
+                        data
+                        and (fast_path := channel.fast_path) is not None
                         and not master_is_required
                         and ignore_invalidation_bits
                         and not raster
