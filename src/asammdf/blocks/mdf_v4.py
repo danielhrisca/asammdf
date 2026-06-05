@@ -3133,21 +3133,11 @@ class MDF4(MDF_Common[Group]):
                             original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        gp_sdata.append(
-                            (
-                                [info],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([info])
                         records.tofile(file)
                     else:
                         data_addr = 0
-                        gp_sdata.append(
-                            (
-                                [],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([])
 
                     byte_size = 8
                     cn_kwargs = {
@@ -3898,22 +3888,13 @@ class MDF4(MDF_Common[Group]):
                             original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        gp_sdata.append(
-                            (
-                                [info],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([info])
                         file.seek(0, 2)
                         file.write(b"".join(buffers))
                     else:
                         data_addr = 0
-                        gp_sdata.append(
-                            (
-                                [],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([])
+
                 else:
                     offsets = typing.cast(
                         NDArray[np.uint64], arange(len(samples), dtype=uint64) * (signal.samples.itemsize + 4)
@@ -3937,21 +3918,11 @@ class MDF4(MDF_Common[Group]):
                             original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        gp_sdata.append(
-                            (
-                                [info],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([info])
                         records.tofile(file)
                     else:
                         data_addr = 0
-                        gp_sdata.append(
-                            (
-                                [],
-                                iter(EMPTY_TUPLE),
-                            )
-                        )
+                        gp_sdata.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -4836,21 +4807,11 @@ class MDF4(MDF_Common[Group]):
                         original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
-                    gp_sdata.append(
-                        (
-                            [info],
-                            iter(EMPTY_TUPLE),
-                        )
-                    )
+                    gp_sdata.append([info])
                     array.tofile(file)
                 else:
                     data_addr = 0
-                    gp_sdata.append(
-                        (
-                            [],
-                            iter(EMPTY_TUPLE),
-                        )
-                    )
+                    gp_sdata.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -5171,21 +5132,11 @@ class MDF4(MDF_Common[Group]):
                         original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
-                    gp_sdata.append(
-                        (
-                            [info],
-                            iter(EMPTY_TUPLE),
-                        )
-                    )
+                    gp_sdata.append([info])
                     data.tofile(file)
                 else:
                     data_addr = 0
-                    gp_sdata.append(
-                        (
-                            [],
-                            iter(EMPTY_TUPLE),
-                        )
-                    )
+                    gp_sdata.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
