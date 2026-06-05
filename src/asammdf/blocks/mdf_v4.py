@@ -7397,7 +7397,7 @@ class MDF4(MDF_Common[Group]):
                     )
 
             else:
-                grp.load_all_data_blocks()
+                # grp.load_all_data_blocks()
                 blocks = grp.data_blocks
                 record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
                 cycles_nr = grp.channel_group.cycles_nr

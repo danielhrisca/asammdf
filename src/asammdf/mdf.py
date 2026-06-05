@@ -4162,7 +4162,7 @@ class MDF:
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
 
-            grp.load_all_data_blocks()
+            # grp.load_all_data_blocks()
             blocks = grp.data_blocks
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
             if not validate_blocks(blocks, record_size):
