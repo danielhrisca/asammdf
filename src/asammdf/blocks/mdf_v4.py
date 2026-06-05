@@ -9424,9 +9424,6 @@ class MDF4(MDF_Common[Group]):
                 fragments = [next(stream) for stream in data_streams]
             except Exception:
                 break
-            #
-            # if perf_counter() - tt > 120:
-            #     x = 1 / 0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
