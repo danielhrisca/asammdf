@@ -1124,9 +1124,6 @@ class MDF:
 
                 if progress.stop:
                     raise Terminated
-                    
-        for gp in self.groups:
-            gp.data_blocks_info_generator = []
 
         _mapped_file = self._mdf._mapped_file
         _file = self._mdf._file
@@ -1138,11 +1135,6 @@ class MDF:
 
         self._mdf._mapped_file = _mapped_file
         self._mdf._file = _file
-        for gp in self.groups:
-            gp.data_blocks_info_generator = iter(tuple())
-
-        for gp in out.groups:
-            gp.data_blocks_info_generator = iter(tuple())
 
         out._mdf._tempfile = tmp = NamedTemporaryFile(dir=self._mdf.temporary_folder)
 
@@ -1156,6 +1148,7 @@ class MDF:
                 stream = self._mdf._tempfile
             
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_blocks_info_generator = None
 
             read = stream.read
             seek = stream.seek
@@ -1181,6 +1174,15 @@ class MDF:
                     seek(inv_info.address)
                     inv_info.address = tell()
                     write(read(inv_info.compressed_size))
+
+            for signal_blocks in gp.signal_data:
+                if not signal_blocks:
+                    continue
+                for info in signal_blocks:
+                    seek(info.address)
+                    info.address = tell()
+                    info.location = v4c.LOCATION_TEMPORARY_FILE
+                    write(read(info.compressed_size))
 
         return out
 
@@ -4240,7 +4242,6 @@ class MDF:
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
 
-            # grp.load_all_data_blocks()
             blocks = grp.data_blocks
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
             if not validate_blocks(blocks, record_size):

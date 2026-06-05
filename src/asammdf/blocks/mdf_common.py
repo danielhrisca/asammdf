@@ -76,18 +76,18 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.channel_group: _CG
         self.channels: list[_CN] = []
         self.channel_dependencies: list[_CD | None] = []
-        self.signal_data: list[tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]] | None] = []
+        self.signal_data: list[list[SignalDataBlockInfo] | None] = []
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
         self.trigger: v3b.TriggerBlock | None = None
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
         self.data_blocks: list[DataBlockInfo] = []
+        self.data_blocks_info_generator = None
         self.signal_types: _ST
         self.single_channel_dtype: DTypeLike | None = None
         self.uses_ld = False
         self.read_split_count = 0
-        self.data_blocks_info_generator: Iterator[DataBlockInfo] = iter(EMPTY_TUPLE)
         self.uuid = ""
         self.data_location: int
         self.index = 0
@@ -103,36 +103,13 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
-        self.data_blocks_info_generator = iter(())
 
     def get_data_blocks(self) -> Iterator[DataBlockInfo]:
         yield from self.data_blocks
 
-        while True:
-            try:
-                info = next(self.data_blocks_info_generator)
-                self.data_blocks.append(info)
-                yield info
-            except StopIteration:
-                break
-
     def get_signal_data_blocks(self, index: int) -> Iterator[SignalDataBlockInfo]:
-        signal_data = self.signal_data[index]
-        if signal_data is not None:
-            signal_data_blocks, signal_generator = signal_data
-            yield from signal_data_blocks
-
-            while True:
-                try:
-                    info = next(signal_generator)
-                    signal_data_blocks.append(info)
-                    yield info
-                except StopIteration:
-                    break
-
-    def load_all_data_blocks(self) -> None:
-        for _ in self.get_data_blocks():
-            continue
+        if blocks := self.signal_data[index]:
+            yield from blocks
 
 
 GroupV3 = Group[v3b.DataGroup, v3b.ChannelGroup, v3b.Channel, v3b.ChannelDependency, list[int]]
