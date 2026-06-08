@@ -286,7 +286,6 @@ class AttachmentBlock:
                 if compression:
                     match compression_type:
                         case "deflate":
-
                             flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
                             data = compress(data, AT_COMPRESSION_LEVEL)
                             embedded_size = len(data)
@@ -475,7 +474,8 @@ class AttachmentBlock:
         if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
             keys = (*keys, "mime_zip_addr")
 
-        keys = keys + (
+        keys = (
+            *keys,
             "flags",
             "creator_index",
             "zip_type",
@@ -1744,7 +1744,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         self[f"axis_conversion_{i}_addr"] = address
 
                         if address:
-
                             if address in cc_map:
                                 conv = cc_map[address]
                             else:
@@ -1865,7 +1864,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         self[f"axis_conversion_{i}_addr"] = address
 
                         if address:
-
                             if address in cc_map:
                                 conv = cc_map[address]
                             else:
@@ -2109,9 +2107,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     info["size"] = typing.cast(int, self[f"dim_size_{i}"])
 
                 case _:
-
                     if self.flags & v4c.FLAG_CA_FIXED_AXIS:
-
                         info["type"] = "FIXED_AXIS"
                         info["size"] = typing.cast(int, self[f"dim_size_{i}"])
                         info["values"] = [
@@ -2119,7 +2115,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         ]
 
                     else:
-
                         info["type"] = "REF_AXIS"
                         info["size"] = typing.cast(int, self[f"dim_size_{i}"])
                         info["ref"] = self.axis_channels[i]
@@ -2171,7 +2166,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     ) -> int:
         if self.flags & v4c.FLAG_CA_AXIS:
             for i in range(self.dims):
-
                 conversion = self[f"axis_conversion_{i}"]
                 if conversion:
                     address = conversion.to_blocks(address, blocks, defined_texts, cc_map)

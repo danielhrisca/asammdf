@@ -30,7 +30,6 @@ from .tree_item import MinimalTreeItem, TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
-
     processing_executed = QtCore.Signal(str)
 
     def __init__(

@@ -97,7 +97,7 @@ class TestMDF4(unittest.TestCase):
         outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
-            data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)
+            data, filename, _md5_sum = attachment_mdf.extract_attachment(index=0)
             self.assertEqual(data, original_data)
             self.assertEqual(filename, Path("bin.bin"))
 
@@ -119,7 +119,7 @@ class TestMDF4(unittest.TestCase):
         outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
-            data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)
+            data, filename, _md5_sum = attachment_mdf.extract_attachment(index=0)
             self.assertEqual(data, original_data)
             self.assertEqual(filename, Path(original_file_name))
 

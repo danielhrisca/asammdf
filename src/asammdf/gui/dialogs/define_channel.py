@@ -11,9 +11,9 @@ from ..function_library import FunctionLibrary
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import (
     computation_to_python_function,
+    generate_python_function,
     generate_python_function_globals,
     generate_python_variables,
-    generate_python_function,
 )
 from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
@@ -222,10 +222,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         if name in FunctionLibrary:
             func = FunctionLibrary[name]
         else:
-            func, trace = generate_python_function(self._functions[name])
+            func, _trace = generate_python_function(self._functions[name])
 
         if func is not None:
-
             icon = QtGui.QIcon()
             icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 

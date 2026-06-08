@@ -356,9 +356,9 @@ class MDF4(MDF_Common[Group]):
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups
         self.virtual_groups_map: dict[int, int] = {}  # group index 2 master group
 
-        self.vlsd_max_length: dict[tuple[int, str], int] = (
-            {}
-        )  # hint about the maximum vlsd length for group_index, name pairs
+        self.vlsd_max_length: dict[
+            tuple[int, str], int
+        ] = {}  # hint about the maximum vlsd length for group_index, name pairs
 
         self._master = None
 
@@ -1089,7 +1089,6 @@ class MDF4(MDF_Common[Group]):
                     channel.dtype_fmt = ret_composition_dtype
 
                 else:
-
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
                     channel.dtype_fmt = np.dtype(
@@ -1165,7 +1164,6 @@ class MDF4(MDF_Common[Group]):
                         dependencies[index] = ca_dependencies or None
 
                         if self._add_array_components:
-
                             for ca_blck in ca_dependencies:
                                 # 1D array with dimensions
                                 for i in range(ca_blck.dims):
@@ -1535,7 +1533,6 @@ class MDF4(MDF_Common[Group]):
             cc = 0
 
             for info in group.data_blocks:
-
                 (
                     address,
                     original_size,
@@ -1556,7 +1553,7 @@ class MDF4(MDF_Common[Group]):
                     invalidation_info = info.invalidation_block
                 else:
                     invalidation_info = None
-              
+
                 if offset + original_size < record_offset + 1:
                     offset += original_size
                     if rm and invalidation_size:
@@ -1894,7 +1891,7 @@ class MDF4(MDF_Common[Group]):
                     handle_incomplete_block(address, self.file_limit, self.original_name)
                     return False
 
-                id_string, block_len = COMMON_SHORT_uf(stream, address)
+                id_string, _block_len = COMMON_SHORT_uf(stream, address)
 
                 if id_string == b"##LD":
                     uses_ld = True
@@ -1915,7 +1912,7 @@ class MDF4(MDF_Common[Group]):
                     return False
 
                 stream.seek(address)
-                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+                id_string, _block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 # can be a DataBlock
                 if id_string == b"##LD":
@@ -3503,7 +3500,7 @@ class MDF4(MDF_Common[Group]):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    struct_self,
+                    _struct_self,
                     new_fields,
                 ) = self._append_structure_composition(
                     gp,
@@ -3759,7 +3756,6 @@ class MDF4(MDF_Common[Group]):
                         offset += itemsize
 
                     else:
-
                         metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
 
                         idx = ref_names[name]
@@ -3772,7 +3768,6 @@ class MDF4(MDF_Common[Group]):
                             offset += itemsize
 
                         else:
-
                             # add channel dependency block
                             ca_kwargs = {
                                 "dims": 1,
@@ -4540,8 +4535,8 @@ class MDF4(MDF_Common[Group]):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    struct_self,
-                    new_fields,
+                    _struct_self,
+                    _new_fields,
                     new_types,
                 ) = self._append_structure_composition_column_oriented(
                     gp,
@@ -5659,7 +5654,6 @@ class MDF4(MDF_Common[Group]):
                         offset += itemsize
 
                     else:
-
                         metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
                         axes = metadata.get("axes", [])
 
@@ -5671,7 +5665,6 @@ class MDF4(MDF_Common[Group]):
                             offset += itemsize
 
                         else:
-
                             # add channel dependency block
                             ca_kwargs = {
                                 "dims": 1,
@@ -6372,9 +6365,7 @@ class MDF4(MDF_Common[Group]):
                                 original_size=data_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
-                            signal_data = typing.cast(
-                                list[list[SignalDataBlockInfo] | None], gp.signal_data
-                            )
+                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.signal_data)
                             signal_data[i].append(info)
                             stream.write(b"".join(pairs))
 
@@ -6404,9 +6395,7 @@ class MDF4(MDF_Common[Group]):
                                 original_size=block_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
-                            signal_data = typing.cast(
-                                list[list[SignalDataBlockInfo] | None], gp.signal_data
-                            )
+                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.signal_data)
                             signal_data[i].append(info)
                             values_arr.tofile(stream)
 
@@ -7371,7 +7360,6 @@ class MDF4(MDF_Common[Group]):
                     for info, channel, (raw_data, invalidation_bits) in zip(
                         info_rec, channels, raw_and_invalidation, strict=False
                     ):
-
                         channel_dtype, byte_size, byte_offset, bit_offset = info
 
                         vals = np.frombuffer(raw_data, dtype=channel_dtype)
@@ -7856,7 +7844,6 @@ class MDF4(MDF_Common[Group]):
                     invalidation_bits = invalidation_array
 
             else:
-
                 if count > 1:
                     out = empty(total_size, dtype=invalidation_arrays[0].dtype)
                     invalidation_array = concatenate(invalidation_arrays, out=out)
@@ -8420,7 +8407,6 @@ class MDF4(MDF_Common[Group]):
             v4c.CHANNEL_TYPE_VIRTUAL,
             v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
-
             channel_values: list[NDArray[Any]] = []
             masters: list[NDArray[Any]] = []
             invalidation_arrays: list[InvalidationArray | None] = []
@@ -11942,8 +11928,8 @@ class MDF4(MDF_Common[Group]):
 
                             if next_block_type == b"##DZ":
                                 (
-                                    zip_type,
-                                    param,
+                                    _zip_type,
+                                    _param,
                                     original_size,
                                     zip_size,
                                 ) = v4c.DZ_COMMON_INFO_uf(stream.read(v4c.DZ_COMMON_INFO_SIZE))
@@ -11951,7 +11937,7 @@ class MDF4(MDF_Common[Group]):
                                 exceeded = limit - (next_block_address + v4c.DZ_COMMON_SIZE + zip_size) < 0
 
                             else:
-                                id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
+                                _id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
                                 original_size = block_len - 24
 
                                 exceeded = limit - (next_block_address + block_len) < 0
@@ -12402,7 +12388,7 @@ class MDF4(MDF_Common[Group]):
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
                         try:
-                            attachment, at_name, md5_sum = self.extract_attachment(
+                            attachment, at_name, _md5_sum = self.extract_attachment(
                                 index=attachment_addr,
                             )
                         except:
@@ -12435,9 +12421,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12445,9 +12429,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12475,9 +12457,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12485,9 +12465,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12538,9 +12516,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_id_signal = (
                     self.get("CAN_DataFrame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
@@ -12660,7 +12636,7 @@ class MDF4(MDF_Common[Group]):
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
                         try:
-                            attachment, at_name, md5_sum = self.extract_attachment(
+                            attachment, at_name, _md5_sum = self.extract_attachment(
                                 index=attachment_addr,
                             )
                         except:
@@ -12697,9 +12673,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 

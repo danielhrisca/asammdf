@@ -54,7 +54,6 @@ def convert(arr, ignore_value2text_conversions=False):
         res = res.view(np.lib.format.drop_metadata(res.dtype))
 
     else:
-
         dtype = arr.dtype
         if (metadata := dtype.base.metadata) and "conversion" in metadata:
             conversion = metadata["conversion"]
@@ -178,7 +177,7 @@ class Signal:  # noqa: PLW1641
         **kwargs,
     ) -> None:
         if "raw" in kwargs:
-            warnings.warn("the 'raw' argument for the Signal class has been removed")
+            warnings.warn("the 'raw' argument for the Signal class has been removed", stacklevel=2)
         if not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '

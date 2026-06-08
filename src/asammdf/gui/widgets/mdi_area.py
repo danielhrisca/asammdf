@@ -1366,7 +1366,7 @@ class WithMDIArea:
                     if not file_info:
                         continue
 
-                    file_index, file = file_info
+                    _file_index, file = file_info
 
                     selected_signals = file.mdf.to_dataframe(
                         channels=uuids_signals,
@@ -1401,7 +1401,7 @@ class WithMDIArea:
                     if not file_info:
                         continue
 
-                    file_index, file = file_info
+                    _file_index, file = file_info
 
                     selected_signals = file.mdf.select(
                         uuids_signals,
@@ -1457,7 +1457,7 @@ class WithMDIArea:
                     if not file_info:
                         continue
 
-                    file_index, file = file_info
+                    _file_index, file = file_info
 
                     for entry in uuids_entries:
                         if entry["name"] in file.mdf:
@@ -2642,7 +2642,7 @@ class WithMDIArea:
             if not file_info:
                 continue
 
-            file_index, file = file_info
+            _file_index, file = file_info
             origin_mdf = file.mdf.original_name.name
 
             selected_signals = file.mdf.select(
@@ -2673,7 +2673,7 @@ class WithMDIArea:
                 if not file_info:
                     continue
 
-                file_index, file = file_info
+                _file_index, file = file_info
 
                 signals.extend(
                     extract_signals_using_pattern(
@@ -2819,7 +2819,7 @@ class WithMDIArea:
             if not file_info:
                 continue
 
-            file_index, file = file_info
+            _file_index, file = file_info
 
             selected_signals = file.mdf.select(
                 [(entry["name"], entry["group_index"], entry["channel_index"]) for entry in uuids_signals.values()],
@@ -3049,7 +3049,6 @@ class WithMDIArea:
                     events = [bookmark.copy() for bookmark in widget.bookmarks]
                     break
             else:
-
                 events = []
 
                 if self.mdf.version >= "4.00":
@@ -3865,7 +3864,6 @@ class WithMDIArea:
             mime_data = None
             for sig in plot_signals.values():
                 sig.ranges = copy_ranges(pattern_info["ranges"])
-            descriptions = {}
 
         else:
             if self.comparison:
@@ -3874,7 +3872,7 @@ class WithMDIArea:
                 mdfs = [self.mdf]
             (
                 mime_data,
-                descriptions,
+                _descriptions,
                 found,
                 not_found,
                 computed,
