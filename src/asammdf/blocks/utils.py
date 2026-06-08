@@ -2050,6 +2050,14 @@ def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
 
 
 def astype(arr, dtype):
+
+    if isinstance(arr, np.ndarray):
+        is_array = True
+    else:
+        is_array = False
+        sig = arr.copy()
+        arr = sig.samples
+
     conv = None
     if arr.dtype.metadata:
         conv = arr.dtype.metadata.get("conversion", None)
@@ -2062,4 +2070,8 @@ def astype(arr, dtype):
     else:
         vals = arr.astype(dtype)
 
-    return vals
+    if is_array:
+        return vals
+    else:
+        sig.samples = vals
+        return sig
