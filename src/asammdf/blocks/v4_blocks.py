@@ -1316,7 +1316,7 @@ class Channel:
                 else:
                     text = comment
         else:
-            text = comment
+            text = comment or ""
 
         if text in defined_texts:
             self.comment_addr = defined_texts[text]
