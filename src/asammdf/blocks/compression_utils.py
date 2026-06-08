@@ -24,6 +24,7 @@ except ImportError:
 
 from . import v4_constants as v4c
 
+# ruff: disable[PLR1714]
 
 def compress(data, data_type):
     if data_type == v4c.DT_BLOCK:
@@ -47,3 +48,5 @@ def decompress(data, data_type, bufsize=0):
     else:
         uncompressed = zstd_decompress(data)
     return uncompressed
+
+# ruff: enable[PLR1714]
