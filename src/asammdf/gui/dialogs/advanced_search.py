@@ -18,9 +18,10 @@ SourceNameColumn = 4
 SourcePathColumn = 5
 CommentColumn = 6
 
+DEFAULT_MODEL_INDEX = QtCore.QModelIndex()
+
 
 class SearchItem:
-
     def __init__(self, values=(), parent=None):
         self._parent = parent
         self._children = []
@@ -105,7 +106,6 @@ class SearchItem:
 
 
 class Model(QtCore.QAbstractItemModel):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -137,14 +137,12 @@ class Model(QtCore.QAbstractItemModel):
         self._root.clear()
         self.endResetModel()
 
-    def columnCount(self, parent=QtCore.QModelIndex()):
+    def columnCount(self, parent=DEFAULT_MODEL_INDEX):
         return 7
 
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
-
                 item = index.internalPointer()
                 return item[index.column()]
 
@@ -152,9 +150,9 @@ class Model(QtCore.QAbstractItemModel):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return ["Name", "Group", "Index", "Unit", "Source name", "Source path", "Comment"][section]
 
-    def index(self, row, column, parent=QtCore.QModelIndex()):
+    def index(self, row, column, parent=DEFAULT_MODEL_INDEX):
         if not self.hasIndex(row, column, parent):
-            return QtCore.QModelIndex()
+            return DEFAULT_MODEL_INDEX
 
         if not parent.isValid():
             parentItem = self._root
@@ -165,17 +163,17 @@ class Model(QtCore.QAbstractItemModel):
         if child:
             return self.createIndex(row, column, child)
         else:
-            return QtCore.QModelIndex()
+            return DEFAULT_MODEL_INDEX
 
     def parent(self, index):
         if not index.isValid():
-            return QtCore.QModelIndex()
+            return DEFAULT_MODEL_INDEX
 
         child = index.internalPointer()
         parent = child.parent
 
         if parent is self._root:
-            return QtCore.QModelIndex()
+            return DEFAULT_MODEL_INDEX
 
         return self.createIndex(parent.row(), 0, parent)
 
@@ -189,7 +187,7 @@ class Model(QtCore.QAbstractItemModel):
         self.sort(self.column, self.order)
         self.endResetModel()
 
-    def rowCount(self, parent=QtCore.QModelIndex()):
+    def rowCount(self, parent=DEFAULT_MODEL_INDEX):
 
         if not parent.isValid():
             item = self._root
@@ -214,7 +212,6 @@ class Model(QtCore.QAbstractItemModel):
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
-
     columns = 7
 
     def __init__(
@@ -354,7 +351,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.CheckState.Checked
 
         if len(text) >= 2:
-
             match_kind = self.match_kind.currentText()
 
             if match_kind == "Wildcard":
@@ -622,7 +618,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             return
 
         if action.text() == "Delete":
-
             indexes = list(
                 {index.row(): index for index in self.selection.selectedIndexes() if index.isValid()}.values()
             )

@@ -28,7 +28,7 @@ class TestWindowSelectionDialog(TestBase):
                 rb = self.ws.selection_layout.itemAt(index).widget()
                 self.mouseClick_RadioButton(rb)
 
-                ok, cancel = self.ws.buttonBox.buttons()
+                ok, _cancel = self.ws.buttonBox.buttons()
                 QtTest.QTest.mouseClick(ok, QtCore.Qt.MouseButton.LeftButton)
 
                 self.assertEqual(option, self.ws.selected_type())
@@ -49,7 +49,7 @@ class TestWindowSelectionDialog(TestBase):
             self.ws.showNormal()
 
             self.mouseClick_CheckboxButton(self.ws.disable_channels)
-            ok, cancel = self.ws.buttonBox.buttons()
+            ok, _cancel = self.ws.buttonBox.buttons()
             QtTest.QTest.mouseClick(ok, QtCore.Qt.MouseButton.LeftButton)
 
             self.assertTrue(self.ws.disable_new_channels())
@@ -58,7 +58,7 @@ class TestWindowSelectionDialog(TestBase):
             self.ws.showNormal()
 
             self.mouseClick_CheckboxButton(self.ws.disable_channels)
-            ok, cancel = self.ws.buttonBox.buttons()
+            ok, _cancel = self.ws.buttonBox.buttons()
             QtTest.QTest.mouseClick(ok, QtCore.Qt.MouseButton.LeftButton)
 
             self.assertFalse(self.ws.disable_new_channels())

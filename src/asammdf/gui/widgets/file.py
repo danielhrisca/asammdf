@@ -3461,7 +3461,7 @@ MultiRasterSeparator;&
                     if ok and text:
                         password = text
 
-                data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
+                data, _file_path, _md5_sum = self.mdf.extract_attachment(index, password=password)
 
                 dsp = json.loads(data.decode("utf-8", errors="replace"), cls=ExtendedJsonDecoder)
                 dsp["display_file_name"] = "user_embedded_display.dspf"

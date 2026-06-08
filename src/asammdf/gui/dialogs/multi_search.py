@@ -123,7 +123,6 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         to_add = item.text()
 
         if to_add not in names:
-
             names.add(to_add)
 
             names = natsorted(names)

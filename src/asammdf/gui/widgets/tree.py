@@ -2354,7 +2354,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             plot = self.treeWidget().plot.plot
 
-            sig, index = plot.signal_by_uuid(self.uuid)
+            sig, _index = plot.signal_by_uuid(self.uuid)
 
             info["y_range"] = tuple(float(e) for e in sig.y_range)
 

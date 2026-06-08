@@ -133,7 +133,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
             if ok and text:
                 password = text
 
-        data, file_path, md5_sum = self.file.mdf.extract_attachment(self.index, password=password)
+        data, file_path, _md5_sum = self.file.mdf.extract_attachment(self.index, password=password)
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,

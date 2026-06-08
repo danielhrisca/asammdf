@@ -15,7 +15,6 @@ from .types import DbcFileType, StrPath
 from .utils import (
     ChannelsDB,
     DataBlockInfo,
-    EMPTY_TUPLE,
     MdfException,
     SignalDataBlockInfo,
 )

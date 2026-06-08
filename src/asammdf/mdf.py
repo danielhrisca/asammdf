@@ -1053,11 +1053,15 @@ class MDF:
         """
         version = validate_version_argument(version)
 
-        if self.version >= "4.00" and version >= "4.00" and not self._mdf._column_storage and not self._mdf._add_array_components:
+        if (
+            self.version >= "4.00"
+            and version >= "4.00"
+            and not self._mdf._column_storage
+            and not self._mdf._add_array_components
+        ):
             out = self._convert_mf4_fast(version, progress)
 
         else:
-
             out = MDF(version=version, **self._mdf._kwargs)
 
             out.configure(from_other=self)
@@ -1111,10 +1115,10 @@ class MDF:
         out._transfer_metadata(self, message=f"Converted from {self.name}")
 
         return out
-    
+
     def _convert_mf4_fast(self, version: str | Version, progress: Any | None = None) -> "MDF":
         groups_nr = len(self.groups)
-        
+
         if progress is not None:
             if callable(progress):
                 progress(0, groups_nr)
@@ -1140,13 +1144,13 @@ class MDF:
 
         out._mdf.version = version
         out._mdf.identification = FileIdentificationBlock(version=version)
-    
+
         for i, gp in enumerate(out.groups):
             if gp.data_location == v4c.LOCATION_ORIGINAL_FILE:
                 stream = self._mdf._file
             else:
                 stream = self._mdf._tempfile
-            
+
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
             gp.data_blocks_info_generator = None
 
@@ -1525,7 +1529,6 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
         for i, group in enumerate(self.groups):
-
             channel_group = group.channel_group
             record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
@@ -3689,9 +3692,9 @@ class MDF:
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
-                        stacked.groups[index].channel_group.comment = (
-                            f'stacked from channel group {i} of "{mdf.name.parent}"'
-                        )
+                        stacked.groups[
+                            index
+                        ].channel_group.comment = f'stacked from channel group {i} of "{mdf.name.parent}"'
 
             if progress is not None:
                 if callable(progress):
