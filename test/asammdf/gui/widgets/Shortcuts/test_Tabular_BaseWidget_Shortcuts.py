@@ -47,7 +47,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.dtw))
         self.processEvents(0.01)
 
-    @skipif(sys.platform == "linux")
+    @skipIf(sys.platform == "linux")
     def test_set_color_range_shortcut(self):
         """
             Test Scope:
