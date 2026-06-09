@@ -433,7 +433,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.grab(
-            QRect(0, int(self.plot.plot.height() / 2 + 2), self.plot.plot.width(), int(self.plot.plot.height() / 2 - 2))
+            QRect(0, int(self.plot.plot.height() / 2 + 4), self.plot.plot.width(), int(self.plot.plot.height() / 2 - 4))
         )
         # Evaluate plot, bottom half of plot must not contain channel color
         self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))

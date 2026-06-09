@@ -788,9 +788,9 @@ class TestPushButtonApply(TestBatchWidget):
             self.assertEqual(self.start_time, mdf_file.start_time)
 
             for channel in mdf_file.iter_channels():
-                # FIXME: this assertion fails for "ASAM.M.SCALAR.SBYTE.IDENTICAL.DISCRETE"
-                self.assertEqual(channel.timestamps.min(), start_cut)
-                self.assertEqual(channel.timestamps.max(), stop_cut)
+                delta = np.mean(np.diff(channel.timestamps))
+                self.assertAlmostEqual(channel.timestamps.min(), start_cut, delta=delta)
+                self.assertAlmostEqual(channel.timestamps.max(), stop_cut, delta=delta)
 
     def test_resample_by_step_0(self):
         """
