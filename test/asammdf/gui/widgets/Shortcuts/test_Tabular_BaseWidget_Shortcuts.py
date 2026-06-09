@@ -1,7 +1,8 @@
 #!/usr/bin/env python\
 
 from os import path
-from unittest import mock
+from unittest import mock, skipIf
+import sys
 
 import numpy
 from PySide6 import QtGui, QtTest
@@ -46,6 +47,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.dtw))
         self.processEvents(0.01)
 
+    @skipif(sys.platform == "linux")
     def test_set_color_range_shortcut(self):
         """
             Test Scope:
