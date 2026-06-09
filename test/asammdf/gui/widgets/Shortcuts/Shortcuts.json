@@ -75,7 +75,8 @@
 
   "PlotGraphics": [
     {
-      "toggle_range": "Y",
+      "toggle_range": "R",
+      "toggle_range_lock": "Y",
       "zoom_to_range": "X",
       "fit_all": "F",
       "fit_selected": "Shift+F",

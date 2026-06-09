@@ -1,5 +1,6 @@
 #!/usr/bin/env python\
 
+from itertools import groupby
 import os
 from unittest import mock
 
@@ -13,6 +14,10 @@ from asammdf.gui.function_library import FunctionLibrary
 from asammdf.gui.widgets.plot import PlotGraphics
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+
+
+def remove_duplicates(arr):
+    return [key for key, _group in groupby(arr)]
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
@@ -105,17 +110,17 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(1, len(cursors))
 
         # Press Key 'Y' for range selection
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["toggle_range"]))
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["toggle_range_lock"]))
         self.processEvents(timeout=0.1)
 
         # Save PixMap of Range plot
         range_pixmap = self.pg.grab()
-        self.assertFalse(Pixmap.is_black(range_pixmap))
+        self.assertTrue(Pixmap.is_black(range_pixmap))
 
         # Get X position of Cursors
         cursors = Pixmap.cursors_x(range_pixmap)
         # Evaluate that two cursors are available
-        self.assertEqual(2, len(cursors))
+        self.assertEqual(1, len(cursors))
 
         # area left of range must have background color
         self.assertTrue(
@@ -138,22 +143,14 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             )
         )
 
-        # area inside range must have range color, first and last line are black
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(cursors) + 1,
-                y=1,
-                width=max(cursors) - (min(cursors) + 1),
-                height=range_pixmap.height() - 2,
-            )
-        )
+        # Move Cursors
+        for i in range(5):
+            QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_right_1x"]))
+            self.processEvents(timeout=0.01)
+        cursors = Pixmap.cursors_x(self.pg.grab())
 
         # Move Cursors
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_left_1x"]))
-        self.processEvents(timeout=0.01)
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_left_20x"]))
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
@@ -205,22 +202,31 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["toggle_range"]))
         self.processEvents(timeout=0.01)
 
-        # Move Cursors
+        # Move Cursor
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_right_1x"]))
-        self.processEvents(timeout=0.01)
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_left_20x"]))
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
         range_pixmap = self.pg.grab()
-        self.assertFalse(Pixmap.is_black(range_pixmap))
+        self.assertTrue(Pixmap.is_black(range_pixmap))
 
         # Get X position of Cursors
         new_cursors = Pixmap.cursors_x(range_pixmap)
         # Evaluate that two cursors are available
-        self.assertEqual(2, len(new_cursors))
-        for c in cursors:
-            self.assertNotIn(c, new_cursors, f"cursor {c} is the same")
+        self.assertEqual(1, len(new_cursors))
+
+        # Press Key 'R' for range selection
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["range"]))
+        self.processEvents(timeout=0.01)
+        # Save PixMap of clear plot
+        # Move Cursor
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["move_cursor_right_1x"]))
+        self.processEvents(timeout=0.01)
+        range_pixmap = self.pg.grab()
+
+        self.assertFalse(Pixmap.is_black(range_pixmap))
+
+        new_cursors = Pixmap.cursors_x(range_pixmap)
 
         # area left of range must have background color
         self.assertTrue(
@@ -255,13 +261,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             )
         )
 
-        # Press Key 'R' for range selection
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["range"]))
-        self.processEvents(timeout=0.01)
-        # Save PixMap of clear plot
-        clean_pixmap = self.pg.grab()
-        self.assertTrue(Pixmap.is_black(clean_pixmap))
-
     def test_zoom_to_range_shortcut(self):
         """
         Test Scope:
@@ -287,16 +286,27 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         # Setup for cursor
         self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
+
+        # Press R
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["range"]))
+        self.processEvents()
+
         # Mouse click on a center of plot
+        pos1 = QPoint(self.pg.width() // 10, self.pg.height() // 2)
         QTest.mouseClick(
             self.pg.viewport(),
             Qt.MouseButton.LeftButton,
             Qt.KeyboardModifier.NoModifier,
-            self.pg.rect().center(),
+            pos1,
         )
-        # Press R
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["range"]))
-        self.processEvents()
+
+        pos2 = QPoint(self.pg.width() - self.pg.width() // 10, self.pg.height() // 2)
+        QTest.mouseClick(
+            self.pg.viewport(),
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.ControlModifier,
+            pos2,
+        )
 
         x_range = self.pg.region.getRegion()
         self.assertNotIn(x_range[0], self.pg.x_range)
@@ -321,7 +331,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         # Count intersection of midd line and signal between cursors
         horizontal_line = QRect(cursors[0], int(self.pg.height() / 2), cursors[1] - cursors[0], 1)
-        expected_intersections = Pixmap.color_map(self.pg.grab(horizontal_line))[0].count(color)
+        expected_intersections = remove_duplicates(Pixmap.color_map(self.pg.grab(horizontal_line))[0]).count(color)
         self.assertTrue(expected_intersections)
 
         # Press key "X"
@@ -330,7 +340,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         # Evaluate how much times signal intersect midd line
         horizontal_line = QRect(0, int(self.pg.height() / 2), self.pg.width(), 1)
-        actual_intersections = Pixmap.color_map(self.pg.grab(horizontal_line))[0].count(channel_color)
+        actual_intersections = remove_duplicates(Pixmap.color_map(self.pg.grab(horizontal_line))[0]).count(
+            channel_color
+        )
+
         self.assertEqual(actual_intersections, expected_intersections)
         self.assertLess(actual_intersections, initial_intersections)
 

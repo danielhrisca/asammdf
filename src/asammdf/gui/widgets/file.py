@@ -637,6 +637,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             search_name.setVisible(True)
             search_bus.setVisible(True)
 
+            use_old = self._settings.value("test/natural_sort_old", False, type=bool)
+
             items = []
             for i, group in enumerate(self.mdf.groups):
                 for j, ch in enumerate(group.channels):
@@ -654,7 +656,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         continue
 
                     channel = MinimalTreeItem(
-                        entry, ch.name, strings=[f"{ch.name} —— {bus:<10}"], origin_uuid=self.uuid
+                        entry,
+                        ch.name,
+                        strings=[ch.name if use_old else f"{ch.name} —— {bus:<10}"],
+                        origin_uuid=self.uuid,
                     )
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
 

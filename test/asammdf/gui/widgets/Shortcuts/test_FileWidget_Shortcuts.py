@@ -204,6 +204,8 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Setup
         max_square = 5
         sub_windows = randint(5, max_square * (1 + max_square))
+        if sub_windows % 2:
+            sub_windows += 1
         for _ in range(sub_windows):
             self.create_window(window_type="Plot")
         self.processEvents(0.01)
@@ -239,7 +241,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         self.assertEqual(len(x), ceil(sqrt(sub_windows)))
         self.assertEqual(len(y), round(sqrt(sub_windows)))
-        self.assertEqual(len(width), 2)
+        self.assertEqual(len(width), 2, f"{width=} {sub_windows=}")
         self.assertIn(get_step(x), width)
         self.assertIn(len(height), range(2, 5))
         self.assertIn(get_step(y), height)

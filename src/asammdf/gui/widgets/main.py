@@ -1557,6 +1557,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         current_widget.channels_tree.clear()
         current_widget.filter_tree.clear()
         current_widget.mdf = None
+        current_widget.close()
         current_widget.setParent(None)
         current_widget.deleteLater()
 

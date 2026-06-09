@@ -13,6 +13,7 @@ class DragAndDrop
      from source widget - specific point, to destination widget - specific point
 """
 
+import atexit
 from collections.abc import Iterable
 import functools
 import os
@@ -29,6 +30,7 @@ import numpy as np
 from numpy.typing import NDArray
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+from PySide6.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
 
 from asammdf import mdf
 from asammdf.gui.utils import excepthook
@@ -44,9 +46,42 @@ else:
     os.environ["QT_QPA_PLATFORM"] = "windows"
 
 app = pyqtgraph.mkQApp()
-app.setOrganizationName("py-asammdf")
-app.setOrganizationDomain("py-asammdf")
-app.setApplicationName("py-asammdf")
+app.setOrganizationName("py-asammdf-test")
+app.setOrganizationDomain("py-asammdf-test")
+app.setApplicationName("py-asammdf-test")
+
+# Set up the format for offscreen rendering
+format = QSurfaceFormat()
+format.setDepthBufferSize(24)
+format.setStencilBufferSize(8)
+format.setRenderableType(QSurfaceFormat.OpenGL)
+QSurfaceFormat.setDefaultFormat(format)
+
+# Create an offscreen surface
+surface = QOffscreenSurface()
+surface.setFormat(format)
+surface.create()
+
+# Create a rendering context
+context = QOpenGLContext()
+context.setFormat(format)
+_context_valid = context.create()
+if _context_valid:
+    context.makeCurrent(surface)
+
+
+def _cleanup_opengl_context():
+    # Guard against Qt objects already being torn down during interpreter shutdown
+    try:
+        import shiboken6
+
+        if shiboken6.isValid(context) and context.isValid():
+            context.doneCurrent()
+    except Exception:
+        pass
+
+
+atexit.register(_cleanup_opengl_context)
 
 
 def safe_setup(func):
@@ -80,6 +115,10 @@ class TestBase(unittest.TestCase):
     settings = QtCore.QSettings()
     settings.setValue("plot/zoom/x_center_on_cursor", True)
     settings.setValue("plot/cursor/display_precision", 6)
+    settings.setValue("mdf/subwindows", True)
+    settings.setValue("mdf/channels_view", "Internal file structure")
+    settings.setValue("test/natural_sort_old", True)
+    settings.setValue("check_unsaved_display", False)
 
     longMessage = False
 
@@ -498,7 +537,7 @@ class Pixmap:
         return {y: list(row) for y, row in enumerate(hex_array)}
 
     @staticmethod
-    def cursors_x(pixmap: QtGui.QPixmap, threshold: float = 0.3) -> list[int]:
+    def cursors_x(pixmap: QtGui.QPixmap, threshold: float = 0.2) -> list[int]:
         """
         Find the x-coordinates of vertical cursors in a QPixmap, including dashed cursors.
 

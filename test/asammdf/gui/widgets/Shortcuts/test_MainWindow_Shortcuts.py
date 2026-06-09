@@ -272,6 +272,8 @@ class TestReplaceFile(TestBase):
             QTest.keySequence(self.mw, QKeySequence("Ctrl+Shift+O"))
             self.processEvents(1)
 
+        self.processEvents(1)
+
         # Tab count should still be 1
         self.assertEqual(self.mw.files.count(), 1)
         # Tab label and tooltip should reflect the new file
@@ -299,6 +301,7 @@ class TestReplaceFile(TestBase):
         self.processEvents(1)
 
         file_widget = self.mw.files.widget(0)
+        file_widget.channel_view.setCurrentText("Internal file structure")
 
         # Select some channels and create a Plot window
         channel_names = []
@@ -325,6 +328,7 @@ class TestReplaceFile(TestBase):
             self.processEvents(1)
 
         new_widget = self.mw.files.widget(0)
+
         self.assertIsInstance(new_widget, FileWidget)
         # Verify sub-windows were recreated
         sub_windows = new_widget.mdi_area.subWindowList()
