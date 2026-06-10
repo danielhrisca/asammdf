@@ -25,6 +25,7 @@ from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
 from .database_item import DatabaseItem
+from .file import FILE_CLASSES
 from .tree import add_children
 from .tree_item import MinimalTreeItem, TreeItem
 
@@ -904,30 +905,18 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         file_name = Path(file_name)
         suffix = file_name.suffix.lower()
 
-        if suffix in (".erg", ".bsig", ".dl3", ".tdms"):
-            try:
-                from mfile import BSIG, DL3, ERG, TDMS
-            except ImportError:
-                print(format_exc())
-                from cmerg import BSIG, ERG
-
-            if suffix == ".erg":
-                cls = ERG
-            elif suffix == ".bsig":
-                cls = BSIG
-            elif suffix == ".tdms":
-                cls = TDMS
-            else:
-                cls = DL3
-
-            mdf = cls(file_name).export_mdf()
-            mdf.original_name = file_name
-
-        elif suffix in (".mdf", ".mf4", ".mf4z"):
-            mdf = mdf_module.MDF(file_name)
-
-        else:
+        if suffix not in FILE_CLASSES:
             raise ValueError(f"Incompatible suffix '{suffix}'")
+
+        cls, _cls_kwargs = FILE_CLASSES[suffix]
+
+        mdf = cls(file_name)
+
+        if suffix not in (".dat", ".mdf", ".mf4", ".mf4z"):
+            old_mdf = mdf
+            mdf = old_mdf.export_mdf()
+            mdf.original_name = file_name
+            old_mdf.close()
 
         return mdf
 

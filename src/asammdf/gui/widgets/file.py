@@ -13,8 +13,7 @@ from natsort import natsorted
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
-import asammdf.mdf as mdf_module
-
+from ... import mdf as mdf_module
 from ... import tool
 from ...blocks.options import get_global_option
 from ...blocks.utils import extract_encryption_information, extract_xml_comment, Terminated
@@ -29,6 +28,7 @@ from ...blocks.v4_constants import (
     CompressionAlgorithm,
     FLAG_CG_BUS_EVENT,
 )
+from ...mdf import MDF
 from .. import serde
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
@@ -102,6 +102,21 @@ FRIENDLY_ATRRIBUTES = {
 }
 
 
+FILE_CLASSES: dict[str, tuple[type, dict]] = {
+    ".csv": (MDF, {}),
+    ".dat": (MDF, {"ignore_invalidation_bits": False, "process_bus_logging": True, "databases": {}}),
+    ".mdf": (MDF, {"ignore_invalidation_bits": False, "process_bus_logging": True, "databases": {}}),
+    ".mf4": (MDF, {"ignore_invalidation_bits": False, "process_bus_logging": True, "databases": {}}),
+    ".mf4z": (MDF, {"ignore_invalidation_bits": False, "process_bus_logging": True, "databases": {}}),
+}
+try:
+    from cmerg import ERG
+
+    FILE_CLASSES[".erg"] = ERG, {}
+except ImportError:
+    pass
+
+
 class Delegate(QtWidgets.QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         self.editor = QtWidgets.QPlainTextEdit(parent)
@@ -137,12 +152,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+        suffix = file_name.suffix.lower()
+        cls, cls_kwargs = FILE_CLASSES[suffix]
+
+        for arg in cls_kwargs:
+            if arg in kwargs:
+                cls_kwargs[arg] = kwargs.pop(arg)
+
         self.default_folder = kwargs.pop("default_folder", "")
         display_file = kwargs.pop("display_file", "")
-        databases = kwargs.pop("databases", None)
         show_progress = kwargs.pop("show_progress", True)
-        process_bus_logging = kwargs.pop("process_bus_logging", True)
-        ignore_invalidation_bits = kwargs.pop("ignore_invalidation_bits", False)
         mdf = kwargs.pop("mdf", None)
 
         self._progress = None
@@ -150,7 +169,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.loaded_display_file = Path(""), b""
         self._previous_window_config = b""
 
-        super(Ui_file_widget, self).__init__(*args, **kwargs)
+        super(Ui_file_widget, self).__init__()
         WithMDIArea.__init__(self, comparison=False)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -192,42 +211,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         try:
             if mdf is None:
-                if file_name.suffix.lower() in (".asc", ".blf", ".erg", ".bsig", ".dl3", ".tdms"):
-                    extension = file_name.suffix.lower().strip(".")
-                    if progress:
-                        progress.setLabelText(f"Converting from {extension} to mdf")
-
-                    try:
-                        from mfile import ASC, BLF, BSIG, DL3, ERG, TDMS
-                    except ImportError:
-                        from cmerg import BSIG, ERG
-
-                    if file_name.suffix.lower() == ".erg":
-                        cls = ERG
-                    elif file_name.suffix.lower() == ".bsig":
-                        cls = BSIG
-                    elif file_name.suffix.lower() == ".tdms":
-                        cls = TDMS
-                    elif file_name.suffix.lower() == ".asc":
-                        cls = ASC
-                    elif file_name.suffix.lower() == ".blf":
-                        cls = BLF
-                    else:
-                        cls = DL3
-
-                    out_file = Path(gettempdir()) / file_name.name
-                    if file_name.suffix.lower() in (".asc", ".blf"):
-                        meas_file = cls(file_name, databases=databases)
-                    else:
-                        meas_file = cls(file_name)
-
-                    mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
-                    meas_file.close()
-                    self.mdf = mdf_module.MDF(mdf_path, process_bus_logging=process_bus_logging)
-                    self.mdf.original_name = file_name
-                    self.mdf.uuid = self.uuid
-
-                elif file_name.suffix.lower() == ".csv":
+                if suffix == ".csv":
                     try:
                         with open(file_name) as csv:
                             names = [n.strip() for n in csv.readline().split(",")]
@@ -244,7 +228,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                             df = pd.read_csv(csv, header=None, names=names)
                             df.set_index(df[names[0]], inplace=True)
-                            self.mdf = mdf_module.MDF()
+                            self.mdf = cls()
                             self.mdf.append(df, units=units)
                             self.mdf.uuid = self.uuid
                             self.mdf.original_name = file_name
@@ -257,17 +241,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             "can optionally contain the channel units. The first column must be the time"
                         ) from exc
 
-                else:
+                elif suffix in (".dat", ".mdf", ".mf4", ".mf4z"):
                     original_name = file_name
 
-                    target = mdf_module.MDF
+                    target = cls
                     kwargs = {
                         "name": file_name,
                         "callback": self.update_progress,
                         "password": password,
                         "use_display_names": True,
-                        "process_bus_logging": process_bus_logging,
-                        "ignore_invalidation_bits": ignore_invalidation_bits,
+                        **cls_kwargs,
                     }
 
                     try:
@@ -284,6 +267,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     self.mdf.original_name = original_name
                     self.mdf.uuid = self.uuid
+
+                else:
+                    if progress:
+                        progress.setLabelText(f"Converting from {suffix.strip('.')} to mdf")
+
+                    out_file = Path(gettempdir()) / file_name.name
+                    meas_file = cls(file_name, **cls_kwargs)
+
+                    mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
+                    meas_file.close()
+                    cls = FILE_CLASSES[".mf4"][0]  # process_bus_logging=process_bus_logging
+                    self.mdf = cls(mdf_path)
+                    self.mdf.original_name = file_name
+                    self.mdf.uuid = self.uuid
+
             else:
                 self.mdf = mdf
                 self.mdf.original_name = file_name

@@ -1,8 +1,8 @@
 #!/usr/bin/env python\
 
 from os import path
-from unittest import mock, skipIf
 import sys
+from unittest import mock, skipIf
 
 import numpy
 from PySide6 import QtGui, QtTest
