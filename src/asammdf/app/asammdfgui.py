@@ -24,7 +24,6 @@ def main(measurements=None):
         os.environ["PYTHONPATH"] = alternative_sitepacakges
         sys.path.insert(0, alternative_sitepacakges)
 
-    import pyqtgraph
     from PySide6 import QtCore, QtWidgets
 
     from asammdf.gui.utils import excepthook, set_app_user_model_id
@@ -37,7 +36,14 @@ def main(measurements=None):
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
 
-    app = pyqtgraph.mkQApp()
+    qt_qpa_platform = os.getenv("QT_QPA_PLATFORM")
+    if not qt_qpa_platform:
+        platform_map = {"linux": "xcb", "win32": "windows", "darwin": "cocoa"}
+        qt_qpa_platform = platform_map.get(sys.platform, "windows")
+
+    argv = [*sys.argv, "-platform", f"{qt_qpa_platform}:darkmode=1"]
+
+    app = QtWidgets.QApplication(argv)
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
