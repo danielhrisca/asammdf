@@ -567,7 +567,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         do_update = True
 
         valid_text_color = QtGui.QPalette()
-        valid_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
         error_text_color = QtGui.QPalette()
         error_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.red)
         try:
