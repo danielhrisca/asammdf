@@ -1195,6 +1195,13 @@ class Signal:  # noqa: PLW1641
     def __getitem__(self, val: int | slice | str) -> Union[NDArray[Any], "Signal"]:
         if isinstance(val, str):
             return self.samples[val]
+        elif isinstance(val, int):
+            return Signal(
+                self.samples[val : val + 1],
+                self.timestamps[val : val + 1],
+                invalidation_bits=self.invalidation_bits[val : val + 1] if self.invalidation_bits is not None else None,
+                **self.invariable_attributes(),
+            )
         else:
             return Signal(
                 self.samples[val],

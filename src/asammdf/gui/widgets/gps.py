@@ -144,7 +144,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         result = []
 
         def callback(*args):
-            if args and args[0] is not None and args[0] != '':
+            if args and args[0] is not None and args[0] != "":
                 result.append(args[0])
 
         map_widget = self.map.getMapWidgetAtIndex(self.map.mapWidgetIndex)
