@@ -5055,7 +5055,7 @@ class MDF4(MDF_Common[Group]):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
                 # compute additional byte offset for large records size
                 if sig.dtype.kind == "O":
-                    array = sig.to_numpy(dtype=str)
+                    array = encode(sig.to_numpy(dtype=str), "utf-8")
                 else:
                     array = sig.to_numpy()
 
