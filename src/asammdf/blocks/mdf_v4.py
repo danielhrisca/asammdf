@@ -12403,9 +12403,12 @@ class MDF4(MDF_Common[Group]):
                             message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                         else:
-                            dbc = load_can_database(at_name, contents=attachment)
-                            if dbc:
-                                self._dbc_cache[attachment_addr] = dbc
+                            try:
+                                dbc = load_can_database(at_name, contents=attachment)
+                            except:
+                                logger.error(f'Failed to load the attachemnt {at_name}', exc_info=True)
+
+                        self._dbc_cache[attachment_addr] = dbc
                     else:
                         dbc = self._dbc_cache[attachment_addr]
                 break
