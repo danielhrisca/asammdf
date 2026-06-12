@@ -1131,14 +1131,17 @@ class MDF:
 
         _mapped_file = self._mdf._mapped_file
         _file = self._mdf._file
+        _tempfile = self._mdf._tempfile
 
         self._mdf._mapped_file = None
         self._mdf._file = None
+        self._mdf._tempfile = None
 
         out = deepcopy(self)
 
         self._mdf._mapped_file = _mapped_file
         self._mdf._file = _file
+        self._mdf._tempfile = _tempfile
 
         out._mdf._tempfile = tmp = NamedTemporaryFile(dir=self._mdf.temporary_folder)
 
