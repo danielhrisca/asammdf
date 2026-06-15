@@ -1281,6 +1281,15 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
+        if (
+            self.version >= "4.00"
+            and version >= "4.00"
+            and not self._mdf._column_storage
+            and not self._mdf._add_array_components
+            and all(not gp.uses_ld for gp in self.groups)
+        ):
+            return self._cut_mf4_fast(start, stop, whence, version, include_ends, time_from_zero, progress)
+
         out = MDF(
             version=version,
             **self._mdf._kwargs,
@@ -1717,6 +1726,268 @@ class MDF:
                         raise Terminated
 
         return self
+
+    def _cut_mf4_fast(
+        self,
+        start: float | None = None,
+        stop: float | None = None,
+        whence: int = 0,
+        version: str | Version | None = None,
+        include_ends: bool = True,
+        time_from_zero: bool = False,
+        progress: Any | None = None,
+    ) -> "MDF":
+        groups_nr = len(self.groups)
+
+        if progress is not None:
+            if callable(progress):
+                progress(0, groups_nr)
+            else:
+                progress.signals.setValue.emit(0)
+                progress.signals.setMaximum.emit(groups_nr)
+
+                if progress.stop:
+                    raise Terminated
+
+        _mapped_file = self._mdf._mapped_file
+        _file = self._mdf._file
+        _tempfile = self._mdf._tempfile
+
+        self._mdf._mapped_file = None
+        self._mdf._file = None
+        self._mdf._tempfile = None
+
+        out = deepcopy(self)
+
+        self._mdf._mapped_file = _mapped_file
+        self._mdf._file = _file
+        self._mdf._tempfile = _tempfile
+
+        out._mdf._tempfile = tmp = NamedTemporaryFile(dir=self._mdf.temporary_folder)
+
+        out._mdf.version = version
+        out._mdf.identification = FileIdentificationBlock(version=version)
+
+        copy_all = start is None and stop is None
+
+        if whence == 1:
+            timestamps: list[float] = []
+            for group in self.virtual_groups:
+                master = self._mdf.get_master(group, record_offset=0, record_count=1)
+                if master.size:
+                    timestamps.append(master[0])
+
+            if timestamps:
+                first_timestamp = np.amin(timestamps)
+            else:
+                first_timestamp = 0
+
+            if start is not None:
+                start += first_timestamp
+            if stop is not None:
+                stop += first_timestamp
+
+        for i, gp in enumerate(out.groups):
+            if gp.data_location == v4c.LOCATION_ORIGINAL_FILE:
+                stream = self._mdf._file
+            else:
+                stream = self._mdf._tempfile
+
+            channel_group = gp.channel_group
+            record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+
+            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_blocks_info_generator = None
+
+            read = stream.read
+            seek = stream.seek
+            write = tmp.write
+            tell = tmp.tell
+
+            tmp.seek(0, 2)
+
+            if progress is not None:
+                if callable(progress):
+                    progress(i + 1, groups_nr)
+                else:
+                    progress.signals.setValue.emit(i + 1)
+                    progress.signals.setMaximum.emit(groups_nr)
+
+                    if progress.stop:
+                        raise Terminated
+
+            if copy_all:
+                for info in gp.data_blocks:
+                    seek(info.address)
+                    info.address = tell()
+                    write(read(info.compressed_size))
+
+                    if inv_info := info.invalidation_block:
+                        seek(inv_info.address)
+                        inv_info.address = tell()
+                        write(read(inv_info.compressed_size))
+
+                for signal_blocks in gp.signal_data:
+                    if not signal_blocks:
+                        continue
+                    for info in signal_blocks:
+                        seek(info.address)
+                        info.address = tell()
+                        info.location = v4c.LOCATION_TEMPORARY_FILE
+                        write(read(info.compressed_size))
+
+            else:
+                new_blocks = []
+                new_cycles_nr = 0
+
+                for info in gp.data_blocks:
+                    if progress and progress.stop:
+                        raise Terminated
+
+                    (
+                        address,
+                        original_size,
+                        compressed_size,
+                        block_type,
+                        param,
+                        block_limit,
+                    ) = (
+                        info.address,
+                        typing.cast(int, info.original_size),
+                        info.compressed_size,
+                        info.block_type,
+                        info.param,
+                        info.block_limit,
+                    )
+
+                    seek(address)
+                    new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
+
+                    if block_type:
+                        new_data = decompress(new_data, block_type, original_size)
+
+                        if block_type % 2 == 0:
+                            # tranposed data
+                            cols = typing.cast(int, param)
+                            lines = original_size // cols
+                            matrix_size = lines * cols
+
+                            if matrix_size != original_size:
+                                new_data = (
+                                    frombuffer(new_data[:matrix_size], dtype=uint8)
+                                    .reshape((cols, lines))
+                                    .T.ravel()
+                                    .tobytes()
+                                    + new_data[matrix_size:]
+                                )
+                            else:
+                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+
+                    if block_limit is not None:
+                        new_data = new_data[:block_limit]
+
+                    count = len(new_data) // record_size
+
+                    fragment = Fragment(
+                        new_data,
+                        0,
+                        count,
+                        None,
+                    )
+
+                    master = self.get_master(i, data=fragment, one_piece=True)
+
+                    if not len(master):
+                        continue
+
+                    needs_cutting = True
+
+                    if start is None:
+                        start_index = 0
+                        if master[0] > stop:
+                            break
+                        else:
+                            fragment_stop = min(stop, master[-1])
+                            stop_index = np.searchsorted(master, fragment_stop, side="right")
+                            if stop_index == len(master):
+                                needs_cutting = False
+
+                    elif stop is None:
+                        start_index = 0
+                        if master[-1] < start:
+                            continue
+                        else:
+                            fragment_start = max(start, master[0])
+                            start_index = np.searchsorted(master, fragment_start, side="left")
+                            stop_index = len(master)
+                            if start_index == 0:
+                                needs_cutting = False
+                    else:
+                        if master[0] > stop:
+                            break
+                        elif master[-1] < start:
+                            continue
+                        else:
+                            fragment_start = max(start, master[0])
+                            start_index = np.searchsorted(master, fragment_start, side="left")
+                            fragment_stop = min(stop, master[-1])
+                            stop_index = np.searchsorted(master, fragment_stop, side="right")
+                            if start_index == 0 and stop_index == len(master):
+                                needs_cutting = False
+
+                    if needs_cutting:
+                        data = new_data[start_index * record_size : stop_index * record_size]
+                        count = stop_index - start_index
+
+                        raw_size = len(data)
+                        data = lz_compress(data, store_size=True)
+
+                        size = len(data)
+                        data_address = tell()
+                        write(data)
+
+                        info = DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DZ_BLOCK_LZ,
+                            original_size=raw_size,
+                            compressed_size=size,
+                            param=0,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
+                        )
+
+                        new_blocks.append(info)
+
+                    else:
+                        seek(info.address)
+                        info.address = tell()
+                        write(read(info.compressed_size))
+
+                        if inv_info := info.invalidation_block:
+                            seek(inv_info.address)
+                            inv_info.address = tell()
+                            write(read(inv_info.compressed_size))
+
+                        new_blocks.append(info)
+
+                    new_cycles_nr += count
+
+                channel_group.cycles_nr = new_cycles_nr
+                gp.data_blocks = new_blocks
+                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+
+                for signal_blocks in gp.signal_data:
+                    if progress and progress.stop:
+                        raise Terminated
+
+                    if not signal_blocks:
+                        continue
+                    for info in signal_blocks:
+                        seek(info.address)
+                        info.address = tell()
+                        info.location = v4c.LOCATION_TEMPORARY_FILE
+                        write(read(info.compressed_size))
+
+        return out
 
     @overload
     def get(

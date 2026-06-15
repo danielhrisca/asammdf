@@ -12406,7 +12406,7 @@ class MDF4(MDF_Common[Group]):
                             try:
                                 dbc = load_can_database(at_name, contents=attachment)
                             except:
-                                logger.error(f'Failed to load the attachemnt {at_name}', exc_info=True)
+                                logger.error(f"Failed to load the attachemnt {at_name}", exc_info=True)
 
                         self._dbc_cache[attachment_addr] = dbc
                     else:
