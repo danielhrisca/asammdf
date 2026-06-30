@@ -1156,18 +1156,26 @@ def value_as_hex(value, dtype):
 def value_as_str(value, format, dtype=None, precision=3):
     float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
     if isinstance(value, float):
-        kind = "f"
-        value = np.float64(value)
-        dtype = dtype or value.dtype
+        if dtype is not None:
+            kind = dtype.kind
+            value = dtype.type(value)
+        else:
+            kind = "f"
+            value = np.float64(value)
+            dtype = dtype or value.dtype
 
     elif isinstance(value, np.floating):
         kind = "f"
         dtype = dtype or value.dtype
 
     elif isinstance(value, int):
-        kind = "u"
-        value = np.min_scalar_type(value).type(value)
-        dtype = dtype or value.dtype
+        if dtype is not None:
+            kind = dtype.kind
+            value = dtype.type(value)
+        else:
+            value = np.min_scalar_type(value).type(value)
+            dtype = dtype or value.dtype
+            kind = dtype.kind
 
     elif isinstance(value, np.integer):
         kind = "u"
