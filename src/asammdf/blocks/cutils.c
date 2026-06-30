@@ -1466,7 +1466,11 @@ typedef struct ChannelInfo {
 } MyChannelInfo, *PMyChannelInfo;
 
 
-void * get_channel_raw_bytes_C(void *lpParam )
+#ifdef _WIN32
+DWORD WINAPI get_channel_raw_bytes_C(LPVOID lpParam)
+#else
+void * get_channel_raw_bytes_C(void *lpParam)
+#endif
 {
   Py_ssize_t count, actual_byte_count, delta, thread_count;
   PMYDATA data;
@@ -1679,7 +1683,11 @@ struct dtype
 };
 
 
-void * data_block_from_arrays_C(void *lpParam )
+#ifdef _WIN32
+DWORD WINAPI data_block_from_arrays_C(LPVOID lpParam)
+#else
+void * data_block_from_arrays_C(void *lpParam)
+#endif
 {
   Py_ssize_t size, thread_count;
   PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
@@ -2086,7 +2094,11 @@ typedef struct ProcessesingBlock {
 } ProcessesingBlock, *PtrProcessesingBlock;
 
 
-void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
+#ifdef _WIN32
+DWORD WINAPI get_channel_raw_bytes_complete_decompress_thread(LPVOID lpParam)
+#else
+void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
+#endif
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
@@ -2463,7 +2475,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 
 
 #if defined(_WIN32)
-void * get_channel_raw_bytes_complete_C(void *lpParam )
+DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
