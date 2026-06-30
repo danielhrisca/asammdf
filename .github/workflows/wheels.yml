@@ -28,11 +28,16 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install ninja -y
 
+      - name: Install Visual Studio Build Tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install visualstudio2022-workload-vctools -y
+
       - name: Build wheels
         shell: bash
         env:
           CIBW_TEST_COMMAND: "pytest {project}/test --ignore={project}/test/asammdf/gui"
           CIBW_CMAKE_GENERATOR: "Ninja"          # force Ninja generator
+          CMAKE_GENERATOR: "Ninja"
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
             sudo apt update
