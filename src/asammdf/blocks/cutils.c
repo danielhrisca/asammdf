@@ -33,6 +33,14 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#if defined(_WIN32)
+  /* Windows thread entry functions must return DWORD (0 on success) */
+  #define THREAD_RETURN_NULL() return (DWORD)0
+#else
+  /* POSIX thread entry functions return void*, NULL on success */
+  #define THREAD_RETURN_NULL() return (void *)NULL
+#endif
+
 #define PY_PRINTF(o)              \
     PyObject_Print(o, stdout, 0); \
     printf("\n");
@@ -2281,7 +2289,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
       { size_t const dctxStatus = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
         if (LZ4F_isError(dctxStatus)) {
           snprintf(err_string, 1024, "LZ4F_dctx creation error: %s\n\0", LZ4F_getErrorName(dctxStatus));
-          return NULL;
+          THREAD_RETURN_NULL();
         }
       }
 
@@ -2290,7 +2298,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
       { size_t const fires = LZ4F_getFrameInfo(dctx, &info, source_cursor, &source_read);
         if (LZ4F_isError(fires)) {
           snprintf(err_string, 1024, "LZ4F_getFrameInfo error: %s\n\0", LZ4F_getErrorName(fires));
-          return NULL;
+          THREAD_RETURN_NULL();
         }
       }
 
@@ -2311,7 +2319,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
         if (LZ4F_isError (result))
         {
           snprintf(err_string, 1024, "LZ4F_decompress failed with code: %s\n\0", LZ4F_getErrorName(result));
-          return NULL;
+          THREAD_RETURN_NULL();
         }
 
         destination_written += destination_write;
@@ -2379,7 +2387,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
       if (dSize != original_size)
       {
         snprintf(err_string, 1024, "ZSTD_decompress failed\n\0");
-        return NULL;
+        THREAD_RETURN_NULL();
       }
 
       // reverse transposition
@@ -2470,7 +2478,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
-  return NULL;
+  THREAD_RETURN_NULL();
 }
 
 
@@ -2527,7 +2535,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
       fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
       snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
       PyErr_SetString(PyExc_OSError, err_string);
-      return NULL;
+      THREAD_RETURN_NULL();
     }
   }
 
@@ -2536,7 +2544,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
     snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
     PyErr_SetString(PyExc_OSError, err_string);
     CloseHandle(hFile);
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   if (liFileSize.QuadPart == 0) {
@@ -2544,7 +2552,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
     snprintf(err_string, 1024, "File is empty\n\0");
     PyErr_SetString(PyExc_OSError, err_string);
     CloseHandle(hFile);
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   hMap = CreateFileMapping(
@@ -2559,7 +2567,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
     snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
     PyErr_SetString(PyExc_OSError, err_string);
     CloseHandle(hFile);
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   lpBasePtr = MapViewOfFile(
@@ -2574,7 +2582,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
     PyErr_SetString(PyExc_OSError, err_string);
     CloseHandle(hMap);
     CloseHandle(hFile);
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   thread_info->block_ready_0 =  CreateEvent(
@@ -2615,7 +2623,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
 
   if (!hthread) {
     PyErr_SetString(PyExc_ValueError, "Failed to create decompress thread\n\0");
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   SetEvent(thread_info->block_ready_0);
@@ -2653,7 +2661,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_C(LPVOID lpParam)
   CloseHandle(hFile);
 
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
-  return NULL;
+  THREAD_RETURN_NULL();
 }
 
 #else
@@ -2713,7 +2721,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   if (pthread_create(&dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
   {
     PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
-    return NULL;
+    THREAD_RETURN_NULL();
   }
 
   for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
@@ -2758,7 +2766,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   close(fdin);
 
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
-  return NULL;
+  THREAD_RETURN_NULL();
 }
 #endif
 
