@@ -2183,6 +2183,8 @@ class Plot(QtWidgets.QWidget):
                     index = parent.indexOfChild(destination)
                     parent.insertChildren(index, children)
 
+        conversion_not_defined = object()
+
         for sig_uuid, sig in channels.items():
             description = descriptions.get(sig_uuid, {})
             item = items_map[sig_uuid]
@@ -2201,7 +2203,7 @@ class Plot(QtWidgets.QWidget):
 
                 item.precision = description.get("precision", 3)
 
-                if description.get("conversion", None):
+                if description.get("conversion", conversion_not_defined) is not conversion_not_defined:
                     conversion = from_dict(description["conversion"])
                     item.signal.flags |= Signal.Flags.user_defined_conversion
                     item.set_conversion(conversion)

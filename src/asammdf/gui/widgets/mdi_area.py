@@ -1651,8 +1651,8 @@ class WithMDIArea:
                             signal.flags |= signal.Flags.user_defined_conversion
 
                         if channel["flags"] & Signal.Flags.user_defined_name:
-                            sig.original_name = channel["name"]
-                            sig.name = channel.get("user_defined_name", "") or ""
+                            signal.original_name = channel["name"]
+                            signal.name = channel.get("user_defined_name", "") or ""
 
                             signal.flags |= signal.Flags.user_defined_name
 
