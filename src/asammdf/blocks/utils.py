@@ -5,6 +5,7 @@ from functools import lru_cache
 import logging
 import mmap
 import multiprocessing
+import importlib
 import os
 from pathlib import Path
 from random import randint
@@ -1688,12 +1689,11 @@ def pandas_query_compatible(name: str) -> str:
 
     if name.startswith(tuple(string.digits)):
         name = "file_" + name
-    try:
-        exec(f"from pandas import {name}")
-    except ImportError:
-        pass
-    else:
+
+    pandas_module = importlib.import_module("pandas")
+    if hasattr(pandas_module, name):
         name = f"{name}__"
+
     return name
 
 
