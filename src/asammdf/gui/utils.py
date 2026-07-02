@@ -1272,6 +1272,7 @@ def generate_python_function_globals() -> dict:
         "struct": struct,
         "time": time,
         "__builtins__": _BUILTINS,
+        "beep": QtWidgets.QApplication.beep,
     }
     try:
         import scipy as sp
