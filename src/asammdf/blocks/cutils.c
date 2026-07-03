@@ -72,7 +72,7 @@ static PyObject *sort_data_block(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "OOOK|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -213,7 +213,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -348,7 +348,7 @@ static PyObject *lengths(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "O", &lst))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -381,7 +381,7 @@ static PyObject *get_vlsd_offsets(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "O", &lst))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -417,7 +417,7 @@ static PyObject *get_vlsd_max_sample_size(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "OOn", &data, &offsets, &count))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -1279,7 +1279,7 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "Onnn", &data_block, &record_size, &byte_offset, &byte_count))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -1358,7 +1358,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "Onnnp", &data_block, &invalidation_size, &invalidation_pos, &cycles, &one_piece))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -1538,7 +1538,7 @@ void * get_channel_raw_bytes_C(void *lpParam)
     for (Py_ssize_t i = 0; i<thread_count; i++, data++);
   }
 
-  return 0;
+  return NULL;
 }
 
 
@@ -1558,7 +1558,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "OnO|n", &data_block, &record_size, &signals, &thread_count))
   {
-    return 0;
+    return NULL;
   }
   else
   {
@@ -1910,7 +1910,7 @@ static PyObject *get_idx_with_edges(PyObject *self, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "O", &idx))
   {
-    return 0;
+    return NULL;
   }
   else
   {
