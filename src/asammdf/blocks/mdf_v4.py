@@ -10437,18 +10437,32 @@ class MDF4(MDF_Common[Group]):
                             t = bus_t[idx]
 
                             try:
-                                extracted_signals = bus_logging_utils.extract_mux(
-                                    payload,
-                                    message,
-                                    msg_id,
-                                    bus,
-                                    t,
-                                    original_message_id=source_address if is_j1939 else None,
-                                    ignore_value2text_conversion=ignore_value2text_conversion,
-                                    is_j1939=is_j1939,
-                                    is_extended=is_extended,
-                                    raw=True,
-                                )
+                                if message.is_pdu_container:
+                                    extracted_signals = bus_logging_utils.extract_pdus(
+                                        payload,
+                                        message,
+                                        msg_id,
+                                        bus,
+                                        t,
+                                        original_message_id=source_address if is_j1939 else None,
+                                        ignore_value2text_conversion=ignore_value2text_conversion,
+                                        is_j1939=is_j1939,
+                                        is_extended=is_extended,
+                                        raw=True,
+                                    )
+                                else:
+                                    extracted_signals = bus_logging_utils.extract_mux(
+                                        payload,
+                                        message,
+                                        msg_id,
+                                        bus,
+                                        t,
+                                        original_message_id=source_address if is_j1939 else None,
+                                        ignore_value2text_conversion=ignore_value2text_conversion,
+                                        is_j1939=is_j1939,
+                                        is_extended=is_extended,
+                                        raw=True,
+                                    )
                             except:
                                 print(format_exc())
                                 raise

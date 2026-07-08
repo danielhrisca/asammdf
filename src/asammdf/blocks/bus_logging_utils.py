@@ -226,7 +226,11 @@ def extract_signal(
                 vals &= (2**bit_count) - 1
 
     if signed and not is_float:
-        if extra_bytes or bit_count not in (8, 16, 32, 64):
+        # A plain ``view("i{std_size}")`` only sign-extends correctly when the
+        # value fills exactly ``std_size`` byte-aligned bytes. A non-byte-aligned
+        # signal (``bit_offset``) has been shifted/masked into a wider unsigned
+        # container, so it must be sign-extended from its real bit width instead.
+        if extra_bytes or bit_offset or bit_count not in (8, 16, 32, 64):
             vals = as_non_byte_sized_signed_int(vals, bit_count)
         else:
             vals = vals.view(f"i{std_size}")
@@ -457,6 +461,236 @@ def extract_mux(
                         is_extended=is_extended,
                     )
                 )
+
+    return extracted_signals
+
+
+# Reserved synthetic signal names that canmatrix injects into a PDU-container
+# frame to describe the per-PDU header. They are not user payload signals.
+PDU_CONTAINER_HEADER_ID: Final = "Header_ID"
+PDU_CONTAINER_HEADER_DLC: Final = "Header_DLC"
+
+
+def extract_pdus(
+    payload: NDArray[Any],
+    message: Frame,
+    message_id: int | None,
+    bus: int | None,
+    t: NDArray[Any],
+    original_message_id: int | None = None,
+    raw: bool = False,
+    include_message_name: bool = False,
+    ignore_value2text_conversion: bool = True,
+    is_j1939: bool = False,
+    is_extended: bool = False,
+) -> dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]]:
+    """Extract signals from an AUTOSAR dynamic PDU-container CAN frame.
+
+    A dynamic container frame carries a variable sequence of contained PDUs,
+    each prefixed by a header (``Header_ID`` + ``Header_DLC``). Because a PDU's
+    byte offset depends on the lengths of the PDUs before it, the container is
+    walked header-by-header per frame; the contained PDU payloads are then
+    gathered per PDU id and their signals extracted vectorized.
+
+    The reference algorithm is ``canmatrix.Frame.unpack`` for a
+    ``is_pdu_container`` frame. A contained PDU's signal ``start_bit`` values are
+    relative to the PDU payload (not the frame), so once a PDU payload slice is
+    isolated the regular :func:`extract_signal` machinery applies unchanged.
+
+    Only dynamic containers (those exposing ``Header_ID``/``Header_DLC``) are
+    handled; static containers are skipped (empty result).
+
+    Parameters
+    ----------
+    payload : np.ndarray
+        Raw CAN payload as 2D numpy array of shape ``(n_frames, n_bytes)``.
+    message : canmatrix.Frame
+        Container frame description parsed by canmatrix.
+    message_id : int
+        Message id of the container frame.
+    bus : int
+        Bus channel number.
+    t : np.ndarray
+        Timestamps for the raw payload.
+    original_message_id : int, optional
+        Original message id.
+    ignore_value2text_conversion : bool, default True
+        Ignore value to text conversions.
+
+    Returns
+    -------
+    extracted_signals : dict
+        Same structure as :func:`extract_mux`: keyed by an entry tuple, each
+        value is the dict of signals for one contained PDU. The PDU identity is
+        carried in the ``muxer`` slot of the entry so every contained PDU maps
+        to its own channel group.
+    """
+
+    extracted_signals: dict[
+        tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]
+    ] = {}
+
+    header_id_signal = message.signal_by_name(PDU_CONTAINER_HEADER_ID)
+    header_dlc_signal = message.signal_by_name(PDU_CONTAINER_HEADER_DLC)
+    # Static containers (no per-PDU header) are out of scope.
+    if header_id_signal is None or header_dlc_signal is None:
+        return extracted_signals
+
+    if payload.shape[1] == 0 or len(payload) == 0:
+        return extracted_signals
+
+    n_frames = payload.shape[0]
+    frame_bytes = payload.shape[1]
+
+    # Header geometry, derived from the header signals (short header: 24 + 8;
+    # long header: 32 + 32). Header is assumed byte aligned at the frame start,
+    # matching canmatrix's container decoder.
+    header_size = (header_id_signal.size + header_dlc_signal.size + 7) // 8
+
+    if header_size == 0 or header_size > frame_bytes:
+        return extracted_signals
+
+    # Contained PDU payload sizes (fall back to the maximum signal extent when
+    # the PDU length is not populated by the parser).
+    def _pdu_size(pdu: Any) -> int:
+        size = getattr(pdu, "size", 0) or 0
+        if size:
+            return int(size)
+        extent = 0
+        for sig in pdu.signals:
+            extent = max(extent, sig.get_startbit(bit_numbering=1) + sig.size)
+        return (extent + 7) // 8
+
+    pdu_sizes = {pdu.id: _pdu_size(pdu) for pdu in message.pdus}
+    max_pdu_size = max(pdu_sizes.values(), default=0)
+
+    # Pad on the right with 0xFF so a truncated trailing PDU can still be read
+    # (mirrors canmatrix's allow_truncated behaviour); the header walk itself is
+    # bounded by the original frame width.
+    if max_pdu_size:
+        padded = np.column_stack([payload, np.full(n_frames, 0xFF, dtype=f"({max_pdu_size},)u1")])
+    else:
+        padded = payload
+
+    # --- Walk the headers across all frames, one header "slot" per iteration.
+    # Frames diverge in offset after the first PDU, so we advance a per-frame
+    # byte offset and gather each frame's current header window vectorized.
+    offset = np.zeros(n_frames, dtype=np.int64)
+    rows_all: list[NDArray[Any]] = []
+    ids_all: list[NDArray[Any]] = []
+    starts_all: list[NDArray[Any]] = []
+
+    max_slots = frame_bytes // header_size + 1
+    for _ in range(max_slots):
+        active = np.nonzero((offset + header_size) <= frame_bytes)[0]
+        if active.size == 0:
+            break
+
+        offs = offset[active]
+        window_cols = offs[:, None] + np.arange(header_size)[None, :]
+        windows = padded[active[:, None], window_cols]
+
+        ids = extract_signal(header_id_signal, windows, raw=True).astype("<i8")
+        dlcs = extract_signal(header_dlc_signal, windows, raw=True).astype("<i8")
+
+        payload_start = offs + header_size
+
+        rows_all.append(active)
+        ids_all.append(ids)
+        starts_all.append(payload_start)
+
+        # Advance past this header + its PDU payload. Unknown/padding ids advance
+        # by their (possibly garbage) dlc just like canmatrix, which guarantees
+        # termination (zero padding -> +header_size; 0xFF padding -> past end).
+        offset[active] = payload_start + dlcs
+
+    if not rows_all:
+        return extracted_signals
+
+    rows_flat = np.concatenate(rows_all)
+    ids_flat = np.concatenate(ids_all)
+    starts_flat = np.concatenate(starts_all)
+
+    # --- Per contained PDU: gather its payload slices and extract its signals.
+    for pdu in message.pdus:
+        pdu_size = pdu_sizes[pdu.id]
+        if pdu_size == 0:
+            continue
+
+        mask = ids_flat == pdu.id
+        if not mask.any():
+            continue
+
+        sel_rows = rows_flat[mask]
+        sel_starts = starts_flat[mask]
+
+        # Keep timestamp order (a frame may contain several PDUs / repeats).
+        order = np.argsort(sel_rows, kind="stable")
+        sel_rows = sel_rows[order]
+        sel_starts = sel_starts[order]
+
+        gather_cols = sel_starts[:, None] + np.arange(pdu_size)[None, :]
+        pdu_payload = padded[sel_rows[:, None], gather_cols]
+        t_ = t[sel_rows]
+
+        entry = (
+            bus,
+            message_id,
+            is_extended,
+            original_message_id,
+            f"ContainedPDU:0x{pdu.id:X}:{pdu.name}",
+            0,
+            0,
+        )
+        signals = extracted_signals.setdefault(entry, {})
+
+        for sig in pdu.signals:
+            if sig.name in (PDU_CONTAINER_HEADER_ID, PDU_CONTAINER_HEADER_DLC):
+                continue
+
+            samples = extract_signal(
+                sig,
+                pdu_payload,
+                ignore_value2text_conversion=ignore_value2text_conversion,
+                raw=True,
+            )
+            if len(samples) == 0 and len(t_):
+                continue
+
+            if include_message_name:
+                sig_name = f"{message.name}.{sig.name}"
+            else:
+                sig_name = sig.name
+
+            try:
+                scale_ranges = getattr(sig, "scale_ranges", None)
+                if scale_ranges:
+                    unit = scale_ranges[0]["unit"] or ""
+                else:
+                    unit = sig.unit or ""
+
+                signals[sig_name] = {
+                    "name": sig_name,
+                    "comment": sig.comment or "",
+                    "unit": unit,
+                    "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
+                    "conversion": get_conversion(sig) if raw else None,
+                    "t": t_,
+                    "invalidation_bits": None,
+                }
+
+                if is_j1939:
+                    signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
+
+            except:
+                print(format_exc())
+                print(message, pdu, sig)
+                print(samples, set(samples), samples.dtype, samples.shape)
+                raise
+
+        # Drop the PDU entirely if none of its signals produced samples.
+        if not signals:
+            del extracted_signals[entry]
 
     return extracted_signals
 
