@@ -471,6 +471,99 @@ PDU_CONTAINER_HEADER_ID: Final = "Header_ID"
 PDU_CONTAINER_HEADER_DLC: Final = "Header_DLC"
 
 
+def _contained_pdu_muxer(pdu: Any) -> str:
+    """Stable per-PDU identity for the entry ``muxer`` slot so every contained
+    PDU maps to its own channel group. Static (header-less) containers carry no
+    header id, so ``pdu.id`` is ``None`` there and the name alone identifies it.
+    """
+    if pdu.id is None:
+        return f"ContainedPDU:{pdu.name}"
+    return f"ContainedPDU:0x{pdu.id:X}:{pdu.name}"
+
+
+def _emit_pdu_signals(
+    extracted_signals: dict[
+        tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]
+    ],
+    message: Frame,
+    pdu: Any,
+    pdu_payload: NDArray[Any],
+    t_: NDArray[Any],
+    *,
+    bus: int | None,
+    message_id: int | None,
+    is_extended: bool,
+    original_message_id: int | None,
+    raw: bool,
+    include_message_name: bool,
+    ignore_value2text_conversion: bool,
+    is_j1939: bool,
+) -> None:
+    """Extract one contained PDU's signals from its payload slice into a
+    dedicated channel-group entry. Shared by the dynamic and static paths of
+    :func:`extract_pdus`; ``pdu_payload`` is the PDU-relative payload for a
+    dynamic container and the full frame payload for a static one.
+    """
+    entry = (
+        bus,
+        message_id,
+        is_extended,
+        original_message_id,
+        _contained_pdu_muxer(pdu),
+        0,
+        0,
+    )
+    signals = extracted_signals.setdefault(entry, {})
+
+    for sig in pdu.signals:
+        if sig.name in (PDU_CONTAINER_HEADER_ID, PDU_CONTAINER_HEADER_DLC):
+            continue
+
+        samples = extract_signal(
+            sig,
+            pdu_payload,
+            ignore_value2text_conversion=ignore_value2text_conversion,
+            raw=True,
+        )
+        if len(samples) == 0 and len(t_):
+            continue
+
+        if include_message_name:
+            sig_name = f"{message.name}.{sig.name}"
+        else:
+            sig_name = sig.name
+
+        try:
+            scale_ranges = getattr(sig, "scale_ranges", None)
+            if scale_ranges:
+                unit = scale_ranges[0]["unit"] or ""
+            else:
+                unit = sig.unit or ""
+
+            signals[sig_name] = {
+                "name": sig_name,
+                "comment": sig.comment or "",
+                "unit": unit,
+                "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
+                "conversion": get_conversion(sig) if raw else None,
+                "t": t_,
+                "invalidation_bits": None,
+            }
+
+            if is_j1939:
+                signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
+
+        except:
+            print(format_exc())
+            print(message, pdu, sig)
+            print(samples, set(samples), samples.dtype, samples.shape)
+            raise
+
+    # Drop the PDU entirely if none of its signals produced samples.
+    if not signals:
+        extracted_signals.pop(entry, None)
+
+
 def extract_pdus(
     payload: NDArray[Any],
     message: Frame,
@@ -497,8 +590,11 @@ def extract_pdus(
     relative to the PDU payload (not the frame), so once a PDU payload slice is
     isolated the regular :func:`extract_signal` machinery applies unchanged.
 
-    Only dynamic containers (those exposing ``Header_ID``/``Header_DLC``) are
-    handled; static containers are skipped (empty result).
+    Static containers (no ``Header_ID``/``Header_DLC``, i.e. no per-PDU header)
+    are also handled: they have a fixed layout and canmatrix has already rebased
+    each contained PDU's signal ``start_bit`` values to be frame-relative, so
+    every PDU decodes straight from the full frame payload. ``Frame.unpack``
+    itself refuses these, but the fixed-layout metadata is complete.
 
     Parameters
     ----------
@@ -530,13 +626,32 @@ def extract_pdus(
         tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]
     ] = {}
 
-    header_id_signal = message.signal_by_name(PDU_CONTAINER_HEADER_ID)
-    header_dlc_signal = message.signal_by_name(PDU_CONTAINER_HEADER_DLC)
-    # Static containers (no per-PDU header) are out of scope.
-    if header_id_signal is None or header_dlc_signal is None:
+    if payload.shape[1] == 0 or len(payload) == 0:
         return extracted_signals
 
-    if payload.shape[1] == 0 or len(payload) == 0:
+    header_id_signal = message.signal_by_name(PDU_CONTAINER_HEADER_ID)
+    header_dlc_signal = message.signal_by_name(PDU_CONTAINER_HEADER_DLC)
+
+    # Static container (no per-PDU header): fixed layout, every contained PDU is
+    # present in every frame and its signals are already frame-relative, so each
+    # PDU decodes straight from the full frame payload.
+    if header_id_signal is None or header_dlc_signal is None:
+        for pdu in message.pdus:
+            _emit_pdu_signals(
+                extracted_signals,
+                message,
+                pdu,
+                payload,
+                t,
+                bus=bus,
+                message_id=message_id,
+                is_extended=is_extended,
+                original_message_id=original_message_id,
+                raw=raw,
+                include_message_name=include_message_name,
+                ignore_value2text_conversion=ignore_value2text_conversion,
+                is_j1939=is_j1939,
+            )
         return extracted_signals
 
     n_frames = payload.shape[0]
@@ -633,64 +748,21 @@ def extract_pdus(
         pdu_payload = padded[sel_rows[:, None], gather_cols]
         t_ = t[sel_rows]
 
-        entry = (
-            bus,
-            message_id,
-            is_extended,
-            original_message_id,
-            f"ContainedPDU:0x{pdu.id:X}:{pdu.name}",
-            0,
-            0,
+        _emit_pdu_signals(
+            extracted_signals,
+            message,
+            pdu,
+            pdu_payload,
+            t_,
+            bus=bus,
+            message_id=message_id,
+            is_extended=is_extended,
+            original_message_id=original_message_id,
+            raw=raw,
+            include_message_name=include_message_name,
+            ignore_value2text_conversion=ignore_value2text_conversion,
+            is_j1939=is_j1939,
         )
-        signals = extracted_signals.setdefault(entry, {})
-
-        for sig in pdu.signals:
-            if sig.name in (PDU_CONTAINER_HEADER_ID, PDU_CONTAINER_HEADER_DLC):
-                continue
-
-            samples = extract_signal(
-                sig,
-                pdu_payload,
-                ignore_value2text_conversion=ignore_value2text_conversion,
-                raw=True,
-            )
-            if len(samples) == 0 and len(t_):
-                continue
-
-            if include_message_name:
-                sig_name = f"{message.name}.{sig.name}"
-            else:
-                sig_name = sig.name
-
-            try:
-                scale_ranges = getattr(sig, "scale_ranges", None)
-                if scale_ranges:
-                    unit = scale_ranges[0]["unit"] or ""
-                else:
-                    unit = sig.unit or ""
-
-                signals[sig_name] = {
-                    "name": sig_name,
-                    "comment": sig.comment or "",
-                    "unit": unit,
-                    "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
-                    "conversion": get_conversion(sig) if raw else None,
-                    "t": t_,
-                    "invalidation_bits": None,
-                }
-
-                if is_j1939:
-                    signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
-
-            except:
-                print(format_exc())
-                print(message, pdu, sig)
-                print(samples, set(samples), samples.dtype, samples.shape)
-                raise
-
-        # Drop the PDU entirely if none of its signals produced samples.
-        if not signals:
-            del extracted_signals[entry]
 
     return extracted_signals
 
