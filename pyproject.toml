@@ -77,7 +77,10 @@ Issues = "https://github.com/danielhrisca/asammdf/issues"
 Source = "https://github.com/danielhrisca/asammdf"
 
 [tool.scikit-build]
-cmake.version = ">=3.26,<4.2"
+# CMake 4.x selects the "NMake Makefiles" generator on the Windows runners and
+# fails to locate a C compiler ("CMAKE_C_COMPILER not set"), breaking the wheel
+# build. Pin to 3.x until the generator selection is fixed upstream.
+cmake.version = ">=3.26,<4"
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 sdist.include = ["ext"]
