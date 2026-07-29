@@ -4,6 +4,11 @@ Developer note for the container-PDU support in
 `src/asammdf/blocks/bus_logging_utils.py` (`extract_pdus`) wired into
 `MDF._extract_can_logging` (`mdf_v4.py`).
 
+The user-facing documentation is the "Container I-PDUs" section of
+`doc/buslogging.rst`. This note is not part of the built docs (sphinx is
+configured for `.rst` only) — it records *why* the decoder looks the way it
+does, for whoever touches it next.
+
 ## What
 
 AUTOSAR **container I-PDUs** pack several contained PDUs into one CAN(-FD)
