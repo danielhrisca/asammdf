@@ -33,12 +33,23 @@ signals that canmatrix injects.
 2. Headers are walked across all frames one "slot" per iteration. Frames
    diverge in offset after the first PDU, so a per-frame byte offset is
    advanced independently and each frame's current header window is gathered
-   vectorized. Unknown/padding ids advance by their DLC (matching canmatrix),
-   which guarantees termination.
+   vectorized. Unknown/padding ids advance by their DLC, which guarantees
+   termination.
+   `Header_ID`/`Header_DLC` are read **unsigned** even when the database marks
+   them signed — canmatrix's ARXML parser does mark them signed, which makes a
+   0xFF padding byte decode as a DLC of −1 and walks the offset *backwards*
+   over a padded tail, rescanning the frame misaligned and inventing contained
+   PDUs out of padding.
 3. Per contained PDU, its payload slices are gathered into a 2-D array and its
    signals extracted. A contained PDU's signal `start_bit` values are
    **PDU-payload-relative**, so once the byte-aligned PDU payload slice is
    isolated the regular `extract_signal` machinery applies unchanged.
+4. A sender may transmit a contained PDU **shorter than its declared size** (the
+   header DLC is the authority). The gather is fixed-width, so signals reaching
+   past the transmitted length are decoded from the next PDU or from container
+   padding — those samples are flagged through `invalidation_bits` rather than
+   reported as measured data. Real OEM data hits this on ~2.4 % of
+   contained-PDU occurrences.
 
 ### Static containers
 
@@ -90,6 +101,13 @@ in-memory with canmatrix.
 - `test_extract_bus_logging_canfd_container_e2e` — full pipeline on genuine
   CAN-FD frames: 64-byte payload with the `EDL` flag and `DataLength` members
   set.
+- `test_extract_pdus_wide_signed_signal` — a contained-PDU signal wider than 64
+  bits and declared **signed** (real OEM containers carry 216/288/400-bit
+  signed blobs) comes back as raw bytes instead of raising `OverflowError` in
+  `as_non_byte_sized_signed_int`.
+- `test_extract_pdus_short_header_dlc_invalidates` — header DLC shorter than the
+  declared PDU size: transmitted signals decode normally, signals past the
+  transmitted length are flagged invalid.
 
 Run them with:
 
@@ -99,3 +117,26 @@ python -m unittest test.test_CAN_pdu_extraction -v
 
 The existing `test/test_CAN_bus_logging.py` (real OBD/J1939 data, downloaded)
 continues to pass, confirming no regression to the `extract_mux` path.
+
+## Validation on real measurements
+
+Validated against two real OEM CAN-FD bus logs (5.1 M and 2.3 M CAN frames) and
+three production ARXML databases covering three CAN channels, with
+`canmatrix.Frame.unpack` as the oracle:
+
+- **1 237 247** decoded signal values across **15** real container messages,
+  **0** mismatches.
+- Full `extract_bus_logging`: master yields only `Header_ID`/`Header_DLC` for
+  container messages; this branch yields 789 additional real signals on the
+  first measurement (58 container-derived channel groups) and 203
+  container-derived groups on the second.
+- All 541 non-container signals are bit-identical to master, and 676 008
+  non-container values were separately confirmed against the oracle.
+- Decoded values are physically plausible: HV DC-link 400 V mean / 794 V peak on
+  an 800 V platform, inverter and coolant temperatures 25–33 °C, 14.5 V rail.
+- The same drive was also recorded **signal-based** (decoded on the fly by the
+  logger toolchain). Cross-checking our container decode against that recording
+  — an oracle sharing no code with asammdf or canmatrix — 298 of 303 comparable
+  signals agree on every one of 114 251 samples; the remaining five are
+  free-running sequence counters / CRCs whose sample instants differ between the
+  two recordings by more than the comparison window.

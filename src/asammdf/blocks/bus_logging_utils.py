@@ -225,7 +225,13 @@ def extract_signal(
                 vals = vals >> bit_offset
                 vals &= (2**bit_count) - 1
 
-    if signed and not is_float:
+    # ``std_size > 8`` means the signal does not fit any integer dtype, so it was
+    # kept as a raw byte matrix (``({std_size},)u1``) above; two's complement does
+    # not apply to it. AUTOSAR container PDUs do carry such signals (opaque blobs
+    # of 216/288/400 bits declared signed), and feeding one to
+    # ``as_non_byte_sized_signed_int`` raises OverflowError on the ``1 << bit_count``
+    # mask. Leave those as bytes, exactly like their unsigned counterparts.
+    if signed and not is_float and std_size <= 8:
         # A plain ``view("i{std_size}")`` only sign-extends correctly when the
         # value fills exactly ``std_size`` byte-aligned bytes. A non-byte-aligned
         # signal (``bit_offset``) has been shifted/masked into a wider unsigned
@@ -471,6 +477,34 @@ PDU_CONTAINER_HEADER_ID: Final = "Header_ID"
 PDU_CONTAINER_HEADER_DLC: Final = "Header_DLC"
 
 
+def _signal_byte_extent(signal: Signal) -> int:
+    """Number of payload bytes a signal needs, i.e. the 1-based index of the last
+    byte it touches. Mirrors the addressing :func:`extract_signal` uses.
+    """
+    start_bit = signal.get_startbit(bit_numbering=1)
+    bit_count = signal.size
+
+    if signal.is_little_endian:
+        start_byte, bit_offset = divmod(start_bit, 8)
+        byte_size, r = divmod(bit_offset + bit_count, 8)
+        if r:
+            byte_size += 1
+        return start_byte + byte_size
+
+    byte_pos = start_bit // 8 + 1
+    start_pos = start_bit
+    bits = bit_count
+    while True:
+        pos = start_pos % 8 + 1
+        if pos < bits:
+            byte_pos += 1
+            bits -= pos
+            start_pos = 7
+        else:
+            break
+    return byte_pos
+
+
 def _contained_pdu_muxer(pdu: Any) -> str:
     """Stable per-PDU identity for the entry ``muxer`` slot so every contained
     PDU maps to its own channel group. Static (header-less) containers carry no
@@ -498,11 +532,19 @@ def _emit_pdu_signals(
     include_message_name: bool,
     ignore_value2text_conversion: bool,
     is_j1939: bool,
+    transmitted_bytes: NDArray[Any] | None = None,
 ) -> None:
     """Extract one contained PDU's signals from its payload slice into a
     dedicated channel-group entry. Shared by the dynamic and static paths of
     :func:`extract_pdus`; ``pdu_payload`` is the PDU-relative payload for a
     dynamic container and the full frame payload for a static one.
+
+    ``transmitted_bytes`` is the per-occurrence ``Header_DLC``. A sender may
+    transmit a contained PDU shorter than its declared size, in which case the
+    bytes past the header DLC belong to the *next* contained PDU or to the
+    container padding. Signals reaching into that region are decoded (the
+    extraction is vectorized over a fixed-width slice) but flagged invalid, so
+    padding never surfaces as a measured value.
     """
     entry = (
         bus,
@@ -533,6 +575,15 @@ def _emit_pdu_signals(
         else:
             sig_name = sig.name
 
+        # Samples whose bytes were not actually transmitted (header DLC shorter
+        # than the declared PDU size) are read from the neighbouring PDU or from
+        # the container padding, so mark them invalid.
+        invalidation_bits: NDArray[np.bool] | None = None
+        if transmitted_bytes is not None:
+            not_transmitted = transmitted_bytes < _signal_byte_extent(sig)
+            if not_transmitted.any():
+                invalidation_bits = not_transmitted
+
         try:
             scale_ranges = getattr(sig, "scale_ranges", None)
             if scale_ranges:
@@ -547,11 +598,14 @@ def _emit_pdu_signals(
                 "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                 "conversion": get_conversion(sig) if raw else None,
                 "t": t_,
-                "invalidation_bits": None,
+                "invalidation_bits": invalidation_bits,
             }
 
             if is_j1939:
-                signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
+                j1939_invalid = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
+                if invalidation_bits is not None:
+                    j1939_invalid = j1939_invalid | invalidation_bits
+                signals[sig_name]["invalidation_bits"] = j1939_invalid
 
         except:
             print(format_exc())
@@ -694,6 +748,7 @@ def extract_pdus(
     rows_all: list[NDArray[Any]] = []
     ids_all: list[NDArray[Any]] = []
     starts_all: list[NDArray[Any]] = []
+    dlcs_all: list[NDArray[Any]] = []
 
     max_slots = frame_bytes // header_size + 1
     for _ in range(max_slots):
@@ -708,11 +763,23 @@ def extract_pdus(
         ids = extract_signal(header_id_signal, windows, raw=True).astype("<i8")
         dlcs = extract_signal(header_dlc_signal, windows, raw=True).astype("<i8")
 
+        # canmatrix's ARXML parser marks the synthetic header signals *signed*, so
+        # a padding byte of 0xFF decodes as -1. A header id and a length are both
+        # unsigned by definition; reading them signed would walk the offset
+        # *backwards* over a 0xFF padded tail, rescanning the frame at misaligned
+        # positions and inventing contained PDUs out of padding. Fold both back
+        # into their unsigned range.
+        if header_id_signal.is_signed:
+            ids = np.where(ids < 0, ids + (1 << header_id_signal.size), ids)
+        if header_dlc_signal.is_signed:
+            dlcs = np.where(dlcs < 0, dlcs + (1 << header_dlc_signal.size), dlcs)
+
         payload_start = offs + header_size
 
         rows_all.append(active)
         ids_all.append(ids)
         starts_all.append(payload_start)
+        dlcs_all.append(dlcs)
 
         # Advance past this header + its PDU payload. Unknown/padding ids advance
         # by their (possibly garbage) dlc just like canmatrix, which guarantees
@@ -725,6 +792,7 @@ def extract_pdus(
     rows_flat = np.concatenate(rows_all)
     ids_flat = np.concatenate(ids_all)
     starts_flat = np.concatenate(starts_all)
+    dlcs_flat = np.concatenate(dlcs_all)
 
     # --- Per contained PDU: gather its payload slices and extract its signals.
     for pdu in message.pdus:
@@ -738,11 +806,13 @@ def extract_pdus(
 
         sel_rows = rows_flat[mask]
         sel_starts = starts_flat[mask]
+        sel_dlcs = dlcs_flat[mask]
 
         # Keep timestamp order (a frame may contain several PDUs / repeats).
         order = np.argsort(sel_rows, kind="stable")
         sel_rows = sel_rows[order]
         sel_starts = sel_starts[order]
+        sel_dlcs = sel_dlcs[order]
 
         gather_cols = sel_starts[:, None] + np.arange(pdu_size)[None, :]
         pdu_payload = padded[sel_rows[:, None], gather_cols]
@@ -762,6 +832,7 @@ def extract_pdus(
             include_message_name=include_message_name,
             ignore_value2text_conversion=ignore_value2text_conversion,
             is_j1939=is_j1939,
+            transmitted_bytes=sel_dlcs,
         )
 
     return extracted_signals

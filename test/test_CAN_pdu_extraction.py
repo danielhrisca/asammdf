@@ -118,6 +118,38 @@ def build_frames(
     return frames
 
 
+def build_wide_signal_container(frame_bytes: int = FD_FRAME_BYTES) -> canmatrix.Frame:
+    """Container whose contained PDU carries an opaque blob wider than 64 bits and
+    declared *signed*, the shape real AUTOSAR databases use for key/ID payloads.
+    """
+    cont = canmatrix.Frame(name="WideCont", size=frame_bytes)
+    cont.arbitration_id = canmatrix.ArbitrationId(id=CONTAINER_ID, extended=False)
+    cont.add_signal(canmatrix.Signal(name="Header_ID", start_bit=0, size=24, is_little_endian=False))
+    cont.add_signal(canmatrix.Signal(name="Header_DLC", start_bit=24, size=8, is_little_endian=False))
+
+    pdu = canmatrix.Pdu(name="WidePdu", id=0x123, size=28)
+    pdu.add_signal(canmatrix.Signal(name="W_blob", start_bit=0, size=216, is_little_endian=True, is_signed=True))
+    pdu.add_signal(canmatrix.Signal(name="W_u8", start_bit=216, size=8, is_little_endian=True, is_signed=False))
+    cont.add_pdu(pdu)
+    return cont
+
+
+def build_short_dlc_container(frame_bytes: int = FRAME_BYTES) -> canmatrix.Frame:
+    """Container whose PDU is transmitted shorter (header DLC) than declared."""
+    cont = canmatrix.Frame(name="ShortCont", size=frame_bytes)
+    cont.arbitration_id = canmatrix.ArbitrationId(id=CONTAINER_ID, extended=False)
+    cont.add_signal(canmatrix.Signal(name="Header_ID", start_bit=0, size=24, is_little_endian=False))
+    cont.add_signal(canmatrix.Signal(name="Header_DLC", start_bit=24, size=8, is_little_endian=False))
+
+    pdu = canmatrix.Pdu(name="ShortPdu", id=0x321, size=6)
+    pdu.add_signal(canmatrix.Signal(name="S_early", start_bit=0, size=16, is_little_endian=True, is_signed=False))
+    pdu.add_signal(canmatrix.Signal(name="S_mid", start_bit=16, size=16, is_little_endian=True, is_signed=False))
+    # lives in bytes 4..5, i.e. past a 4-byte transmitted length
+    pdu.add_signal(canmatrix.Signal(name="S_late", start_bit=32, size=16, is_little_endian=True, is_signed=False))
+    cont.add_pdu(pdu)
+    return cont
+
+
 def oracle(cont: canmatrix.Frame, frames: list[bytes], t: np.ndarray):
     """Ground truth via canmatrix.Frame.unpack, accumulated in frame order."""
     values: dict[tuple[str, str], list] = {}
@@ -158,6 +190,76 @@ class TestPduContainerExtraction(unittest.TestCase):
                         self.assertTrue(
                             np.array_equal(got[pdu_name][sig_name]["t"], np.array(exp_times[pdu_name], dtype="f8"))
                         )
+
+    def test_extract_pdus_wide_signed_signal(self) -> None:
+        """A contained PDU signal wider than 64 bits and declared signed must not
+        blow up: it is kept as raw bytes, exactly like an unsigned one would be.
+        Real OEM containers carry 216/288/400-bit signed blobs, and
+        two's complement cannot be applied to a byte-matrix sample."""
+        cont = build_wide_signal_container()
+        pdu = cont.pdus[0]
+
+        rng = np.random.default_rng(11)
+        blobs = rng.integers(0, 256, size=(50, 27), dtype="u1")
+        frames = []
+        for row in blobs:
+            frames.append(
+                (_encode_header(pdu.id, pdu.size, True) + bytes(row) + bytes([0xA5])).ljust(FD_FRAME_BYTES, b"\x00")
+            )
+        payload = np.array([list(f) for f in frames], dtype="u1")
+        t = np.arange(len(frames), dtype="f8")
+
+        extracted = extract_pdus(payload, cont, message_id=CONTAINER_ID, bus=1, t=t, raw=True)
+
+        got = {entry[4].split(":")[-1]: sigs for entry, sigs in extracted.items()}
+        self.assertEqual(set(got), {pdu.name})
+        blob = got[pdu.name]["W_blob"]["samples"]
+        self.assertEqual(len(blob), len(frames))
+        # the 216-bit blob comes back as its raw bytes, low byte first
+        for i, row in enumerate(blobs):
+            self.assertEqual(bytes(np.asarray(blob[i]).tobytes()[:27]), bytes(row))
+        self.assertTrue(np.array_equal(got[pdu.name]["W_u8"]["samples"], np.full(len(frames), 0xA5)))
+
+    def test_extract_pdus_short_header_dlc_invalidates(self) -> None:
+        """When the header DLC is shorter than the declared PDU size the trailing
+        bytes belong to the next PDU / container padding, so signals reaching into
+        them are flagged invalid instead of reporting padding as measured data."""
+        cont = build_short_dlc_container()
+        pdu = cont.pdus[0]
+        sent = 4  # only 4 of the declared 6 bytes are transmitted
+
+        frames = []
+        for i in range(30):
+            body = bytes([i, 0x00, i + 1, 0x00])
+            frames.append((_encode_header(pdu.id, sent, True) + body).ljust(FRAME_BYTES, b"\xee"))
+        payload = np.array([list(f) for f in frames], dtype="u1")
+        t = np.arange(len(frames), dtype="f8")
+
+        extracted = extract_pdus(payload, cont, message_id=CONTAINER_ID, bus=1, t=t, raw=True)
+        sigs = next(iter(extracted.values()))
+
+        # transmitted signals: real values, no invalidation
+        self.assertIsNone(sigs["S_early"]["invalidation_bits"])
+        self.assertIsNone(sigs["S_mid"]["invalidation_bits"])
+        self.assertTrue(np.array_equal(sigs["S_early"]["samples"], np.arange(30)))
+        self.assertTrue(np.array_equal(sigs["S_mid"]["samples"], np.arange(1, 31)))
+
+        # the signal past the transmitted length is fully invalidated
+        invalid = sigs["S_late"]["invalidation_bits"]
+        self.assertIsNotNone(invalid)
+        self.assertTrue(invalid.all())
+
+        # a full-length transmission keeps everything valid
+        full = []
+        for i in range(30):
+            full.append(
+                (_encode_header(pdu.id, pdu.size, True) + bytes([i, 0, i + 1, 0, i + 2, 0])).ljust(FRAME_BYTES, b"\xee")
+            )
+        payload = np.array([list(f) for f in full], dtype="u1")
+        extracted = extract_pdus(payload, cont, message_id=CONTAINER_ID, bus=1, t=t, raw=True)
+        sigs = next(iter(extracted.values()))
+        self.assertIsNone(sigs["S_late"]["invalidation_bits"])
+        self.assertTrue(np.array_equal(sigs["S_late"]["samples"], np.arange(2, 32)))
 
     def test_extract_pdus_static_container(self) -> None:
         """A static (header-less) container: every contained PDU is present in
