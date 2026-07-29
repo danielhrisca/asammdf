@@ -1065,7 +1065,6 @@ class MDF4(MDF_Common[Group]):
 
                 index = ch_cntr - 1
                 dependencies.append(None)
-                grp.signal_data.append(None)
 
                 # check if it is a CABLOCK or CNBLOCK
                 stream.seek(component_addr)
