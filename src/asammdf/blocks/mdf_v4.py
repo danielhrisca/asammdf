@@ -4405,10 +4405,6 @@ class MDF4(MDF_Common[Group]):
 
             gp_sig_types.append(sig_type)
 
-            axes = signal.axes or {}
-            conversions = signal.conversions or {}
-            units = signal.units or {}
-
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
                 # compute additional byte offset for large records size
