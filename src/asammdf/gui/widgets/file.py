@@ -462,6 +462,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self._filter_timer.setSingleShot(True)
         self._filter_timer.timeout.connect(self.update_selected_filter_channels)
 
+        self.selected_filter_channels.itemDoubleClicked.connect(self._selected_filter_double_clicked)
+
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
 
@@ -3220,7 +3222,6 @@ MultiRasterSeparator;&
             iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
             while item := iterator.value():
-
                 if item.entry in self._selected_filter:
                     item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 else:
@@ -3647,3 +3648,8 @@ MultiRasterSeparator;&
                 )
             )
             self._previous_window_config = worker.hexdigest()
+
+    def _selected_filter_double_clicked(self, item, column=0):
+        if item:
+            self._selected_filter.pop(item.entry, None)
+            self.update_selected_filter_channels()
