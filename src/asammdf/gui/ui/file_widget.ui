@@ -50,7 +50,7 @@
       <enum>QTabWidget::TabPosition::West</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -359,24 +359,24 @@
           </widget>
          </item>
          <item>
-         <widget class="QLineEdit" name="filter_search_name">
+          <widget class="QLineEdit" name="filter_search_name">
            <property name="placeholderText">
-           <string>channel pattern</string>
+            <string>channel pattern</string>
            </property>
            <property name="clearButtonEnabled">
-           <bool>true</bool>
+            <bool>true</bool>
            </property>
-         </widget>
+          </widget>
          </item>
          <item>
-         <widget class="QLineEdit" name="filter_search_bus">
+          <widget class="QLineEdit" name="filter_search_bus">
            <property name="placeholderText">
-           <string>source pattern</string>
+            <string>source pattern</string>
            </property>
            <property name="clearButtonEnabled">
-           <bool>true</bool>
+            <bool>true</bool>
            </property>
-         </widget>
+          </widget>
          </item>
          <item>
           <widget class="TreeWidget" name="filter_tree">
@@ -481,16 +481,25 @@
           </widget>
          </item>
          <item>
-          <widget class="QListWidget" name="selected_filter_channels">
-           <property name="viewMode">
-            <enum>QListView::ViewMode::ListMode</enum>
-           </property>
-           <property name="uniformItemSizes">
-            <bool>true</bool>
-           </property>
+          <widget class="QTreeWidget" name="selected_filter_channels">
            <property name="sortingEnabled">
             <bool>true</bool>
            </property>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Group</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Index</string>
+            </property>
+           </column>
           </widget>
          </item>
         </layout>

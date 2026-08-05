@@ -17,11 +17,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QListView,
-    QListWidget, QListWidgetItem, QPushButton, QRadioButton,
-    QScrollArea, QSizePolicy, QSpacerItem, QSplitter,
-    QStackedWidget, QTabWidget, QTextEdit, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget)
+    QHeaderView, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QPushButton, QRadioButton, QScrollArea,
+    QSizePolicy, QSpacerItem, QSplitter, QStackedWidget,
+    QTabWidget, QTextEdit, QTreeWidget, QTreeWidgetItem,
+    QVBoxLayout, QWidget)
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from asammdf.gui.widgets.tree import TreeWidget
@@ -72,11 +72,13 @@ class Ui_file_widget(object):
         self.channels_search_name = QLineEdit(self.verticalLayoutWidget)
         self.channels_search_name.setObjectName(u"channels_search_name")
         self.channels_search_name.setClearButtonEnabled(True)
+
         self.channels_layout.addWidget(self.channels_search_name)
 
         self.channels_search_bus = QLineEdit(self.verticalLayoutWidget)
         self.channels_search_bus.setObjectName(u"channels_search_bus")
         self.channels_search_bus.setClearButtonEnabled(True)
+
         self.channels_layout.addWidget(self.channels_search_bus)
 
         self.channels_tree = TreeWidget(self.verticalLayoutWidget)
@@ -193,11 +195,13 @@ class Ui_file_widget(object):
         self.filter_search_name = QLineEdit(self.modify)
         self.filter_search_name.setObjectName(u"filter_search_name")
         self.filter_search_name.setClearButtonEnabled(True)
+
         self.verticalLayout_2.addWidget(self.filter_search_name)
 
         self.filter_search_bus = QLineEdit(self.modify)
         self.filter_search_bus.setObjectName(u"filter_search_bus")
         self.filter_search_bus.setClearButtonEnabled(True)
+
         self.verticalLayout_2.addWidget(self.filter_search_bus)
 
         self.filter_tree = TreeWidget(self.modify)
@@ -250,10 +254,8 @@ class Ui_file_widget(object):
 
         self.verticalLayout_6.addWidget(self.label)
 
-        self.selected_filter_channels = QListWidget(self.modify)
+        self.selected_filter_channels = QTreeWidget(self.modify)
         self.selected_filter_channels.setObjectName(u"selected_filter_channels")
-        self.selected_filter_channels.setViewMode(QListView.ViewMode.ListMode)
-        self.selected_filter_channels.setUniformItemSizes(True)
         self.selected_filter_channels.setSortingEnabled(True)
 
         self.verticalLayout_6.addWidget(self.selected_filter_channels)
@@ -1088,7 +1090,7 @@ class Ui_file_widget(object):
 
         self.retranslateUi(file_widget)
 
-        self.aspects.setCurrentIndex(0)
+        self.aspects.setCurrentIndex(1)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
@@ -1106,9 +1108,9 @@ class Ui_file_widget(object):
         self.channel_view.setItemText(0, QCoreApplication.translate("file_widget", u"Natural sort", None))
         self.channel_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.channel_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
+
         self.channels_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
         self.channels_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
-
         ___qtreewidgetitem = self.channels_tree.headerItem()
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
 #if QT_CONFIG(tooltip)
@@ -1150,9 +1152,9 @@ class Ui_file_widget(object):
         self.filter_view.setItemText(0, QCoreApplication.translate("file_widget", u"Natural sort", None))
         self.filter_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.filter_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
+
         self.filter_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
         self.filter_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
-
         ___qtreewidgetitem1 = self.filter_tree.headerItem()
         ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
 #if QT_CONFIG(tooltip)
@@ -1175,6 +1177,10 @@ class Ui_file_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.advanced_serch_filter_btn.setText("")
         self.label.setText(QCoreApplication.translate("file_widget", u"All selected channels", None))
+        ___qtreewidgetitem2 = self.selected_filter_channels.headerItem()
+        ___qtreewidgetitem2.setText(2, QCoreApplication.translate("file_widget", u"Index", None));
+        ___qtreewidgetitem2.setText(1, QCoreApplication.translate("file_widget", u"Group", None));
+        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("file_widget", u"Name", None));
         self.cut_group.setTitle(QCoreApplication.translate("file_widget", u"Cut", None))
         self.label_59.setText(QCoreApplication.translate("file_widget", u"Start", None))
         self.cut_stop.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
@@ -1279,9 +1285,9 @@ class Ui_file_widget(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("file_widget", u"LIN", None))
         self.label_12.setText(QCoreApplication.translate("file_widget", u"Prefix", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("file_widget", u"Bus Logging", None))
-        ___qtreewidgetitem2 = self.info.headerItem()
-        ___qtreewidgetitem2.setText(1, QCoreApplication.translate("file_widget", u"Value", None));
-        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None));
+        ___qtreewidgetitem3 = self.info.headerItem()
+        ___qtreewidgetitem3.setText(1, QCoreApplication.translate("file_widget", u"Value", None));
+        ___qtreewidgetitem3.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None));
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), QCoreApplication.translate("file_widget", u"Info", None))
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), QCoreApplication.translate("file_widget", u"Attachments", None))
     # retranslateUi
