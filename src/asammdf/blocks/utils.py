@@ -2,10 +2,10 @@
 
 from collections.abc import Callable, Iterator
 from functools import lru_cache
+import importlib
 import logging
 import mmap
 import multiprocessing
-import importlib
 import os
 from pathlib import Path
 from random import randint

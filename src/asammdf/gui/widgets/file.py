@@ -455,7 +455,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.raster_search_btn.clicked.connect(self.raster_search)
 
         self.filter_tree.itemChanged.connect(self.filter_changed)
-        self._selected_filter = set()
+        self._selected_filter = {}
         self._filter_timer = QtCore.QTimer()
         self._filter_timer.setSingleShot(True)
         self._filter_timer.timeout.connect(self.update_selected_filter_channels)
@@ -803,23 +803,49 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.export_compression.setEnabled(False)
 
     def search(self, event=None):
-        toggle_frames = False
         if self.aspects.tabText(self.aspects.currentIndex()) == "Channels":
-            show_add_window = True
-            show_apply = True
-            apply_text = "Check channels"
-            widget = self.channels_tree
-            view = self.channel_view
-
-            if self._frameless_windows:
-                toggle_frames = True
-                self.toggle_frames()
+            self.search_in_channels()
         else:
-            show_add_window = False
-            show_apply = True
-            apply_text = "Check channels"
-            widget = self.filter_tree
-            view = self.filter_view
+            self.search_in_modify_and_export()
+
+    def search_in_modify_and_export(self, event=None):
+
+        show_add_window = False
+        show_apply = True
+        apply_text = "Check channels"
+        widget = self.filter_tree
+        view = self.filter_view
+
+        dlg = AdvancedSearch(
+            self.mdf,
+            show_add_window=show_add_window,
+            show_apply=show_apply,
+            apply_text=apply_text,
+            parent=self,
+        )
+        dlg.setModal(True)
+        dlg.exec()
+        result, pattern_window = dlg.payload, dlg.pattern_window
+
+        if result:
+            if pattern_window:
+                return
+            else:
+                self._selected_filter.update(result)
+                self.update_selected_filter_channels()
+
+    def search_in_channels(self, event=None):
+        show_add_window = True
+        show_apply = True
+        apply_text = "Check channels"
+        widget = self.channels_tree
+        view = self.channel_view
+
+        if self._frameless_windows:
+            toggle_frames = True
+            self.toggle_frames()
+        else:
+            toggle_frames = False
 
         dlg = AdvancedSearch(
             self.mdf,
@@ -922,7 +948,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     signals = signals | names
 
                     widget.clear()
-                    self._selected_filter = {e[0] for e in signals}
 
                     items = []
                     for name, gp_index, ch_index in signals:
@@ -937,8 +962,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     widget.addTopLevelItems(items)
-
-                    self.update_selected_filter_channels()
 
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -1609,56 +1632,18 @@ MultiRasterSeparator;&
             info = file_name
             channels = info.get("selected_channels", [])
 
+        _channels = {}
+        channels_db = self.mdf.channels_db
+        for channel in channels:
+            if channel in channels_db:
+                entry = channels_db[channel][0]
+                _channels[entry] = channel
+
+        channels = _channels
+
         if channels:
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
-
-            if self.filter_view.currentText() == "Internal file structure":
-                while item := iterator.value():
-                    iterator += 1
-
-                    if item.parent() is None:
-                        continue
-
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-            elif self.filter_view.currentText() == "Natural sort":
-                while item := iterator.value():
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-                    iterator += 1
-
-            else:
-                items = []
-                self.filter_tree.clear()
-
-                self._selected_filter = set(channels)
-
-                for i, gp in enumerate(self.mdf.groups):
-                    for j, ch in enumerate(gp.channels):
-                        if ch.name in channels:
-                            entry = i, j
-                            channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
-                            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            items.append(channel)
-                            channels.pop(channels.index(ch.name))
-
-                if len(items) < 30000:
-                    items = natsorted(items, key=lambda x: x.name)
-                else:
-                    items.sort(key=lambda x: x.name)
-                self.filter_tree.addTopLevelItems(items)
-
-                self.update_selected_filter_channels()
+            self._selected_filter = channels
+            self.update_selected_filter_channels()
 
     def compute_cut_hints(self):
         t_min = []
@@ -2817,19 +2802,9 @@ MultiRasterSeparator;&
     def _get_filtered_channels(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        channels = []
+        channels = [(name, *entry) for entry, name in self._selected_filter.items()]
 
-        while item := iterator.value():
-            iterator += 1
-
-            group, index = item.entry
-            if index == 0xFFFFFFFFFFFFFFFF:
-                continue
-
-            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                channels.append((item.name, group, index))
-
-        needs_filter = self.selected_filter_channels.count() > 0
+        needs_filter = bool(channels)
 
         return needs_filter, channels
 
@@ -3205,34 +3180,75 @@ MultiRasterSeparator;&
             self.raster_channel.setCurrentText(name)
 
     def filter_changed(self, item, column=0):
-        name = item.text(0)
+        entry = item.entry
         if self.filter_view.currentText() == "Internal file structure":
             if item.checkState(0) == QtCore.Qt.CheckState.Checked and item.parent() is not None:
-                self._selected_filter.add(name)
+                self._selected_filter[entry] = item.name
             else:
-                if name in self._selected_filter:
-                    self._selected_filter.remove(name)
+                if entry in self._selected_filter:
+                    self._selected_filter.pop(entry)
 
         elif self.filter_view.currentText() == "Natural sort":
             if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                self._selected_filter.add(name)
+                self._selected_filter[entry] = item.name
             else:
-                if name in self._selected_filter:
-                    self._selected_filter.remove(name)
+                if entry in self._selected_filter:
+                    self._selected_filter.pop(entry)
 
         else:
             if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                self._selected_filter.add(name)
+                self._selected_filter[entry] = item.name
             else:
-                if name in self._selected_filter:
-                    self._selected_filter.remove(name)
-            self._update_channel_tree(widget=self.filter_tree)
+                if entry in self._selected_filter:
+                    self._selected_filter.pop(entry)
 
         self._filter_timer.start(10)
 
     def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
-        self.selected_filter_channels.addItems(sorted(self._selected_filter))
+
+        items = []
+        for entry, name in self._selected_filter.items():
+            items.append(MinimalTreeItem(entry, name, strings=[str(item) for item in (name, *entry)]))
+
+        self.selected_filter_channels.addTopLevelItems(items)
+
+        view = self.filter_view
+        widget = self.filter_tree
+        widget.blockSignals(True)
+
+        names = set()
+        if view.currentText() in ("Internal file structure", "Natural sort"):
+            iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+
+            while item := iterator.value():
+
+                if item.entry in self._selected_filter:
+                    item.setCheckState(0, QtCore.Qt.CheckState.Checked)
+                else:
+                    item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+
+                iterator += 1
+
+        else:
+            iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+
+            widget.clear()
+
+            items = []
+            for entry, name in self._selected_filter.items():
+                channel = MinimalTreeItem(entry, name, strings=[name], origin_uuid=self.uuid)
+                channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+                items.append(channel)
+
+            if len(items) < 30000:
+                items = natsorted(items, key=lambda x: x.name)
+            else:
+                items.sort(key=lambda x: x.name)
+
+            widget.addTopLevelItems(items)
+
+        widget.blockSignals(False)
 
     def embed_display_file(self, event=None):
         if not self.save_embedded_channel_list_btn.isVisible() or not self.save_embedded_channel_list_btn.isEnabled():
