@@ -83,6 +83,49 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
+    def test_read_mdf4_20_column_storage(self) -> None:
+        # regression test: 4.20 column storage wraps data in LDBLOCKs, whose
+        # parsing raised AttributeError ('ListData' object has no attribute 'self')
+        seed = np.random.randint(0, 2**31)
+
+        np.random.seed(seed)
+        print("Read 4.20 using seed =", seed)
+
+        sig_int = Signal(
+            np.random.randint(-(2**31), 2**31, CHANNEL_LEN),
+            np.arange(CHANNEL_LEN),
+            name="Integer Channel",
+            unit="unit1",
+        )
+
+        sig_float = Signal(
+            np.random.random(CHANNEL_LEN),
+            np.arange(CHANNEL_LEN),
+            name="Float Channel",
+            unit="unit2",
+        )
+
+        with MDF(version="4.20") as mdf:
+            mdf.append([sig_int], common_timebase=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp", overwrite=True)
+
+        # column storage (and therefore LDBLOCK output) only engages for
+        # column-oriented groups, appended when the file was opened with
+        # column_storage=True
+        with MDF(outfile, column_storage=True) as mdf:
+            mdf.append([sig_float], common_timebase=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp_ld", overwrite=True)
+
+        with open(outfile, "rb") as ld_stream:
+            self.assertIn(b"##LD", ld_stream.read())
+
+        with MDF(outfile) as mdf:
+            ret_sig_int = mdf.get(sig_int.name)
+            ret_sig_float = mdf.get(sig_float.name)
+
+        self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
+        self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+
     def test_attachment_blocks_wo_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
         mdf = MDF()

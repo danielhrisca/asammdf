@@ -6881,7 +6881,7 @@ class ListData(_ListDataBase):
 
                 address += self.links_nr * 8
 
-                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = unpack_from(
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.data_block_nr = unpack_from(
                     "<4BI", stream, address
                 )
                 address += 8
@@ -6945,7 +6945,7 @@ class ListData(_ListDataBase):
 
                 links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
-                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = typing.cast(
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.data_block_nr = typing.cast(
                     tuple[int, int], unpack("<4BI", stream.read(8))
                 )
 
