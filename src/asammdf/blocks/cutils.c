@@ -1538,7 +1538,7 @@ void * get_channel_raw_bytes_C(void *lpParam)
     for (Py_ssize_t i = 0; i<thread_count; i++, data++);
   }
 
-  return NULL;
+  THREAD_RETURN_NULL();
 }
 
 
@@ -1737,6 +1737,8 @@ void * data_block_from_arrays_C(void *lpParam)
 
     for (Py_ssize_t i = 0; i<thread_count; i++, data++);
   }
+
+  THREAD_RETURN_NULL();
 }
 
 
