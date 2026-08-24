@@ -1432,7 +1432,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             global_vars = "\n".join(line.strip() for line in self.global_variables.splitlines() if line.strip())
 
             if new_global_vars not in global_vars:
-                global_vars += new_global_vars
+                global_vars = f"{global_vars}\n{new_global_vars}"
                 updated_global_vars = True
             else:
                 updated_global_vars = False
