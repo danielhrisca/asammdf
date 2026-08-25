@@ -189,6 +189,35 @@ class TestMDF4(unittest.TestCase):
 
         self.assertTrue((record == signal.samples).all())
 
+    def test_vlsd_channel_after_structure_composition(self) -> None:
+        """A VLSD channel that sits after a structure (composed) channel in the
+        same group must still find its signal data.
+
+        ``Group.signal_data`` is indexed by channel index, so an extra entry
+        pushed for a composed channel shifts every following channel's VLSD
+        block info and makes the payload unreadable.
+        """
+        count = 20
+        timestamps = np.arange(count, dtype="<f8")
+
+        record = np.rec.fromarrays(
+            [np.arange(count, dtype="<u2"), np.arange(count, dtype="<u1") % 5],
+            dtype=np.dtype([("a", "<u2"), ("b", "<u1")]),
+        )
+        structure = Signal(record, timestamps=timestamps, name="Structure")
+        texts = np.array([("x" * (i % 5 + 1)).encode("latin-1") for i in range(count)], dtype="S8")
+        text = Signal(texts, timestamps=timestamps, name="Text", encoding="latin-1")
+
+        path = Path(TestMDF4.tempdir.name) / "vlsd_after_structure.mf4"
+        with MDF(version="4.10") as mdf:
+            mdf.append([structure, text])
+            mdf.save(path, overwrite=True)
+
+        with MDF(path) as mdf:
+            group = mdf.groups[0]
+            self.assertEqual(len(group.signal_data), len(group.channels))
+            self.assertTrue(np.array_equal(mdf.get("Text", group=0).samples, texts))
+
 
 if __name__ == "__main__":
     unittest.main()
