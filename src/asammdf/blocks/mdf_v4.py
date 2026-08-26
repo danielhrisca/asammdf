@@ -1046,6 +1046,8 @@ class MDF4(MDF_Common[Group]):
             else:
                 grp.signal_data.append(None)
 
+            print([channel.name, entry, grp.signal_data[-1]])
+
             if cn_data_addr:
                 self._cn_data_map[cn_data_addr] = entry
 
@@ -1065,7 +1067,6 @@ class MDF4(MDF_Common[Group]):
 
                 index = ch_cntr - 1
                 dependencies.append(None)
-                grp.signal_data.append(None)
 
                 # check if it is a CABLOCK or CNBLOCK
                 stream.seek(component_addr)
