@@ -1011,6 +1011,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(f"{count} items in the list, {enabled} enabled")
         menu.addSeparator()
 
+        sorting_enabled = self.isSortingEnabled()
+        action = QtGui.QAction("Sorting enabled", menu)
+        action.setCheckable(True)
+        action.setChecked(sorting_enabled)
+        menu.addAction(action)
+        menu.addSeparator()
+
         submenu = QtWidgets.QMenu("Columns")
         action = QtGui.QAction("Raw Column", submenu)
         action.setCheckable(True)
@@ -1775,6 +1782,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
+        elif action_text == "Sorting enabled":
+            sorting_enabled = not sorting_enabled
+            self.setSortingEnabled(sorting_enabled)
+            self.header().setSortIndicatorShown(sorting_enabled)
         elif action_text == "Raw Column":
             self.setColumnHidden(self.RawColumn, not self.isColumnHidden(self.RawColumn))
         elif action_text == "Unit Column":

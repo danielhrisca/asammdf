@@ -3478,6 +3478,11 @@ class Plot(QtWidgets.QWidget):
                 if not self.pattern
                 else []
             ),
+            "sorting": {
+                "enabled": self.channel_selection.isSortingEnabled(),
+                "column": self.channel_selection.header().sortIndicatorSection(),
+                "ascending": self.channel_selection.header().sortIndicatorOrder() == QtCore.Qt.SortOrder.AscendingOrder,
+            },
             "pattern": self.pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [
