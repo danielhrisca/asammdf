@@ -2352,6 +2352,7 @@ class MDF4(MDF_Common[Group]):
                             if id_string != b"##DZ":
                                 size = block_len - 24
                                 if size:
+                                    size = min(size, total_size)
                                     addr = addr + COMMON_SIZE
 
                                     # split the DTBLOCK into chucks of up to 32MB
