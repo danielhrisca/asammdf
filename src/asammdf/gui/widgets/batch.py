@@ -1191,8 +1191,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         comment = extract_xml_comment(group.channel_group.comment)
 
-                        if mdf.version >= "4.00" and group.channel_group.acq_source:
-                            source = group.channel_group.acq_source
+                        if source := group.channel_group.acq_source:
                             if source.bus_type == BUS_TYPE_CAN:
                                 ico = ":/bus_can.png"
                             elif source.bus_type == BUS_TYPE_LIN:

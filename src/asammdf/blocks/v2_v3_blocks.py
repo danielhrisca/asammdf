@@ -2262,6 +2262,7 @@ class ChannelGroup:
     """
 
     __slots__ = (
+        "acq_source",
         "address",
         "block_len",
         "ch_nr",
@@ -2279,6 +2280,8 @@ class ChannelGroup:
     def __init__(self, **kwargs: Unpack[ChannelGroupKwargs]) -> None:
         super().__init__()
         self.comment = ""
+        # compatibility with MDF v4
+        self.acq_source = None
 
         try:
             stream = kwargs["stream"]

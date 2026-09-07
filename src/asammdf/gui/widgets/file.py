@@ -647,8 +647,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if search_name.pattern and not search_name.pattern.search(ch.name):
                         continue
 
-                    if group.channel_group.acq_source:
-                        bus = group.channel_group.acq_source.path or "None"
+                    if source := group.channel_group.acq_source:
+                        bus = source.path or "None"
                     else:
                         bus = "None"
 
@@ -685,8 +685,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 comment = extract_xml_comment(group.channel_group.comment)
 
-                if self.mdf.version >= "4.00" and group.channel_group.acq_source:
-                    source = group.channel_group.acq_source
+                if source := group.channel_group.acq_source:
                     if source.bus_type == BUS_TYPE_CAN:
                         ico = ":/bus_can.png"
                     elif source.bus_type == BUS_TYPE_LIN:
@@ -2620,8 +2619,7 @@ MultiRasterSeparator;&
                     else:
                         size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * cycles
 
-                    if group.channel_group.acq_source:
-                        source = group.channel_group.acq_source
+                    if source := group.channel_group.acq_source:
                         if source.bus_type == BUS_TYPE_CAN:
                             ico = ":/bus_can.png"
                         elif source.bus_type == BUS_TYPE_LIN:
