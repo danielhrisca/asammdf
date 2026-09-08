@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from random import randint
 import shutil
 from unittest import mock
@@ -36,7 +37,7 @@ class TestFileWidget(TestBase):
         """
         if default:
             self.widget = FileWidget(
-                file_name=measurement_file,
+                file_name=Path(measurement_file),
                 with_dots=True,
                 subplots=True,
                 subplots_link=True,
@@ -49,6 +50,7 @@ class TestFileWidget(TestBase):
             )
         else:
             self.widget = FileWidget(measurement_file, *args)
+        self.widget.channel_view.setCurrentIndex(0)
         self.processEvents()
         self.widget.showMaximized()
 
@@ -56,11 +58,11 @@ class TestFileWidget(TestBase):
         channel_tree = self.widget.channels_tree
         channel_tree.clearSelection()
         for channel in channels_names:
-            channel = self.find_channel(channel_tree, channel_name=channel)
-            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            tree_item = self.find_channel(channel_tree, channel_name=channel)
+            tree_item.setCheckState(0, QtCore.Qt.CheckState.Checked)
         for channel in channels_indexes:
-            channel = self.find_channel(channel_tree, channel_index=channel)
-            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            tree_item = self.find_channel(channel_tree, channel_index=channel)
+            tree_item.setCheckState(0, QtCore.Qt.CheckState.Checked)
 
         with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
