@@ -314,15 +314,15 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.hide_on_finish = hide_on_finish
 
         self.thread = QWorkerThread(target, *args, parent=self, **kwargs)
-        self.thread.output.connect(self.receive_output)
-        self.thread.finished.connect(self.thread_complete)
-        self.thread.error.connect(self.receive_error)
-        self.thread.setLabelText.connect(self.setLabelText)
-        self.thread.setWindowIcon.connect(self.setWindowIcon)
-        self.thread.setWindowTitle.connect(self.setWindowTitle)
-        self.thread.setValue.connect(self.setValue)
-        self.thread.setMinimum.connect(self.setMinimum)
-        self.thread.setMaximum.connect(self.setMaximum)
+        self.thread.output.connect(self.receive_output, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.finished.connect(self.thread_complete, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.error.connect(self.receive_error, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setLabelText.connect(self.setLabelText, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setWindowIcon.connect(self.setWindowIcon, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setWindowTitle.connect(self.setWindowTitle, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setValue.connect(self.setValue, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setMinimum.connect(self.setMinimum, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
+        self.thread.setMaximum.connect(self.setMaximum, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
 
         self.thread.start()
 
