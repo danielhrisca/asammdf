@@ -338,15 +338,18 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
         return self.output
 
+    @QtCore.Slot(str)
     def setLabelText(self, text):
         super().setLabelText(text)
 
     def processEvents(self):
         pass
 
+    @QtCore.Slot(object)
     def receive_output(self, output):
         self.output = output
 
+    @QtCore.Slot(object)
     def receive_error(self, error):
         self.error = error
 
@@ -394,6 +397,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             super().keyPressEvent(event)
 
+    @QtCore.Slot(object)
     def setWindowIcon(self, icon):
         if isinstance(icon, str):
             icon_name = icon
