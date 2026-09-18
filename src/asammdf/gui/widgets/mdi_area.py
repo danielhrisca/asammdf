@@ -4277,6 +4277,24 @@ class WithMDIArea:
             for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
                 plot.channel_selection.setColumnHidden(i, not visible)
 
+        if "sorting" in window_info["configuration"]:
+            if window_info["configuration"]["sorting"]["enabled"]:
+                plot.channel_selection.setSortingEnabled(True)
+                plot.channel_selection.sortByColumn(
+                    window_info["configuration"]["sorting"]["column"],
+                    QtCore.Qt.SortOrder.AscendingOrder
+                    if window_info["configuration"]["sorting"]["ascending"]
+                    else QtCore.Qt.SortOrder.DescendingOrder,
+                )
+            else:
+                header = plot.channel_selection.header()
+                header.setSortIndicator(
+                    window_info["configuration"]["sorting"]["column"],
+                    QtCore.Qt.SortOrder.AscendingOrder
+                    if window_info["configuration"]["sorting"]["ascending"]
+                    else QtCore.Qt.SortOrder.DescendingOrder,
+                )
+
         hide_missing = window_info["configuration"].get("hide_missing_channels", False)
         hide_disabled = window_info["configuration"].get("hide_disabled_channels", False)
         if hide_missing or hide_disabled:

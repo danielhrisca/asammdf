@@ -263,9 +263,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def scramble_thread(self, source_files, progress):
         count = len(source_files)
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("scramble")
         progress.signals.setWindowTitle.emit("Scrambling measurements")
 
         # scrambling self.mdf
@@ -344,9 +342,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
 
     def extract_bus_logging_thread(self, source_files, database_files, count, compression, version, progress):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("down")
         progress.signals.setWindowTitle.emit("Extract Bus logging from measurements")
         progress.signals.setLabelText.emit(f'Extracting Bus logging from "{count}" files')
 
@@ -533,9 +529,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         count,
         progress,
     ):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("csv")
         progress.signals.setWindowTitle.emit("Extract Bus logging from measurements to CSV")
         progress.signals.setLabelText.emit(f'Extracting Bus logging from "{count}" files')
 
@@ -748,9 +742,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression,
         progress,
     ):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("plus")
         progress.signals.setWindowTitle.emit(f"Concatenating files and saving to {version} format")
 
         output_file_name = Path(output_file_name)
@@ -795,9 +787,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression,
         progress,
     ):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("stack")
         progress.signals.setWindowTitle.emit(f"Stacking files and saving to {version} format")
 
         output_file_name = Path(output_file_name)
@@ -1180,8 +1170,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         comment = extract_xml_comment(group.channel_group.comment)
 
-                        if mdf.version >= "4.00" and group.channel_group.acq_source:
-                            source = group.channel_group.acq_source
+                        if source := group.channel_group.acq_source:
                             if source.bus_type == BUS_TYPE_CAN:
                                 ico = ":/bus_can.png"
                             elif source.bus_type == BUS_TYPE_LIN:
@@ -1482,9 +1471,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf = mdf_file
 
             if needs_filter:
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("filter")
                 progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(f'Filtering selected channels from\n"{source_file}"')
 
@@ -1506,9 +1493,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
 
             if opts.needs_cut:
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("cut")
                 progress.signals.setWindowTitle.emit(f"Cutting measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(
                     f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
@@ -1548,9 +1533,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     raster = opts.raster
                     message = f"Resampling to {raster}s raster\n{source_file}"
 
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("resample")
                 progress.signals.setWindowTitle.emit(f"Resampling measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(message)
 
@@ -1576,13 +1559,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             if output_format == "MDF":
                 if mdf.version != version:
-                    icon = QtGui.QIcon()
-                    icon.addPixmap(
-                        QtGui.QPixmap(":/convert.png"),
-                        QtGui.QIcon.Mode.Normal,
-                        QtGui.QIcon.State.Off,
-                    )
-                    progress.signals.setWindowIcon.emit(icon)
+                    progress.signals.setWindowIcon.emit("convert")
                     progress.signals.setWindowTitle.emit(f"Converting measurement {mdf_index + 1} of {count}")
                     progress.signals.setLabelText.emit(f'Converting "{source_file}" from {mdf.version} to {version}')
 
@@ -1622,9 +1599,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = file_name.with_suffix(suffix)
 
                 # then save it
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("save")
                 progress.signals.setWindowTitle.emit(f"Saving measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(f"Saving output file {mdf_index + 1} of {count}\n{source_file}")
 
@@ -1652,9 +1627,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 file_name = file_name.with_suffix(suffix)
 
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("export")
                 progress.signals.setWindowTitle.emit(f"export_batch measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(
                     f"export_batching measurement {mdf_index + 1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
