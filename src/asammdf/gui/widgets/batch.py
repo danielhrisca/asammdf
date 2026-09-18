@@ -720,7 +720,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
-                output_file_name,extract_bus_logging_thread
+                output_file_name,
                 version,
                 source_files,
                 sync,
