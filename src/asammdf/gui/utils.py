@@ -287,6 +287,7 @@ class QWorkerThread(QtCore.QThread):
 
     def requestInterruption(self):
         self.stop = True
+        super().requestInterruption()
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
@@ -305,6 +306,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def run_thread_with_progress(
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
     ):
+        if self.thread is not None and self.thread.isRunning():
+            raise RuntimeError("A worker is already running")
+        
         self.show()
         self.output = None
         self.error = None
@@ -324,12 +328,13 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.thread.setMinimum.connect(self.setMinimum, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
         self.thread.setMaximum.connect(self.setMaximum, type=QtCore.Qt.ConnectionType.BlockingQueuedConnection)
 
-        self.thread.start()
-
         if wait_here:
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
+            self.thread.start()
             loop.exec()
+        else:
+            self.thread.start()
 
         return self.output
 
