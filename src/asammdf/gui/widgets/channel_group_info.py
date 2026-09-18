@@ -19,8 +19,8 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
 
         self.channel_group_label.setText(channel_group.metadata())
 
-        if hasattr(channel_group, "acq_source") and channel_group.acq_source:
-            self.source_label.setText(channel_group.acq_source.metadata())
+        if source := channel_group.acq_source:
+            self.source_label.setText(source.metadata())
 
         items = []
         for i, ch in enumerate(group.channels):

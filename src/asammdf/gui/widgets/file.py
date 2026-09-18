@@ -646,8 +646,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if search_name.pattern and not search_name.pattern.search(ch.name):
                         continue
 
-                    if self.mdf.version >= "4.00" and group.channel_group.acq_source:
-                        bus = group.channel_group.acq_source.path or "None"
+                    if source := group.channel_group.acq_source:
+                        bus = source.path or "None"
                     else:
                         bus = "None"
 
@@ -687,8 +687,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 comment = extract_xml_comment(group.channel_group.comment)
 
-                if self.mdf.version >= "4.00" and group.channel_group.acq_source:
-                    source = group.channel_group.acq_source
+                if source := group.channel_group.acq_source:
                     if source.bus_type == BUS_TYPE_CAN:
                         ico = ":/bus_can.png"
                     elif source.bus_type == BUS_TYPE_LIN:
@@ -1434,7 +1433,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             global_vars = "\n".join(line.strip() for line in self.global_variables.splitlines() if line.strip())
 
             if new_global_vars not in global_vars:
-                global_vars += new_global_vars
+                global_vars = f"{global_vars}\n{new_global_vars}"
                 updated_global_vars = True
             else:
                 updated_global_vars = False
@@ -1926,9 +1925,7 @@ MultiRasterSeparator;&
         self.add_window((window_type, signals), **kwargs)
 
     def scramble_thread(self, progress):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("scramble")
         progress.signals.setWindowTitle.emit("Scrambling measurement")
         progress.signals.setLabelText.emit(f'Scrambling "{self.file_name}"')
 
@@ -2041,9 +2038,7 @@ MultiRasterSeparator;&
     def extract_bus_logging_thread(self, file_name, suffix, database_files, version, compression, progress):
         file_name = Path(file_name).with_suffix(suffix)
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("down")
         progress.signals.setWindowTitle.emit("Extract Bus logging")
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
@@ -2226,9 +2221,7 @@ MultiRasterSeparator;&
         add_units,
         progress,
     ):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowIcon.emit("csv")
         progress.signals.setWindowTitle.emit("Extract Bus logging to CSV")
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
@@ -2622,8 +2615,7 @@ MultiRasterSeparator;&
                     else:
                         size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * cycles
 
-                    if group.channel_group.acq_source:
-                        source = group.channel_group.acq_source
+                    if source := group.channel_group.acq_source:
                         if source.bus_type == BUS_TYPE_CAN:
                             ico = ":/bus_can.png"
                         elif source.bus_type == BUS_TYPE_LIN:
@@ -2948,9 +2940,7 @@ MultiRasterSeparator;&
         float_interpolation = self.mdf._mdf._float_interpolation
 
         if needs_filter:
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowIcon.emit("filter")
             progress.signals.setWindowTitle.emit("Filtering measurement")
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
@@ -2973,9 +2963,7 @@ MultiRasterSeparator;&
             mdf = result
 
         if opts.needs_cut:
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowIcon.emit("cut")
             progress.signals.setWindowTitle.emit("Cutting measurement")
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
@@ -3011,9 +2999,7 @@ MultiRasterSeparator;&
                 raster = opts.raster
                 message = f"Resampling to {raster}s raster"
 
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowIcon.emit("resample")
             progress.signals.setWindowTitle.emit("Resampling measurement")
             progress.signals.setLabelText.emit(message)
 
@@ -3038,9 +3024,7 @@ MultiRasterSeparator;&
 
         if output_format == "MDF":
             if mdf is None:
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowIcon.emit("convert")
                 progress.signals.setWindowTitle.emit("Converting measurement")
                 progress.signals.setLabelText.emit(
                     f'Converting "{self.file_name}" from {self.mdf.version} to {version}'
@@ -3064,9 +3048,7 @@ MultiRasterSeparator;&
             mdf = result
 
             # then save it
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowIcon.emit("save")
             progress.signals.setWindowTitle.emit("Saving measurement")
             progress.signals.setLabelText.emit(f'Saving output file "{file_name}"')
 
@@ -3114,9 +3096,7 @@ MultiRasterSeparator;&
                 self.aspects.setCurrentIndex(1)
 
         else:
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowIcon.emit("export")
             progress.signals.setWindowTitle.emit("Export measurement")
             progress.signals.setLabelText.emit(f"Exporting to {output_format} (be patient this might take a while)")
 
