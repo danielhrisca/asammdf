@@ -342,9 +342,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
 
     def extract_bus_logging_thread(self, source_files, database_files, count, compression, version, progress):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        progress.signals.(icon)
+        progress.signals.setWindowIcon.emit("down")
         progress.signals.setWindowTitle.emit("Extract Bus logging from measurements")
         progress.signals.setLabelText.emit(f'Extracting Bus logging from "{count}" files')
 
@@ -722,7 +720,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
-                output_file_name,
+                output_file_name,extract_bus_logging_thread
                 version,
                 source_files,
                 sync,
