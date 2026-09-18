@@ -152,6 +152,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+        file_name = Path(file_name)
         suffix = file_name.suffix.lower()
         cls, cls_kwargs = FILE_CLASSES[suffix]
 
@@ -179,7 +180,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.hide_disabled_channels = hide_disabled_channels
         self.display_cg_name = display_cg_name
 
-        file_name = Path(file_name)
         self.subplots = subplots
         self.subplots_link = subplots_link
         self.ignore_value2text_conversions = ignore_value2text_conversions
