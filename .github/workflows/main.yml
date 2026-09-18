@@ -26,6 +26,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja -y
+
+      - name: Install Visual Studio Build Tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install visualstudio2022-workload-vctools -y
+
       - name: Install packages
         shell: bash
         run: |
@@ -52,6 +60,8 @@ jobs:
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
+        env:
+          CMAKE_GENERATOR: "Ninja"
         run: tox
 
       - uses: actions/upload-artifact@v4
