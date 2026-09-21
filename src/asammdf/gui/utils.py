@@ -308,7 +308,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     ):
         if self.thread is not None and self.thread.isRunning():
             raise RuntimeError("A worker is already running")
-        
+
         self.show()
         self.output = None
         self.error = None
