@@ -24,8 +24,8 @@ python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.10 src/asammdf/blocks/cut
 if (WITH_SYSTEM_DEFLATE)
   find_package(libdeflate REQUIRED)
   find_package(lz4 REQUIRED)
-  find_package(libzstd REQUIRED)
-  target_link_libraries(cutils PRIVATE Python::NumPy libdeflate::libdeflate_shared lz4_shared libzstd_shared)
+  find_package(zstd REQUIRED)
+  target_link_libraries(cutils PRIVATE Python::NumPy libdeflate::libdeflate_shared LZ4::lz4_shared zstd::libzstd_shared)
 else()
   # Add submodule libdeflate
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
