@@ -75,10 +75,12 @@ class TestTabModifyAndExport(TestFileWidget):
             selected_channels.append(item.text(0))
             iterator += 1
             count -= 1
+        self.processEvents()
+
         # Evaluate that channels were added to "selected_filter_channels"
         for index in range(self.widget.selected_filter_channels.topLevelItemCount()):
             item = self.widget.selected_filter_channels.topLevelItem(index)
-            self.assertIn(item.text(), selected_channels)
+            self.assertIn(item.text(0), selected_channels)
 
         self.widget.output_format.setCurrentText("MDF")
 
