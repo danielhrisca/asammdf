@@ -1098,150 +1098,148 @@ class MDF4(MDF_Common[Group]):
                         )
                     )
 
-                    ca_dependencies = []
+                    first_dep = ca_block = ChannelArrayBlock(
+                        address=component_addr,
+                        stream=stream,
+                        mapped=mapped,
+                        cc_map=self._cc_map,
+                        file_limit=self.file_limit,
+                    )
+                    ca_dependencies = [first_dep]
+                    ca_cnt = len(ca_dependencies)
                     byte_offset_factors: list[int] = []
                     bit_pos_inval_factors: list[int] = []
                     dimensions: list[int] = []
                     total_elem = 1
 
-                    if channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
-                        # read CA-CN nested structure
-                        ca_block = ChannelArrayBlock(
-                            address=component_addr,
-                            stream=stream,
-                            mapped=mapped,
-                            cc_map=self._cc_map,
-                            file_limit=self.file_limit,
-                        )
-                        if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                            logger.warning("Only CN template arrays are supported")
-                            break
-
-                        (
-                            ch_cntr,
-                            ret_composition,
-                            ret_composition_dtype,
-                        ) = self._read_channels(
-                            ca_block.composition_addr,
-                            grp,
-                            stream,
-                            dg_cntr,
-                            ch_cntr,
-                            channel,
-                            mapped=mapped,
-                        )
-                        ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
-
-                        channel.dtype_fmt = ret_composition_dtype
-
-                        if ret_composition:
-                            ca_dependencies.extend(ret_composition)
-
-                    else:
-                        while component_addr:
-                            stream.seek(component_addr)
-                            blk_id = stream.read(4)
-                            if blk_id != b"##CA":
-                                logger.warning(f"expected b'##CA' header but found {blk_id}")
-                                break
-
+                    # recurse into CA structure
+                    while ca_block.composition_addr:
+                        stream.seek(ca_block.composition_addr)
+                        blk_id = stream.read(4)
+                        if blk_id == b"##CA":
                             ca_block = ChannelArrayBlock(
-                                address=component_addr,
+                                address=ca_block.composition_addr,
                                 stream=stream,
                                 mapped=mapped,
                                 cc_map=self._cc_map,
                                 file_limit=self.file_limit,
                             )
-                            if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                                logger.warning("Only CN template arrays are supported")
-                                break
-
                             ca_dependencies.append(ca_block)
 
-                            component_addr = ca_block.composition_addr
+                        elif channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
+                            # read CA-CN nested structure
+                            (
+                                ch_cntr,
+                                ret_composition,
+                                ret_composition_dtype,
+                            ) = self._read_channels(
+                                ca_block.composition_addr,
+                                grp,
+                                stream,
+                                dg_cntr,
+                                ch_cntr,
+                                channel,
+                                mapped=mapped,
+                            )
+                            ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
 
-                        dependencies[index] = ca_dependencies or None
+                            channel.dtype_fmt = ret_composition_dtype
 
-                        if self._add_array_components:
-                            for ca_blck in ca_dependencies:
-                                # 1D array with dimensions
-                                for i in range(ca_blck.dims):
-                                    dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
-                                    dimensions.append(dim_size)
-                                    total_elem *= dim_size
+                            if ret_composition:
+                                ca_dependencies.extend(ret_composition)
 
-                                # 1D arrays for byte offset and invalidation bit pos calculations
-                                byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
-                                bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+                            break
 
-                            multipliers = [1] * len(dimensions)
-                            for i in range(len(dimensions) - 2, -1, -1):
-                                multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+                        else:
+                            logger.warning(
+                                "skipping CN block; Nested CA structure should be contained within BYTEARRAY data type"
+                            )
+                            break
 
-                            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                                """Convert 1D index to CA's nD coordinates."""
-                                coords = [0] * len(factors)
-                                for i, factor in enumerate(factors):
-                                    coords[i] = index // factor
-                                    index %= factor
-                                return coords
+                    for ca_blck in ca_dependencies[:ca_cnt]:
+                        # only consider CN templates
+                        if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                            logger.warning("Only CN template arrays are supported")
+                            continue
 
-                            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                                m = re.match(ch_parent_name, ch_name)
-                                n = re.search(r"\[\d+\]", ch_name)
-                                if m:
-                                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                                elif n:
-                                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                        # 1D array with dimensions
+                        for i in range(ca_blck.dims):
+                            dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
+                            dimensions.append(dim_size)
+                            total_elem *= dim_size
+
+                        # 1D arrays for byte offset and invalidation bit pos calculations
+                        byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
+                        bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+
+                    multipliers = [1] * len(dimensions)
+                    for i in range(len(dimensions) - 2, -1, -1):
+                        multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+
+                    def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+                        """Convert 1D index to CA's nD coordinates."""
+                        coords = [0] * len(factors)
+                        for i, factor in enumerate(factors):
+                            coords[i] = index // factor
+                            index %= factor
+                        return coords
+
+                    def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                        coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                        m = re.match(ch_parent_name, ch_name)
+                        n = re.search(r"\[\d+\]", ch_name)
+                        if m:
+                            name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                        elif n:
+                            name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                        else:
+                            name = ch_name + coords
+                        return name
+
+                    ch_len = len(channels)
+                    for elem_id in range(total_elem):
+                        for cn_id in range(index, ch_len):
+                            nd_coords = _get_nd_coords(elem_id, multipliers)
+
+                            # copy composition block
+                            new_block = deepcopy(channels[cn_id])
+
+                            # update byte offset & position of invalidation bit
+                            byte_offset = bit_offset = 0
+                            for coord, byte_factor, bit_factor in zip(
+                                nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
+                            ):
+                                byte_offset += coord * byte_factor
+                                bit_offset += coord * bit_factor
+                            new_block.byte_offset += byte_offset
+                            new_block.pos_invalidation_bit += bit_offset
+
+                            # update channel name
+                            new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+
+                            # append to channel list
+                            channels.append(new_block)
+
+                            # update channel dependencies
+                            if (deps := dependencies[cn_id]) is not None:
+                                cn_deps: list[tuple[int, int]] = []
+                                for dep in deps:
+                                    if not isinstance(dep, ChannelArrayBlock):
+                                        dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
+                                        cn_deps.append(dep_entry)
+                                if deps:
+                                    dependencies.append(cn_deps)
                                 else:
-                                    name = ch_name + coords
-                                return name
+                                    dependencies.append(None)
+                            else:
+                                dependencies.append(None)
 
-                            ch_len = len(channels)
-                            for elem_id in range(total_elem):
-                                for cn_id in range(index, ch_len):
-                                    nd_coords = _get_nd_coords(elem_id, multipliers)
+                            # update channels db
+                            entry = (dg_cntr, ch_cntr)
+                            self.channels_db.add(new_block.name, entry)
+                            ch_cntr += 1
 
-                                    # copy composition block
-                                    new_block = deepcopy(channels[cn_id])
-
-                                    # update byte offset & position of invalidation bit
-                                    byte_offset = bit_offset = 0
-                                    for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
-                                    ):
-                                        byte_offset += coord * byte_factor
-                                        bit_offset += coord * bit_factor
-                                    new_block.byte_offset += byte_offset
-                                    new_block.pos_invalidation_bit += bit_offset
-
-                                    # update channel name
-                                    new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
-
-                                    # append to channel list
-                                    channels.append(new_block)
-
-                                    # update channel dependencies
-                                    if (deps := dependencies[cn_id]) is not None:
-                                        cn_deps: list[tuple[int, int]] = []
-                                        for dep in deps:
-                                            if not isinstance(dep, ChannelArrayBlock):
-                                                dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
-                                                cn_deps.append(dep_entry)
-                                        if deps:
-                                            dependencies.append(cn_deps)
-                                        else:
-                                            dependencies.append(None)
-                                    else:
-                                        dependencies.append(None)
-
-                                    grp.signal_data.append(None)
-
-                                    # update channels db
-                                    entry = (dg_cntr, ch_cntr)
-                                    self.channels_db.add(new_block.name, entry)
-                                    ch_cntr += 1
+                    dependencies[index] = ca_dependencies
 
             else:
                 dependencies.append(None)
