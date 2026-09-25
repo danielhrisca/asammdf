@@ -1104,8 +1104,8 @@ class MDF4(MDF_Common[Group]):
                     dimensions: list[int] = []
                     total_elem = 1
 
-                    if channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
-                        # read CA-CN nested structure
+                    # recurse into CA structure
+                    while component_addr:
                         ca_block = ChannelArrayBlock(
                             address=component_addr,
                             stream=stream,
@@ -1113,57 +1113,48 @@ class MDF4(MDF_Common[Group]):
                             cc_map=self._cc_map,
                             file_limit=self.file_limit,
                         )
-                        if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                            logger.warning("Only CN template arrays are supported")
-                            break
+                        ca_dependencies.append(ca_block)
 
-                        (
-                            ch_cntr,
-                            ret_composition,
-                            ret_composition_dtype,
-                        ) = self._read_channels(
-                            ca_block.composition_addr,
-                            grp,
-                            stream,
-                            dg_cntr,
-                            ch_cntr,
-                            channel,
-                            mapped=mapped,
-                        )
-                        ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
-
-                        channel.dtype_fmt = ret_composition_dtype
-
-                        if ret_composition:
-                            ca_dependencies.extend(ret_composition)
-
-                    else:
-                        while component_addr:
+                        component_addr = ca_block.composition_addr
+                        if component_addr:
                             stream.seek(component_addr)
                             blk_id = stream.read(4)
-                            if blk_id != b"##CA":
-                                logger.warning(f"expected b'##CA' header but found {blk_id}")
-                                break
 
-                            ca_block = ChannelArrayBlock(
-                                address=component_addr,
-                                stream=stream,
-                                mapped=mapped,
-                                cc_map=self._cc_map,
-                                file_limit=self.file_limit,
-                            )
-                            if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                                logger.warning("Only CN template arrays are supported")
-                                break
+                        # Read any CN composition and expand once the CA chain ends.
+                        if not component_addr or blk_id != b"##CA":
+                            if component_addr and channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
+                                # read CA-CN nested structure
+                                (
+                                    ch_cntr,
+                                    ret_composition,
+                                    ret_composition_dtype,
+                                ) = self._read_channels(
+                                    component_addr,
+                                    grp,
+                                    stream,
+                                    dg_cntr,
+                                    ch_cntr,
+                                    channel,
+                                    mapped=mapped,
+                                )
+                                ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
 
-                            ca_dependencies.append(ca_block)
+                                channel.dtype_fmt = ret_composition_dtype
 
-                            component_addr = ca_block.composition_addr
+                                if ret_composition:
+                                    ca_dependencies.extend(ret_composition)
 
-                        dependencies[index] = ca_dependencies or None
+                            elif component_addr:
+                                logger.warning(
+                                    "skipping CN block; Nested CA structure should be contained within BYTEARRAY data type"
+                                )
 
-                        if self._add_array_components:
-                            for ca_blck in ca_dependencies:
+                            for ca_blck in ca_dependencies[:1]:
+                                # only consider CN templates
+                                if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                                    logger.warning("Only CN template arrays are supported")
+                                    continue
+
                                 # 1D array with dimensions
                                 for i in range(ca_blck.dims):
                                     dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
@@ -1236,12 +1227,13 @@ class MDF4(MDF_Common[Group]):
                                     else:
                                         dependencies.append(None)
 
-                                    grp.signal_data.append(None)
-
                                     # update channels db
                                     entry = (dg_cntr, ch_cntr)
                                     self.channels_db.add(new_block.name, entry)
                                     ch_cntr += 1
+
+                            dependencies[index] = ca_dependencies
+                            break
 
             else:
                 dependencies.append(None)
