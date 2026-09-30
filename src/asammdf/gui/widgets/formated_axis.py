@@ -23,6 +23,7 @@ class FormatedAxis(pg.AxisItem):
         self.uuid = kwargs.pop("uuid", None)
         self.background = kwargs.pop("background", fn.mkColor("#000000"))
         self.linked_signal = kwargs.pop("linked_signal", None)
+        self._linkedView = None
 
         super().__init__(*args, **kwargs)
 
@@ -332,8 +333,9 @@ class FormatedAxis(pg.AxisItem):
             axis = "X"
 
         menu = QtWidgets.QMenu()
-        menu.addAction(f"Edit {axis} axis scaling")
-        menu.addSeparator()
+        if self.orientation in ("left", "right"):
+            menu.addAction(f"Edit {axis} axis scaling")
+            menu.addSeparator()
         menu.addAction("Apply new axis limits")
         menu.addSeparator()
 
@@ -375,10 +377,7 @@ class FormatedAxis(pg.AxisItem):
             return
 
         elif action.text() == "Apply new axis limits":
-            if self.orientation in ("left", "right"):
-                self.setRange(lower.value(), upper.value())
-            else:
-                self.setRange(lower.value(), upper.value())
+            self.setRange(lower.value(), upper.value())
 
         elif action.text() == f"Edit {axis} axis scaling":
             self.scale_editor_requested.emit(self.uuid)
@@ -400,8 +399,14 @@ class FormatedAxis(pg.AxisItem):
     def setRange(self, mn, mx):
         if mn > mx:
             mn, mx = mx, mn
+
         super().setRange(mn, mx)
-        self.rangeChanged.emit(self.uuid, (mn, mx))
+
+        lv = self.linkedView()
+        if lv is not None and self.orientation in ("top", "bottom"):
+            lv.setXRange(mn, mx, padding=0)
+        else:
+            self.rangeChanged.emit(self.uuid, (mn, mx))
 
     def wheelEvent(self, event):
         if self.locked:
@@ -478,7 +483,7 @@ class FormatedAxis(pg.AxisItem):
 
             event.accept()
         else:
-            # this is the main Y axis or the X axis
+            # this is the main X axis
             if self.orientation in ("top", "bottom"):
                 super().wheelEvent(event)
             else:
