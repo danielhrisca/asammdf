@@ -1163,7 +1163,7 @@ def value_as_hex(value, dtype):
 
 
 def value_as_str(value, format, dtype=None, precision=3):
-    float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
+    
     if isinstance(value, float):
         kind = "f"
         value = np.float64(value)
@@ -1211,6 +1211,7 @@ def value_as_str(value, format, dtype=None, precision=3):
                     precision = 15
                 string = np.format_float_scientific(value, precision=precision)
             case _:
+                float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
                 string = float_fmt.format(value)
 
     return string
