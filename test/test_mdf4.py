@@ -168,6 +168,29 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
+    def test_row_oriented_array_components(self) -> None:
+        # regression test: element offsets of non-square row oriented arrays
+        # used the wrong stride and could point outside of the record
+        rows, cols = 7, 6
+        expected = (10 * np.arange(rows)[:, None] + np.arange(cols)).astype("<f4")
+        samples = np.zeros(2, dtype=[("matrix", "<f4", (rows, cols))])
+        samples["matrix"] = expected
+
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(samples, timestamps=[0.0, 1.0], name="matrix")])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "array.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            record_size = mdf.groups[0].channel_group.samples_byte_nr
+            for channel in mdf.groups[0].channels:
+                self.assertLessEqual(channel.byte_offset + channel.bit_count // 8, record_size)
+
+            names = [f"matrix[{r}][{c}]" for r in range(rows) for c in range(cols)]
+            signals = mdf.select(names)
+
+        for signal, value in zip(signals, expected.ravel(), strict=True):
+            self.assertTrue(np.array_equal(signal.samples, [value, value]), signal.name)
+
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:
         timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
