@@ -1298,15 +1298,17 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
     else if (record_size < byte_offset + byte_count)
     {
-      delta = byte_offset + byte_count - record_size;
-      actual_byte_count = record_size - byte_offset;
+      // the channel can start at or after the end of the record
+      actual_byte_count = byte_offset < record_size ? record_size - byte_offset : 0;
+      delta = byte_count - actual_byte_count;
 
       count = size / record_size;
 
       out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
       outptr = PyByteArray_AsString(out);
 
-      inptr += byte_offset;
+      if (actual_byte_count)
+        inptr += byte_offset;
 
       for (Py_ssize_t i = 0; i < count; i++)
       {
@@ -1498,13 +1500,15 @@ void * get_channel_raw_bytes_C(void *lpParam)
     if (data->record_size < data->byte_offset + data->byte_count)
     {
       inptr = data->inptr;
-      delta = data->byte_offset + data->byte_count - data->record_size;
-      actual_byte_count = data->record_size - data->byte_offset;
+      // the channel can start at or after the end of the record
+      actual_byte_count = data->byte_offset < data->record_size ? data->record_size - data->byte_offset : 0;
+      delta = data->byte_count - actual_byte_count;
 
       count = data->cycles;
 
       outptr = data->outptr;
-      inptr += data->byte_offset;
+      if (actual_byte_count)
+        inptr += data->byte_offset;
 
       for (Py_ssize_t i = 0; i < count; i++)
       {

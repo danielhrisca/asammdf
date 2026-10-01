@@ -2131,16 +2131,18 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         return self._factors(self.invalidation_bit_base)
 
     def _factors(self, base: int) -> list[int]:
+        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
+            # column oriented layout: the first dimension varies fastest
+            order = range(self.dims)
+        else:
+            # row oriented layout: the last dimension varies fastest
+            order = range(self.dims - 1, -1, -1)
+
+        factors = [0] * self.dims
         factor = base
-        factors = [factor]
-
-        for i in range(1, self.dims):
-            factor *= typing.cast(int, self[f"dim_size_{i - 1}"])
-            factors.append(factor)
-
-        # row oriented layout
-        if not (self.flags & v4c.FLAG_CA_INVERSE_LAYOUT):
-            factors = factors[::-1]
+        for i in order:
+            factors[i] = factor
+            factor *= typing.cast(int, self[f"dim_size_{i}"])
 
         return factors
 
