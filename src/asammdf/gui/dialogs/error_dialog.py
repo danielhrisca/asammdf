@@ -5,6 +5,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ..ui.error_dialog import Ui_ErrorDialog
 
 
+NEVER_SHOW = -1
+
+
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def __init__(self, title, message, trace, *args, **kwargs):
         remote = kwargs.pop("remote", False)
@@ -101,3 +104,13 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         else:
             self.trace.hide()
             self.show_trace_btn.setText("Show error trace")
+
+    def exec(self):
+        if self._timeout == NEVER_SHOW:
+            return QtWidgets.QDialog.DialogCode.Accepted
+        else:
+            return super().exec()
+
+    def show(self):
+        if self._timeout != NEVER_SHOW:
+            return super().show()

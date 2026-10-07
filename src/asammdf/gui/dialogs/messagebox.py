@@ -3,7 +3,8 @@ import os
 from PySide6 import QtCore, QtGui, QtWidgets
 
 DEFAULT_TIMEOUT = int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", "60"))
-
+NEVER_SHOW = -1
+DEFAULT_TIMEOUT = -1
 
 class MessageBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
@@ -102,9 +103,10 @@ This message will be closed in {self.timeout}s
 
         self.setGeometry(rect)
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.tick)
-        self.timer.start(1000)
+        if self.timeout > 0:
+            self.timer = QtCore.QTimer()
+            self.timer.timeout.connect(self.tick)
+            self.timer.start(1000)
 
         for window in QtGui.QGuiApplication.topLevelWindows():
             if hasattr(window, "flags"):
@@ -165,6 +167,16 @@ This message will be closed in {self.timeout}s
                         f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
                         "Abort the countdown - [F1]"
                     )
+
+    def exec(self):
+        if self.timeout == NEVER_SHOW:
+            return QtWidgets.QDialog.DialogCode.Accepted
+        else:
+            return super().exec()
+
+    def show(self):
+        if self.timeout != NEVER_SHOW:
+            return super().show()
 
     @classmethod
     def about(
