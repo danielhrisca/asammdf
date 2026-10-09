@@ -372,33 +372,49 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             QtCore.QTimer.singleShot(50, self.close)
 
     def _on_cancel_requested(self):
-        if self.thread and self.thread.isRunning():
-            self.thread.requestInterruption()
-            self.thread.wait(20000)
+        if self._closing:
+            return
+        self._closing = True
+        try:
+            if self.thread and self.thread.isRunning():
+                self.thread.requestInterruption()
+                self.thread.wait(20000)
+                self.thread = None
 
-        self.reject()
+            self.reject()
+        finally:
+            self._closing = False
+            self.hide()
 
     def closeEvent(self, event):
         if self.thread and self.thread.isRunning():
             self.thread.requestInterruption()
-            self.thread.wait(200)
+            self.thread.wait(20000)
+            self.thread = None
         super().closeEvent(event)
 
     def close(self, reject=False):
-        if self.thread and self.thread.isRunning():
-            self.thread.requestInterruption()
-            self.thread.wait(20000)
+        if self._closing:
+            return
+        self._closing = True
+        try:
+            if self.thread and self.thread.isRunning():
+                self.thread.requestInterruption()
+                self.thread.wait(20000)
+                self.thread = None
 
-        if reject:
-            self.reject()
-        else:
-            self.accept()
-
-        self.hide()
+            if reject:
+                        self.reject()
+                    else:
+                        self.accept()
+        finally:
+            self._closing = False
+            self.hide()
 
     def exec(self):
-        super().exec()
+        result = super().exec()
         self.hide()
+        return result
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
