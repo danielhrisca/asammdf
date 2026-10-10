@@ -6,7 +6,9 @@ import unittest
 import numpy as np
 
 from asammdf import MDF, Signal
+from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
+from asammdf.blocks.utils import get_fmt_v4
 
 CHANNEL_LEN = 100000
 
@@ -190,6 +192,52 @@ class TestMDF4(unittest.TestCase):
 
         for signal, value in zip(signals, expected.ravel(), strict=True):
             self.assertTrue(np.array_equal(signal.samples, [value, value]), signal.name)
+
+    def test_real_channel_wider_than_128_bits(self) -> None:
+        # regression test: some measurement systems store a whole array (here
+        # 100 float32 values) as one REAL channel of 3200 bits without a CA
+        # block. get_fmt_v4 returned "<f400", so the file could not be opened
+        # at all. REAL channels wider than any numpy float type are now read as
+        # raw bytes, like integer channels wider than 64 bits.
+        self.assertEqual(get_fmt_v4(v4c.DATA_TYPE_REAL_INTEL, 128), "<f16")
+        self.assertEqual(get_fmt_v4(v4c.DATA_TYPE_REAL_MOTOROLA, 3200), "(400,)u1")
+
+        payload = (np.arange(3)[:, None] + np.linspace(0, 1, 100)).astype("<f4").view("u1")
+        reference = np.array([1.5, 2.5, 3.5])
+
+        for data_type in (v4c.DATA_TYPE_REAL_INTEL, v4c.DATA_TYPE_REAL_MOTOROLA):
+            with self.subTest(data_type=data_type):
+                with MDF(version="4.10") as mdf:
+                    mdf.append(
+                        [
+                            Signal(payload, timestamps=[0.0, 1.0, 2.0], name="payload"),
+                            Signal(reference, timestamps=[0.0, 1.0, 2.0], name="reference"),
+                        ]
+                    )
+                    outfile = mdf.save(Path(TestMDF4.tempdir.name) / "wide_real.mf4", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    address = mdf.groups[0].channels[1].address
+                    self.assertEqual(mdf.groups[0].channels[1].name, "payload")
+
+                # change cn_data_type from byte array to REAL
+                with open(outfile, "r+b") as stream:
+                    stream.seek(address + 16)
+                    links_nr = int.from_bytes(stream.read(8), "little")
+                    stream.seek(address + 24 + 8 * links_nr + 2)
+                    self.assertEqual(stream.read(1), bytes([v4c.DATA_TYPE_BYTEARRAY]))
+                    stream.seek(-1, 1)
+                    stream.write(bytes([data_type]))
+
+                with MDF(outfile) as mdf:
+                    self.assertEqual(mdf.groups[0].channels[1].data_type, data_type)
+                    self.assertEqual(mdf.groups[0].channels[1].bit_count, 3200)
+                    ret_payload = mdf.get("payload")
+                    ret_reference = mdf.get("reference")
+
+                self.assertTrue(np.array_equal(ret_reference.samples, reference))
+                self.assertEqual(ret_payload.samples.dtype, np.uint8)
+                self.assertTrue(np.array_equal(ret_payload.samples, payload))
 
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:
