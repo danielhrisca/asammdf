@@ -404,9 +404,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
                 self.thread = None
 
             if reject:
-                        self.reject()
-                    else:
-                        self.accept()
+                self.reject()
+            else:
+                self.accept()
         finally:
             self._closing = False
             self.hide()
