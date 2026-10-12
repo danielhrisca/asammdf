@@ -648,6 +648,9 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
             v4c.DATA_TYPE_SIGNED_MOTOROLA,
         ):
             fmt = f"({size // 8},)u1"
+        elif size > 128 and data_type in (v4c.DATA_TYPE_REAL_INTEL, v4c.DATA_TYPE_REAL_MOTOROLA):
+            # wider than any numpy float type, read as raw bytes
+            fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
                 size = 1
