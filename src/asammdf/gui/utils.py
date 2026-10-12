@@ -299,6 +299,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close_on_finish = True
         self.hide_on_finish = False
 
+        self._closing = False
+
         self.setMinimumDuration(0)
 
         self.canceled.connect(self._on_cancel_requested)
