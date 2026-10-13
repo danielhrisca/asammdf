@@ -2114,7 +2114,7 @@ DWORD WINAPI get_channel_raw_bytes_complete_decompress_thread(LPVOID lpParam)
 void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
 #endif
 {
-  Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
+  Py_ssize_t count, byte_count, byte_offset, actual_byte_count, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
   PtrProcessesingBlock thread_info;
   thread_info = (PtrProcessesingBlock) lpParam;
@@ -2440,14 +2440,36 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam)
       byte_offset = thread_info->signals[i].byte_offset;
       byte_count = thread_info->signals[i].byte_count;
 
-      read = data_ptr + byte_offset;
       write = thread_info->signals[i].data + record_offset * byte_count;
 
-      for (Py_ssize_t j = 0; j < cycles; j++)
+      if (record_size < byte_offset + byte_count)
       {
-        memcpy(write, read, byte_count);
-        write += byte_count;
-        read += record_size;
+        // the channel can start at or after the end of the record
+        actual_byte_count = byte_offset < record_size ? record_size - byte_offset : 0;
+        delta = byte_count - actual_byte_count;
+
+        read = data_ptr;
+        if (actual_byte_count)
+          read += byte_offset;
+
+        for (Py_ssize_t j = 0; j < cycles; j++)
+        {
+          memcpy(write, read, actual_byte_count);
+          memset(write + actual_byte_count, 0, delta);
+          write += byte_count;
+          read += record_size;
+        }
+      }
+      else
+      {
+        read = data_ptr + byte_offset;
+
+        for (Py_ssize_t j = 0; j < cycles; j++)
+        {
+          memcpy(write, read, byte_count);
+          write += byte_count;
+          read += record_size;
+        }
       }
     }
 
