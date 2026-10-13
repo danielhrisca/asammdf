@@ -299,11 +299,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close_on_finish = True
         self.hide_on_finish = False
 
-        self._closing = False
-
         self.setMinimumDuration(0)
 
-        self.canceled.connect(self._on_cancel_requested)
+        self.canceled.connect(partial(self.close, reject=True))
 
     def run_thread_with_progress(
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
@@ -330,21 +328,22 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.thread.setMinimum.connect(self.setMinimum)
         self.thread.setMaximum.connect(self.setMaximum)
 
-        self.thread.start()
-
         if wait_here:
-            self.thread.finished.connect(self.accept)
-            self.exec()
-            self.show()
+            loop = QtCore.QEventLoop()
+            self.thread.finished.connect(loop.quit)
+            self.thread.start()
+            loop.exec()
+        else:
+            self.thread.start()
 
         return self.output
-
-    def processEvents(self):
-        pass
 
     @QtCore.Slot(str)
     def setLabelText(self, text):
         super().setLabelText(text)
+
+    def processEvents(self):
+        pass
 
     @QtCore.Slot(object)
     def receive_output(self, output):
@@ -354,84 +353,42 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def receive_error(self, error):
         self.error = error
 
-    def _safe_disconnect(self, signal, slot):
-        try:
-            signal.disconnect(slot)
-        except (RuntimeError, TypeError):
-            # already disconnected or invalid - ignore
-            pass
-
     def thread_complete(self):
-        if self.thread is not None:
-            self._safe_disconnect(self.thread.output, self.receive_output)
-            self._safe_disconnect(self.thread.error, self.receive_error)
-            self._safe_disconnect(self.thread.finished, self.thread_complete)
-            self._safe_disconnect(self.thread.finished, self.accept)
-            self._safe_disconnect(self.thread.setLabelText, self.setLabelText)
-            self._safe_disconnect(self.thread.setWindowTitle, self.setWindowTitle)
-            self._safe_disconnect(self.thread.setWindowIcon, self.setWindowIcon)
-            self._safe_disconnect(self.thread.setValue, self.setValue)
-            self._safe_disconnect(self.thread.setMinimum, self.setMinimum)
-            self._safe_disconnect(self.thread.setMaximum, self.setMaximum)
-
-            # schedule the thread for deletion in the Qt event loop
-            try:
-                self.thread.deleteLater()
-            except Exception:
-                pass
-
-            self.thread = None
-
+        self.processEvents()
         if self.hide_on_finish:
             self.hide()
 
+        self.thread.output.disconnect(self.receive_output)
+        self.thread.finished.disconnect(self.thread_complete)
+        self.thread.error.disconnect(self.receive_error)
+        self.thread.setLabelText.disconnect(self.setLabelText)
+        self.thread.setWindowIcon.disconnect(self.setWindowIcon)
+        self.thread.setWindowTitle.disconnect(self.setWindowTitle)
+        self.thread.setValue.disconnect(self.setValue)
+        self.thread.setMinimum.disconnect(self.setMinimum)
+        self.thread.setMaximum.disconnect(self.setMaximum)
+        self.thread = None
+
         if self.close_on_finish:
-            QtCore.QTimer.singleShot(20, self.close)
-
-    def _on_cancel_requested(self):
-        if self._closing:
-            return
-        self._closing = True
-        try:
-            if self.thread and self.thread.isRunning():
-                self.thread.requestInterruption()
-                self.thread.wait(20000)
-                self.thread = None
-
-            self.reject()
-        finally:
-            self._closing = False
-            self.hide()
-
-    def closeEvent(self, event=None):
-        if self.thread and self.thread.isRunning():
-            self.thread.requestInterruption()
-            self.thread.wait(20000)
-            self.thread = None
-        super().closeEvent(event)
+            QtCore.QTimer.singleShot(50, self.close)
 
     def close(self, reject=False):
-        if self._closing:
-            return
-        self._closing = True
-        try:
-            if self.thread and self.thread.isRunning():
-                self.thread.requestInterruption()
-                self.thread.wait(20000)
-                self.thread = None
+        if self.thread and not self.thread.isFinished():
+            loop = QtCore.QEventLoop()
+            self.thread.finished.connect(loop.quit)
+            self.thread.requestInterruption()
+            loop.exec()
 
-            if reject:
-                self.reject()
-            else:
-                self.accept()
-        finally:
-            self._closing = False
-            self.hide()
+        if reject:
+            self.reject()
+        else:
+            self.accept()
+
+        self.hide()
 
     def exec(self):
-        result = super().exec()
+        super().exec()
         self.hide()
-        return result
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
