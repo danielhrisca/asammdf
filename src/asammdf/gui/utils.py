@@ -333,7 +333,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.thread.start()
 
         if wait_here:
+            self.thread.finished.connect(self.accept)
             self.exec()
+            self.show()
 
         return self.output
 
@@ -352,26 +354,39 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def receive_error(self, error):
         self.error = error
 
+    def _safe_disconnect(self, signal, slot):
+        try:
+            signal.disconnect(slot)
+        except (RuntimeError, TypeError):
+            # already disconnected or invalid - ignore
+            pass
+
     def thread_complete(self):
         if self.thread is not None:
-            self.thread.output.disconnect(self.receive_output)
-            self.thread.error.disconnect(self.receive_error)
-            self.thread.finished.disconnect(self.thread_complete)
-            self.thread.setLabelText.disconnect(self.setLabelText)
-            self.thread.setWindowTitle.disconnect(self.setWindowTitle)
-            self.thread.setWindowIcon.disconnect(self.setWindowIcon)
-            self.thread.setValue.disconnect(self.setValue)
-            self.thread.setMinimum.disconnect(self.setMinimum)
-            self.thread.setMaximum.disconnect(self.setMaximum)
+            self._safe_disconnect(self.thread.output, self.receive_output)
+            self._safe_disconnect(self.thread.error, self.receive_error)
+            self._safe_disconnect(self.thread.finished, self.thread_complete)
+            self._safe_disconnect(self.thread.finished, self.accept)
+            self._safe_disconnect(self.thread.setLabelText, self.setLabelText)
+            self._safe_disconnect(self.thread.setWindowTitle, self.setWindowTitle)
+            self._safe_disconnect(self.thread.setWindowIcon, self.setWindowIcon)
+            self._safe_disconnect(self.thread.setValue, self.setValue)
+            self._safe_disconnect(self.thread.setMinimum, self.setMinimum)
+            self._safe_disconnect(self.thread.setMaximum, self.setMaximum)
 
-            self.thread.deleteLater()
+            # schedule the thread for deletion in the Qt event loop
+            try:
+                self.thread.deleteLater()
+            except Exception:
+                pass
+
             self.thread = None
 
         if self.hide_on_finish:
             self.hide()
 
         if self.close_on_finish:
-            QtCore.QTimer.singleShot(50, self.close)
+            QtCore.QTimer.singleShot(20, self.close)
 
     def _on_cancel_requested(self):
         if self._closing:
@@ -388,7 +403,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self._closing = False
             self.hide()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event=None):
         if self.thread and self.thread.isRunning():
             self.thread.requestInterruption()
             self.thread.wait(20000)
