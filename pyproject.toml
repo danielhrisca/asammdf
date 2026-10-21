@@ -36,7 +36,7 @@ keywords = [
 ]
 dependencies = [
     "chardet>=7.0.0",
-    "canmatrix[arxml,dbc]~=1.2",
+    "canmatrix[arxml,dbc]==1.2",
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "deflate; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
