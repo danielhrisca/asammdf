@@ -1137,6 +1137,8 @@ class MDF4(MDF_Common[Group]):
                         if ret_composition:
                             ca_dependencies.extend(ret_composition)
 
+                        dependencies[index] = ca_dependencies or None
+
                     else:
                         while component_addr:
                             stream.seek(component_addr)
