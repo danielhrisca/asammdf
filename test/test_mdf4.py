@@ -260,6 +260,74 @@ class TestMDF4(unittest.TestCase):
 
         self.assertTrue((record == signal.samples).all())
 
+    def test_save_with_data_block_limit(self) -> None:
+        """Regression for #1298: save must tolerate DataBlockInfo.block_limit.
+
+        When block_limit truncates a data block without shrinking original_size,
+        ``_load_data`` used to assign a short slice into a full-size memoryview
+        and raise ValueError during ``save`` (introduced by 71f03b74).
+        """
+        n = 20_000
+        t = np.arange(n, dtype=np.float64) * 0.001
+        samples = np.sin(t).astype(np.float64)
+        record_size = 16  # time float64 + signal float64
+        keep_cycles = 5_000
+        block_limit = keep_cycles * record_size
+
+        for compression in (0, 1, 2):
+            with self.subTest(compression=compression, invalidation=False):
+                mdf = MDF(version="4.10")
+                mdf.configure(write_fragment_size=64 * 1024)
+                mdf.append([Signal(samples, t, name="x", unit="V")], common_timebase=True)
+
+                info = mdf.groups[0].data_blocks[0]
+                self.assertGreater(info.original_size, block_limit)
+                info.block_limit = block_limit
+                mdf.groups[0].channel_group.cycles_nr = keep_cycles
+
+                outfile = Path(self.tempdir.name) / f"block_limit_{compression}.mf4"
+                mdf.save(outfile, overwrite=True, compression=compression)
+                mdf.close()
+
+                with MDF(outfile) as reopened:
+                    ret = reopened.get("x")
+                self.assertEqual(len(ret.samples), keep_cycles)
+                self.assertTrue(np.allclose(ret.samples, samples[:keep_cycles]))
+
+        # With invalidation bits (inline, non-LD): record grows by invalidation bytes.
+        for compression in (0, 1, 2):
+            with self.subTest(compression=compression, invalidation=True):
+                mdf = MDF(version="4.10")
+                mdf.configure(write_fragment_size=64 * 1024)
+                sig = Signal(samples, t, name="x", unit="V")
+                sig.invalidation_bits = np.zeros(n, dtype=bool)
+                sig.invalidation_bits[::100] = True
+                mdf.append([sig], common_timebase=True)
+
+                gp = mdf.groups[0]
+                samples_byte_nr = gp.channel_group.samples_byte_nr
+                invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
+                self.assertGreater(invalidation_bytes_nr, 0)
+                record_size_inval = samples_byte_nr + invalidation_bytes_nr
+                keep = 5_000
+                limit = keep * record_size_inval
+
+                info = gp.data_blocks[0]
+                self.assertGreater(info.original_size, limit)
+                info.block_limit = limit
+                gp.channel_group.cycles_nr = keep
+
+                outfile = Path(self.tempdir.name) / f"block_limit_inval_{compression}.mf4"
+                mdf.save(outfile, overwrite=True, compression=compression)
+                mdf.close()
+
+                with MDF(outfile) as reopened:
+                    ret = reopened.get("x")
+                # get() drops samples marked invalid; 1-in-100 were flagged above
+                expected = samples[:keep][~sig.invalidation_bits[:keep]]
+                self.assertEqual(len(ret.samples), len(expected))
+                self.assertTrue(np.allclose(ret.samples, expected))
+
 
 if __name__ == "__main__":
     unittest.main()
