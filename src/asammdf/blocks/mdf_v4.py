@@ -1610,20 +1610,22 @@ class MDF4(MDF_Common[Group]):
                         seek(invalidation_info.address)
                         compressed_size = typing.cast(int, invalidation_info.compressed_size)
                         new_invalidation_data = read(compressed_size)
-                        original_size = typing.cast(int, invalidation_info.original_size)
+                        # Keep data ``original_size`` intact; invalidation length is tracked
+                        # separately via ``inv_size`` / ``invalidation_original_size``.
+                        invalidation_original_size = typing.cast(int, invalidation_info.original_size)
 
                         if invalidation_info.block_type:
                             new_invalidation_data = decompress(
-                                new_invalidation_data, invalidation_info.block_type, original_size
+                                new_invalidation_data, invalidation_info.block_type, invalidation_original_size
                             )
 
                             if invalidation_info.block_type % 2 == 0:
                                 # tranposed data
                                 cols = typing.cast(int, param)
-                                lines = original_size // cols
+                                lines = invalidation_original_size // cols
                                 matrix_size = lines * cols
 
-                                if matrix_size != original_size:
+                                if matrix_size != invalidation_original_size:
                                     new_invalidation_data = (
                                         frombuffer(new_invalidation_data[:matrix_size], dtype=uint8)
                                         .reshape((cols, lines))

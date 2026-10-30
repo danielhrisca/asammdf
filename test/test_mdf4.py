@@ -328,6 +328,70 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(len(ret.samples), len(expected))
                 self.assertTrue(np.allclose(ret.samples, expected))
 
+    def test_load_data_ld_separate_invalidation(self) -> None:
+        """LD + separate invalidation must not reuse data original_size.
+
+        When ``uses_ld`` stores invalidation in a separate DI block,
+        ``_load_data`` used to overwrite the data block's ``original_size``
+        with the invalidation block size, so only
+        ``invalidation_bytes_nr * cycles`` bytes of sample data were kept.
+        """
+        n = 20_000
+        t = np.arange(n, dtype=np.float64) * 0.001
+        samples = np.sin(t).astype(np.float64)
+        sig = Signal(samples, t, name="x", unit="V")
+        sig.invalidation_bits = np.zeros(n, dtype=bool)
+        sig.invalidation_bits[::100] = True
+
+        # use_ld_blocks is only honored when opening an existing >=4.20 file
+        seed = Path(self.tempdir.name) / "ld_inval_seed.mf4"
+        with MDF(version="4.20") as mdf:
+            mdf.append(
+                [Signal(samples[:10], t[:10], name="seed")],
+                common_timebase=True,
+            )
+            mdf.save(seed, overwrite=True)
+
+        with MDF(seed, use_ld_blocks=True) as mdf:
+            mdf.configure(write_fragment_size=64 * 1024)
+            mdf.append([sig], common_timebase=True)
+            gp = next(g for g in mdf.groups if any(ch.name == "x" for ch in g.channels))
+            self.assertTrue(gp.uses_ld)
+            self.assertGreater(gp.channel_group.invalidation_bytes_nr, 0)
+            info = gp.data_blocks[0]
+            self.assertIsNotNone(info.invalidation_block)
+            self.assertFalse(info.invalidation_block.all_valid)
+            self.assertNotEqual(info.original_size, info.invalidation_block.original_size)
+
+            frags = list(mdf._mdf._load_data(gp))
+            total_data = sum(len(f.data) for f in frags if f.data is not None)
+            total_inval = sum(len(f.invalidation_data) for f in frags if f.invalidation_data is not None)
+            self.assertEqual(total_data, gp.channel_group.samples_byte_nr * n)
+            self.assertEqual(total_inval, gp.channel_group.invalidation_bytes_nr * n)
+
+            # Content check without going through get() (separate LD read bugs).
+            data = b"".join(bytes(f.data) for f in frags if f.data is not None)
+            recs = np.frombuffer(data, dtype=np.dtype([("t", "<f8"), ("x", "<f8")]))
+            self.assertEqual(len(recs), n)
+            self.assertTrue(np.allclose(recs["x"], samples))
+            self.assertTrue(np.allclose(recs["t"], t))
+
+            # Same path with block_limit truncation on data + invalidation.
+            keep = 5_000
+            info.block_limit = keep * gp.channel_group.samples_byte_nr
+            info.invalidation_block.block_limit = keep * gp.channel_group.invalidation_bytes_nr
+            gp.channel_group.cycles_nr = keep
+
+            frags = list(mdf._mdf._load_data(gp))
+            total_data = sum(len(f.data) for f in frags if f.data is not None)
+            total_inval = sum(len(f.invalidation_data) for f in frags if f.invalidation_data is not None)
+            self.assertEqual(total_data, gp.channel_group.samples_byte_nr * keep)
+            self.assertEqual(total_inval, gp.channel_group.invalidation_bytes_nr * keep)
+            data = b"".join(bytes(f.data) for f in frags if f.data is not None)
+            recs = np.frombuffer(data, dtype=np.dtype([("t", "<f8"), ("x", "<f8")]))
+            self.assertEqual(len(recs), keep)
+            self.assertTrue(np.allclose(recs["x"], samples[:keep]))
+
 
 if __name__ == "__main__":
     unittest.main()
