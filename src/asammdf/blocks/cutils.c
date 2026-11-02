@@ -3107,7 +3107,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       }
       PyTuple_SetItem(ref, 0, signal_info[i].obj);
       if (invalidation_data) {
-        if (cache[signal_info[i].invalidation_bit_position] < 0) {
+        if (signal_info[i].invalidation_bit_position < 0) {
+          Py_INCREF(Py_None);
           PyTuple_SetItem(ref, 1, Py_None);
         }
         else {
@@ -3141,6 +3142,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         }
       }
       else {
+        Py_INCREF(Py_None);
         PyTuple_SetItem(ref, 1, Py_None);
       }
       PyTuple_SetItem(out, i, ref);
