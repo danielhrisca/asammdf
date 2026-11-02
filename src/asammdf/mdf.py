@@ -4567,7 +4567,13 @@ class MDF:
             master_dtype, byte_size, byte_offset, master_bit_offset = typing.cast(
                 tuple[np.dtype[Any], int, int, int], grp.record[master_index]
             )
-            signals = [(byte_offset, byte_size, master_channel.pos_invalidation_bit)]
+            signals = [
+                (
+                    byte_offset, 
+                    byte_size, 
+                    master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                )
+            ]
 
             for ch_index in channel_indexes:
                 channel = grp.channels[ch_index]
@@ -4582,7 +4588,13 @@ class MDF:
                     )
                 else:
                     _, byte_size, byte_offset, _ = info
-                    signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
+                    signals.append(
+                        (
+                            byte_offset, 
+                            byte_size, 
+                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                        )
+                    )
 
             if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
                 file_name = self._mdf._mapped_file.name

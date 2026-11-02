@@ -7330,12 +7330,24 @@ class MDF4(MDF_Common[Group]):
                         channel_dtype, byte_size, byte_offset, bit_offset = info = typing.cast(
                             tuple[np.dtype[Any], int, int, int], grp.record[master_index]
                         )
-                        signals.append((byte_offset, byte_size, master_channel.pos_invalidation_bit))
+                        signals.append(
+                            (
+                                byte_offset, 
+                                byte_size, 
+                                master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                            )
+                        )
                         channels.append(master_channel)
                         info_rec.append(info)
 
                     channel_dtype, byte_size, byte_offset, bit_offset = info = grp.record[ch_nr]
-                    signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
+                    signals.append(
+                        (
+                            byte_offset, 
+                            byte_size, 
+                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                        )
+                    )
                     channels.append(channel)
                     info_rec.append(info)
 
