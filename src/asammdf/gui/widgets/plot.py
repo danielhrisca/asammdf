@@ -4862,9 +4862,11 @@ class PlotGraphics(pg.PlotWidget):
 
             else:
                 self.region_lock = None
-                self.region.setParent(None)
-                self.region.hide()
-                self.region.deleteLater()
+                # Remove the region from the view, but do not delete it: the scene keeps the last
+                # hover event, which references the region's lines, and uses it to start the next
+                # drag. A deleted line there raises "Internal C++ object (Cursor) already deleted".
+                # Python frees the region once that event is replaced.
+                self.viewbox.removeItem(self.region)
                 self.region = None
                 self.range_removed.emit()
 
