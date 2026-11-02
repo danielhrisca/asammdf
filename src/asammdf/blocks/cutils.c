@@ -1398,7 +1398,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
       }
 
       if (one_piece && all_valid) {
-        PyArray_XDECREF((PyArrayObject *)out);
+        Py_DECREF(out);
         out = Py_None;
         Py_INCREF(Py_None);
       }
@@ -1448,7 +1448,7 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
     }
 
     if (all_valid) {
-      PyArray_XDECREF((PyArrayObject *) out);
+      Py_DECREF(out);
       Py_INCREF(Py_None);
       return Py_None;
     }
@@ -3130,6 +3130,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
               if (!inv_array) return NULL;
             }
             else {
+              Py_INCREF(Py_None);
               inv_array = Py_None;
             }
             Py_XDECREF(inv);
@@ -3156,6 +3157,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     }
     free(cache);
 
+    // The output tuples took the signal buffers, the invalidation buffer is still ours.
+    if (invalidation_bytes) {
+      Py_XDECREF(signal_info[signal_count].obj);
+    }
     free(signal_info);
 
     Py_XDECREF(InvalidationArray);
