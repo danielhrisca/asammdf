@@ -6043,9 +6043,13 @@ class MDF4(MDF_Common[Group]):
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
-                    if signal.itemsize != sig_size:
+                    itemsize = signal.itemsize
+                    for dim in signal.shape[1:]:
+                        itemsize *= dim 
+
+                    if itemsize != sig_size:
                         raise MdfException(
-                            f"extend: structure has {signal.itemsize} B/record, expected {sig_size}"
+                            f"extend: signal has {itemsize} B/record, expected {sig_size}"
                         )
 
                     fields.append((signal, sig_size))
@@ -6065,7 +6069,7 @@ class MDF4(MDF_Common[Group]):
 
                     if signal.itemsize != sig_size:
                         raise MdfException(
-                            f"extend: structure has {signal.itemsize} B/record, expected {sig_size}"
+                            f"extend: canopen signal has {signal.itemsize} B/record, expected {sig_size}"
                         )
 
                     fields.append((signal, sig_size))
