@@ -2,6 +2,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -19,6 +20,39 @@ class TestMDF4(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.tempdir = tempfile.TemporaryDirectory()
+
+    def test_invalidation_channel_flags(self) -> None:
+        timestamps = np.arange(5, dtype=np.float64)
+        invalid = np.array([False, True, False, True, False])
+        signals = [
+            Signal(np.arange(5, dtype=np.int16), timestamps, name="masked", invalidation_bits=invalid),
+            Signal(np.arange(5, dtype=np.int16) + 10, timestamps, name="plain"),
+        ]
+        with MDF(version="4.10") as mdf:
+            mdf.append(signals, common_timebase=True)
+            path = mdf.save(Path(self.tempdir.name) / "invalidation_flags.mf4", overwrite=True)
+
+        # Exercise the large-file path without creating a 200 MiB fixture.
+        with (
+            MDF(path) as mdf,
+            patch("asammdf.blocks.mdf_v4.validate_blocks", return_value=True),
+            patch("asammdf.mdf.validate_blocks", return_value=True),
+        ):
+            for expected in signals:
+                for validate in (False, True):
+                    signal = mdf.get(expected.name, raw=True, ignore_invalidation_bits=True)
+                    actual = [
+                        signal.validate() if validate else signal,
+                        mdf.select([expected.name], raw=True, validate=validate)[0],
+                    ]
+                    keep = ~invalid if validate and expected.name == "masked" else slice(None)
+                    for signal in actual:
+                        np.testing.assert_array_equal(signal.samples, expected.samples[keep], strict=True)
+                        np.testing.assert_array_equal(signal.timestamps, timestamps[keep], strict=True)
+                        if validate or expected.name == "plain":
+                            self.assertIsNone(signal.invalidation_bits)
+                        else:
+                            np.testing.assert_array_equal(signal.invalidation_bits, invalid, strict=True)
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)
