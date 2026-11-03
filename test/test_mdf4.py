@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from pathlib import Path
 import tempfile
+import tracemalloc
 import unittest
 from unittest.mock import patch
 
@@ -53,6 +54,37 @@ class TestMDF4(unittest.TestCase):
                             self.assertIsNone(signal.invalidation_bits)
                         else:
                             np.testing.assert_array_equal(signal.invalidation_bits, invalid, strict=True)
+
+    def test_invalidation_buffers_are_released(self) -> None:
+        cycles = 100_000
+        timestamps = np.arange(cycles, dtype=np.float64)
+        some_invalid = np.zeros(cycles, dtype=bool)
+        some_invalid[::2] = True
+        for invalid in (some_invalid, np.zeros(cycles, dtype=bool)):
+            with self.subTest(any_invalid=invalid.any()):
+                self.check_invalidation_buffers_are_released(cycles, timestamps, invalid)
+
+    def check_invalidation_buffers_are_released(self, cycles, timestamps, invalid) -> None:
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(np.arange(cycles, dtype=np.int16), timestamps, name="sig", invalidation_bits=invalid)])
+            path = mdf.save(Path(self.tempdir.name) / "invalidation_buffer.mf4", overwrite=True)
+
+        # Exercise the large-file path without creating a 200 MiB fixture.
+        with (
+            MDF(path) as mdf,
+            patch("asammdf.blocks.mdf_v4.validate_blocks", return_value=True),
+            patch("asammdf.mdf.validate_blocks", return_value=True),
+        ):
+            mdf.get("sig")
+            tracemalloc.start()
+            try:
+                before = tracemalloc.get_traced_memory()[0]
+                for _ in range(10):
+                    mdf.get("sig")
+                grown = tracemalloc.get_traced_memory()[0] - before
+            finally:
+                tracemalloc.stop()
+        self.assertLess(grown, 5 * cycles)
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)

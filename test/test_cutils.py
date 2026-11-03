@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 from pathlib import Path
 import tempfile
+import tracemalloc
 import unittest
 
 from asammdf.blocks import v4_constants as v4c
-from asammdf.blocks.cutils import get_channel_raw_bytes, get_channel_raw_bytes_complete
+from asammdf.blocks.cutils import get_channel_raw_bytes, get_channel_raw_bytes_complete, get_invalidation_bits_array
 from asammdf.blocks.utils import DataBlockInfo
+
+
+class TestGetInvalidationBitsArray(unittest.TestCase):
+    def test_all_valid_array_is_released(self) -> None:
+        cycles = 100_000
+        data = bytes(cycles)
+        tracemalloc.start()
+        try:
+            for _ in range(10):
+                self.assertIsNone(get_invalidation_bits_array(data, 1, 0, cycles, True))
+            grown = tracemalloc.get_traced_memory()[0]
+        finally:
+            tracemalloc.stop()
+        self.assertLess(grown, 5 * cycles)
 
 
 class TestGetChannelRawBytes(unittest.TestCase):
