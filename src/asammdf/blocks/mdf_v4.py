@@ -1941,6 +1941,9 @@ class MDF4(MDF_Common[Group]):
     ) -> Iterator[DataBlockInfo]:
         mapped = mapped or not is_file_like(stream)
 
+        if not total_size:
+            return
+
         if record_size > 4 * 1024 * 1024:
             READ_CHUNK_SIZE = record_size
         elif record_size:
@@ -1950,259 +1953,317 @@ class MDF4(MDF_Common[Group]):
 
         READ_CHUNK_SIZE = min(READ_CHUNK_SIZE, total_size)
 
-        if mapped:
-            if original_address := address:
-                if address + COMMON_SHORT_SIZE > self.file_limit:
-                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+        if original_address := address:
+            if address + COMMON_SHORT_SIZE > self.file_limit:
+                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
+            if mapped:
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
+            else:
+                stream.seek(address)
+                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
-                if address + block_len > self.file_limit:
-                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+            if address + block_len > self.file_limit:
+                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
-                # can be a DataBlock
-                if id_string in (b"##DT", b"##DV"):
-                    size = block_len - 24
-                    if size:
-                        size = min(size, total_size)
+            # can be a DataBlock
+            if id_string in (b"##DT", b"##DV"):
+                size = block_len - 24
+                if size:
+                    size = min(size, total_size)
 
-                        address = address + COMMON_SIZE
+                    address = address + COMMON_SIZE
 
-                        # split the DTBLOCK into chucks of up to 32MB
-                        while True:
-                            if size > READ_CHUNK_SIZE:
-                                total_size -= READ_CHUNK_SIZE
-                                size -= READ_CHUNK_SIZE
+                    # split the DTBLOCK into chucks of up to 32MB
+                    while True:
+                        if size > READ_CHUNK_SIZE:
+                            total_size -= READ_CHUNK_SIZE
+                            size -= READ_CHUNK_SIZE
 
-                                yield DataBlockInfo(
-                                    address=address,
-                                    block_type=v4c.DT_BLOCK,
-                                    original_size=READ_CHUNK_SIZE,
-                                    compressed_size=READ_CHUNK_SIZE,
-                                    param=0,
-                                    block_limit=None,
-                                )
-                                address += READ_CHUNK_SIZE
+                            yield DataBlockInfo(
+                                address=address,
+                                block_type=v4c.DT_BLOCK,
+                                original_size=READ_CHUNK_SIZE,
+                                compressed_size=READ_CHUNK_SIZE,
+                                param=0,
+                                block_limit=None,
+                            )
+                            address += READ_CHUNK_SIZE
+                        else:
+                            if total_size < size:
+                                block_limit = total_size
                             else:
-                                if total_size < size:
-                                    block_limit = total_size
-                                else:
-                                    block_limit = None
+                                block_limit = None
 
-                                yield DataBlockInfo(
-                                    address=address,
-                                    block_type=v4c.DT_BLOCK,
-                                    original_size=size,
-                                    compressed_size=size,
-                                    param=0,
-                                    block_limit=block_limit,
-                                )
-                                break
+                            yield DataBlockInfo(
+                                address=address,
+                                block_type=v4c.DT_BLOCK,
+                                original_size=size,
+                                compressed_size=size,
+                                param=0,
+                                block_limit=block_limit,
+                            )
+                            break
 
-                # or a DataZippedBlock
-                elif id_string == b"##DZ":
+            # or a DataZippedBlock
+            elif id_string == b"##DZ":
+                if mapped:
                     (
                         zip_type,
                         param,
                         original_size,
                         zip_size,
                     ) = v4c.DZ_COMMON_INFO_uf(stream, address + v4c.DZ_INFO_COMMON_OFFSET)
+                else:
+                    stream.seek(address + v4c.DZ_INFO_COMMON_OFFSET)
+                    (
+                        zip_type,
+                        param,
+                        original_size,
+                        zip_size,
+                    ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
-                    if original_size:
-                        block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+                if original_size:
+                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
 
-                        if total_size < original_size:
-                            block_limit = total_size
-                        else:
-                            block_limit = None
+                    if total_size < original_size:
+                        block_limit = total_size
+                        total_size = 0
+                    else:
+                        block_limit = None
                         total_size -= original_size
 
-                        yield DataBlockInfo(
-                            address=address + v4c.DZ_COMMON_SIZE,
-                            block_type=block_type_,
-                            original_size=original_size,
-                            compressed_size=zip_size,
-                            param=param,
-                            block_limit=block_limit,
-                        )
+                    yield DataBlockInfo(
+                        address=address + v4c.DZ_COMMON_SIZE,
+                        block_type=block_type_,
+                        original_size=original_size,
+                        compressed_size=zip_size,
+                        param=param,
+                        block_limit=block_limit,
+                    )
 
-                # or a DataList
-                elif id_string == b"##DL":
-                    while address:
-                        dl = DataList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
-                        for i in range(dl.data_block_nr):
-                            original_address = addr = getattr(dl, f"data_block_addr{i}")
+            # or a DataList
+            elif id_string == b"##DL":
+                while address:
+                    dl = DataList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
+                    for i in range(dl.data_block_nr):
+                        if total_size <= 0:
+                            return
 
-                            if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                        original_address = addr = getattr(dl, f"data_block_addr{i}")
 
+                        if original_address + COMMON_SHORT_SIZE > self.file_limit:
+                            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+
+                        if mapped:
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
+                        else:
+                            stream.seek(addr)
+                            id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
-                            if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                        if original_address + block_len > self.file_limit:
+                            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
-                            # can be a DataBlock
-                            if id_string != b"##DZ":
-                                size = block_len - 24
-                                if size:
-                                    size = min(size, total_size)
+                        # can be a DataBlock
+                        if id_string != b"##DZ":
+                            size = block_len - 24
+                            if size:
+                                size = min(size, total_size)
 
-                                    addr += COMMON_SIZE
+                                addr += COMMON_SIZE
 
-                                    # split the DTBLOCK into chucks of up to 32MB
-                                    while True:
-                                        if size > READ_CHUNK_SIZE:
-                                            total_size -= READ_CHUNK_SIZE
-                                            size -= READ_CHUNK_SIZE
+                                # split the DTBLOCK into chucks of up to 32MB
+                                while True:
+                                    if size > READ_CHUNK_SIZE:
+                                        total_size -= READ_CHUNK_SIZE
+                                        size -= READ_CHUNK_SIZE
 
-                                            yield DataBlockInfo(
-                                                address=addr,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=READ_CHUNK_SIZE,
-                                                compressed_size=READ_CHUNK_SIZE,
-                                                param=0,
-                                                block_limit=None,
-                                            )
-                                            addr += READ_CHUNK_SIZE
-                                        else:
-                                            if total_size < size:
-                                                block_limit = total_size
-                                            else:
-                                                block_limit = None
+                                        yield DataBlockInfo(
+                                            address=addr,
+                                            block_type=v4c.DT_BLOCK,
+                                            original_size=READ_CHUNK_SIZE,
+                                            compressed_size=READ_CHUNK_SIZE,
+                                            param=0,
+                                            block_limit=None,
+                                        )
+                                        addr += READ_CHUNK_SIZE
+                                    else:
+                                        # no need to set a block limit since this is already handeld
+                                        # by size = min(size, total_size)
 
-                                            total_size -= size
+                                        total_size -= size
 
-                                            yield DataBlockInfo(
-                                                address=addr,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=size,
-                                                compressed_size=size,
-                                                param=0,
-                                                block_limit=block_limit,
-                                            )
-                                            break
+                                        yield DataBlockInfo(
+                                            address=addr,
+                                            block_type=v4c.DT_BLOCK,
+                                            original_size=size,
+                                            compressed_size=size,
+                                            param=0,
+                                            block_limit=None,
+                                        )
+                                        break
 
-                            # or a DataZippedBlock
+                        # or a DataZippedBlock
+                        else:
+                            if mapped:
+                                (
+                                    zip_type,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
                             else:
+                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
                                 (
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
+                                
+                            if original_size:
+                                block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
 
-                                if original_size:
-                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-
-                                    if total_size < original_size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
+                                if total_size < original_size:
+                                    block_limit = total_size
+                                    total_size = 0
+                                else:
+                                    block_limit = None
                                     total_size -= original_size
-                                    yield DataBlockInfo(
-                                        address=addr + v4c.DZ_COMMON_SIZE,
-                                        block_type=block_type_,
-                                        original_size=original_size,
-                                        compressed_size=zip_size,
-                                        param=param,
-                                        block_limit=block_limit,
-                                    )
-                        address = dl.next_dl_addr
 
-                # or a ListData
-                elif id_string == b"##LD":
-                    uses_ld = True
-                    while address:
-                        ld = ListData(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
-                        has_invalidation = ld.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
-                        for i in range(ld.data_block_nr):
-                            original_address = addr = getattr(ld, f"data_block_addr_{i}")
+                                yield DataBlockInfo(
+                                    address=addr + v4c.DZ_COMMON_SIZE,
+                                    block_type=block_type_,
+                                    original_size=original_size,
+                                    compressed_size=zip_size,
+                                    param=param,
+                                    block_limit=block_limit,
+                                )
 
-                            if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+                    address = dl.next_dl_addr
 
+            # or a ListData
+            elif id_string == b"##LD":
+                uses_ld = True
+                while address:
+                    ld = ListData(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
+                    has_invalidation = ld.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
+                    for i in range(ld.data_block_nr):
+                        if total_size <= 0:
+                            return 
+
+                        original_address = addr = getattr(ld, f"data_block_addr_{i}")
+
+                        if original_address + COMMON_SHORT_SIZE > self.file_limit:
+                            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
+
+                        if mapped:
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
+                        else:
+                            stream.seek(addr)
+                            id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+                            
+                        if original_address + block_len > self.file_limit:
+                            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
-                            if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                            # can be a DataBlock
-                            if id_string == b"##DV":
-                                size = block_len - 24
-                                if size:
-                                    if total_size < size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
+                        # can be a DataBlock
+                        if id_string == b"##DV":
+                            size = block_len - 24
+                            if size:
+                                if total_size < size:
+                                    block_limit = total_size
+                                    total_size = 0
+                                else:
+                                    block_limit = None
                                     total_size -= size
-                                    data_info = DataBlockInfo(
-                                        address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=size,
-                                        compressed_size=size,
-                                        param=0,
-                                        block_limit=block_limit,
-                                    )
 
-                            # or a DataZippedBlock
-                            elif id_string == b"##DZ":
+                                data_info = DataBlockInfo(
+                                    address=addr + COMMON_SIZE,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=size,
+                                    compressed_size=size,
+                                    param=0,
+                                    block_limit=block_limit,
+                                )
+
+                        # or a DataZippedBlock
+                        elif id_string == b"##DZ":
+                            if mapped:
                                 (
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
                                 ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
+                            else:
+                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                (
+                                    zip_type,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
+                                
+                            if original_size:
+                                block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
 
-                                if original_size:
-                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-
-                                    if total_size < original_size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-
+                                if total_size < original_size:
+                                    block_limit = total_size
+                                    total_size = 0
+                                else:
+                                    block_limit = None
                                     total_size -= original_size
-                                    data_info = DataBlockInfo(
-                                        address=addr + v4c.DZ_COMMON_SIZE,
-                                        block_type=block_type_,
-                                        original_size=original_size,
-                                        compressed_size=zip_size,
-                                        param=param,
-                                        block_limit=block_limit,
+
+                                data_info = DataBlockInfo(
+                                    address=addr + v4c.DZ_COMMON_SIZE,
+                                    block_type=block_type_,
+                                    original_size=original_size,
+                                    compressed_size=zip_size,
+                                    param=param,
+                                    block_limit=block_limit,
+                                )
+                        else:
+                            return
+
+                        if has_invalidation:
+                            inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
+                            if original_address := inval_addr:
+                                if original_address + COMMON_SHORT_SIZE > self.file_limit:
+                                    return handle_incomplete_block(
+                                        original_address, self.file_limit, self.original_name
                                     )
 
-                            if has_invalidation:
-                                inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
-                                if original_address := inval_addr:
-                                    if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(
-                                            original_address, self.file_limit, self.original_name
-                                        )
-
+                                if mapped:
                                     id_string, block_len = COMMON_SHORT_uf(stream, inval_addr)
+                                else:
+                                    stream.seek(inval_addr)
+                                    id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+                                    
+                                if original_address + block_len > self.file_limit:
+                                    return handle_incomplete_block(
+                                        original_address, self.file_limit, self.original_name
+                                    )
 
-                                    if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(
-                                            original_address, self.file_limit, self.original_name
-                                        )
-
-                                    if id_string == b"##DI":
-                                        size = block_len - 24
-                                        if size:
-                                            if inval_total_size < size:
-                                                block_limit = inval_total_size
-                                            else:
-                                                block_limit = None
+                                if id_string == b"##DI":
+                                    size = block_len - 24
+                                    if size:
+                                        if inval_total_size < size:
+                                            block_limit = inval_total_size
+                                            inval_total_size = 0
+                                        else:
+                                            block_limit = None
                                             inval_total_size -= size
-                                            data_info.invalidation_block = InvalidationBlockInfo(
-                                                address=inval_addr + COMMON_SIZE,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=size,
-                                                compressed_size=size,
-                                                param=0,
-                                                block_limit=block_limit,
-                                            )
-                                    else:
+
+                                        data_info.invalidation_block = InvalidationBlockInfo(
+                                            address=inval_addr + COMMON_SIZE,
+                                            block_type=v4c.DT_BLOCK,
+                                            original_size=size,
+                                            compressed_size=size,
+                                            param=0,
+                                            block_limit=block_limit,
+                                        )
+                                else:
+                                    if mapped:
                                         (
                                             zip_type,
                                             param,
@@ -2212,304 +2273,6 @@ class MDF4(MDF_Common[Group]):
                                             stream,
                                             inval_addr + v4c.DZ_INFO_COMMON_OFFSET,
                                         )
-
-                                        if original_size:
-                                            block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-
-                                            if inval_total_size < original_size:
-                                                block_limit = inval_total_size
-                                            else:
-                                                block_limit = None
-                                            inval_total_size -= original_size
-                                            data_info.invalidation_block = InvalidationBlockInfo(
-                                                address=inval_addr + v4c.DZ_COMMON_SIZE,
-                                                block_type=block_type_,
-                                                original_size=original_size,
-                                                compressed_size=zip_size,
-                                                param=param,
-                                                block_limit=block_limit,
-                                            )
-                                else:
-                                    data_info.invalidation_block = InvalidationBlockInfo(
-                                        address=0,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=None,
-                                        compressed_size=None,
-                                        param=None,
-                                        all_valid=True,
-                                    )
-
-                            yield data_info
-
-                        address = ld.next_ld_addr
-
-                # or a header list
-                elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
-                    address = hl.first_dl_addr
-
-                    yield from self._get_data_blocks_info(
-                        address,
-                        stream,
-                        mapped,
-                        total_size,
-                        inval_total_size,
-                        record_size,
-                    )
-        else:
-            if original_address := address:
-                if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                stream.seek(address)
-                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
-
-                if original_address + block_len > self.file_limit:
-                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                # can be a DataBlock
-                if id_string in (b"##DT", b"##DV"):
-                    size = block_len - 24
-                    if size:
-                        size = min(size, total_size)
-                        address = address + COMMON_SIZE
-
-                        # split the DTBLOCK into chucks of up to 32MB
-                        while True:
-                            if size > READ_CHUNK_SIZE:
-                                total_size -= READ_CHUNK_SIZE
-                                size -= READ_CHUNK_SIZE
-
-                                yield DataBlockInfo(
-                                    address=address,
-                                    block_type=v4c.DT_BLOCK,
-                                    original_size=READ_CHUNK_SIZE,
-                                    compressed_size=READ_CHUNK_SIZE,
-                                    param=0,
-                                    block_limit=None,
-                                )
-                                address += READ_CHUNK_SIZE
-                            else:
-                                if total_size < size:
-                                    block_limit = total_size
-                                else:
-                                    block_limit = None
-
-                                yield DataBlockInfo(
-                                    address=address,
-                                    block_type=v4c.DT_BLOCK,
-                                    original_size=size,
-                                    compressed_size=size,
-                                    param=0,
-                                    block_limit=block_limit,
-                                )
-                                break
-
-                # or a DataZippedBlock
-                elif id_string == b"##DZ":
-                    stream.seek(address + v4c.DZ_INFO_COMMON_OFFSET)
-                    (
-                        zip_type,
-                        param,
-                        original_size,
-                        zip_size,
-                    ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
-
-                    if original_size:
-                        block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-
-                        if total_size < original_size:
-                            block_limit = total_size
-                        else:
-                            block_limit = None
-                        total_size -= original_size
-                        yield DataBlockInfo(
-                            address=address + v4c.DZ_COMMON_SIZE,
-                            block_type=block_type_,
-                            original_size=original_size,
-                            compressed_size=zip_size,
-                            param=param,
-                            block_limit=block_limit,
-                        )
-
-                # or a DataList
-                elif id_string == b"##DL":
-                    while address:
-                        dl = DataList(address=address, stream=stream, file_limit=self.file_limit)
-                        for i in range(dl.data_block_nr):
-                            original_address = addr = getattr(dl, f"data_block_addr{i}")
-
-                            if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                            stream.seek(addr)
-                            id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
-
-                            if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                            # can be a DataBlock
-                            if id_string != b"##DZ":
-                                size = block_len - 24
-                                if size:
-                                    size = min(size, total_size)
-                                    addr = addr + COMMON_SIZE
-
-                                    # split the DTBLOCK into chucks of up to 32MB
-                                    while True:
-                                        if size > READ_CHUNK_SIZE:
-                                            total_size -= READ_CHUNK_SIZE
-                                            size -= READ_CHUNK_SIZE
-
-                                            yield DataBlockInfo(
-                                                address=addr,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=READ_CHUNK_SIZE,
-                                                compressed_size=READ_CHUNK_SIZE,
-                                                param=0,
-                                                block_limit=None,
-                                            )
-                                            addr += READ_CHUNK_SIZE
-                                        else:
-                                            if total_size < size:
-                                                block_limit = total_size
-                                            else:
-                                                block_limit = None
-
-                                            total_size -= size
-
-                                            yield DataBlockInfo(
-                                                address=addr,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=size,
-                                                compressed_size=size,
-                                                param=0,
-                                                block_limit=block_limit,
-                                            )
-                                            break
-
-                            # or a DataZippedBlock
-                            else:
-                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
-                                (
-                                    zip_type,
-                                    param,
-                                    original_size,
-                                    zip_size,
-                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
-
-                                if original_size:
-                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-                                    if total_size < original_size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-                                    total_size -= original_size
-                                    yield DataBlockInfo(
-                                        address=addr + v4c.DZ_COMMON_SIZE,
-                                        block_type=block_type_,
-                                        original_size=original_size,
-                                        compressed_size=zip_size,
-                                        param=param,
-                                        block_limit=block_limit,
-                                    )
-
-                        address = dl.next_dl_addr
-
-                # or a DataList
-                elif id_string == b"##LD":
-                    uses_ld = True
-                    while address:
-                        ld = ListData(address=address, stream=stream, file_limit=self.file_limit)
-                        has_invalidation = ld.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
-                        for i in range(ld.data_block_nr):
-                            original_address = addr = getattr(ld, f"data_block_addr{i}")
-
-                            if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                            stream.seek(addr)
-                            id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
-
-                            if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
-
-                            # can be a DataBlock
-                            if id_string == b"##DV":
-                                size = block_len - 24
-                                if size:
-                                    if total_size < size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-                                    total_size -= size
-                                    data_info = DataBlockInfo(
-                                        address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=size,
-                                        compressed_size=size,
-                                        param=0,
-                                        block_limit=block_limit,
-                                    )
-
-                            # or a DataZippedBlock
-                            elif id_string == b"##DZ":
-                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
-                                (
-                                    zip_type,
-                                    param,
-                                    original_size,
-                                    zip_size,
-                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
-
-                                if original_size:
-                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-                                    if total_size < original_size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-                                    total_size -= original_size
-                                    data_info = DataBlockInfo(
-                                        address=addr + v4c.DZ_COMMON_SIZE,
-                                        block_type=block_type_,
-                                        original_size=original_size,
-                                        compressed_size=zip_size,
-                                        param=param,
-                                        block_limit=block_limit,
-                                    )
-
-                            if has_invalidation:
-                                inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
-                                if original_address := inval_addr:
-                                    if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(
-                                            original_address, self.file_limit, self.original_name
-                                        )
-
-                                    stream.seek(inval_addr)
-                                    id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
-
-                                    if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(
-                                            original_address, self.file_limit, self.original_name
-                                        )
-
-                                    if id_string == b"##DI":
-                                        size = block_len - 24
-                                        if size:
-                                            if inval_total_size < size:
-                                                block_limit = inval_total_size
-                                            else:
-                                                block_limit = None
-                                            inval_total_size -= size
-                                            data_info.invalidation_block = InvalidationBlockInfo(
-                                                address=inval_addr + COMMON_SIZE,
-                                                block_type=v4c.DT_BLOCK,
-                                                original_size=size,
-                                                compressed_size=size,
-                                                param=0,
-                                                block_limit=block_limit,
-                                            )
                                     else:
                                         stream.seek(inval_addr + v4c.DZ_INFO_COMMON_OFFSET)
                                         (
@@ -2518,48 +2281,52 @@ class MDF4(MDF_Common[Group]):
                                             original_size,
                                             zip_size,
                                         ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
+                                        
+                                    if original_size:
+                                        block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
 
-                                        if original_size:
-                                            block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
-                                            if inval_total_size < original_size:
-                                                block_limit = inval_total_size
-                                            else:
-                                                block_limit = None
+                                        if inval_total_size < original_size:
+                                            block_limit = inval_total_size
+                                            inval_total_size = 0
+                                        else:
+                                            block_limit = None
                                             inval_total_size -= original_size
-                                            data_info.invalidation_block = InvalidationBlockInfo(
-                                                address=inval_addr + v4c.DZ_COMMON_SIZE,
-                                                block_type=block_type_,
-                                                original_size=original_size,
-                                                compressed_size=zip_size,
-                                                param=param,
-                                                block_limit=block_limit,
-                                            )
-                                else:
-                                    data_info.invalidation_block = InvalidationBlockInfo(
-                                        address=0,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=0,
-                                        compressed_size=0,
-                                        param=0,
-                                        all_valid=True,
-                                    )
+                                            
+                                        data_info.invalidation_block = InvalidationBlockInfo(
+                                            address=inval_addr + v4c.DZ_COMMON_SIZE,
+                                            block_type=block_type_,
+                                            original_size=original_size,
+                                            compressed_size=zip_size,
+                                            param=param,
+                                            block_limit=block_limit,
+                                        )
+                            else:
+                                data_info.invalidation_block = InvalidationBlockInfo(
+                                    address=0,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=None,
+                                    compressed_size=None,
+                                    param=None,
+                                    all_valid=True,
+                                )
 
-                            yield data_info
-                        address = ld.next_ld_addr
+                        yield data_info
 
-                # or a header list
-                elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream, file_limit=self.file_limit)
-                    address = hl.first_dl_addr
+                    address = ld.next_ld_addr
 
-                    yield from self._get_data_blocks_info(
-                        address,
-                        stream,
-                        mapped,
-                        total_size,
-                        inval_total_size,
-                        record_size,
-                    )
+            # or a header list
+            elif id_string == b"##HL":
+                hl = HeaderList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
+                address = hl.first_dl_addr
+
+                yield from self._get_data_blocks_info(
+                    address,
+                    stream,
+                    mapped,
+                    total_size,
+                    inval_total_size,
+                    record_size,
+                )
 
     def _get_signal_data_blocks_info(
         self,
