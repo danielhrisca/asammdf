@@ -6043,6 +6043,11 @@ class MDF4(MDF_Common[Group]):
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
+                    if signal.itemsize != sig_size:
+                        raise MdfException(
+                            f"extend: structure has {signal.itemsize} B/record, expected {sig_size}"
+                        )
+
                     fields.append((signal, sig_size))
 
                 case v4c.SIGNAL_TYPE_CANOPEN:
@@ -6052,19 +6057,27 @@ class MDF4(MDF_Common[Group]):
                         if not signal.flags["C_CONTIGUOUS"]:
                             signal = np.ascontiguousarray(signal)
 
-                        fields.append((signal, sig_size))
-
                     else:
                         arrays: list[Any] = []
                         for field in ("ms", "min", "hour", "day", "month", "year"):
                             arrays.append(signal[field])
-                        vals = np.rec.fromarrays(arrays).tobytes()
+                        signal = np.rec.fromarrays(arrays).tobytes()
 
-                        fields.append((vals, sig_size))
+                    if signal.itemsize != sig_size:
+                        raise MdfException(
+                            f"extend: structure has {signal.itemsize} B/record, expected {sig_size}"
+                        )
+
+                    fields.append((signal, sig_size))
 
                 case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
+
+                    if signal.itemsize != sig_size:
+                        raise MdfException(
+                            f"extend: structure has {signal.itemsize} B/record, expected {sig_size}"
+                        )
 
                     fields.append((signal, sig_size))
 
@@ -6207,6 +6220,11 @@ class MDF4(MDF_Common[Group]):
         addr = stream.tell()
 
         record_size = gp.channel_group.samples_byte_nr + gp.channel_group.invalidation_bytes_nr
+
+        if size % record_size:
+            raise MdfException(
+                f"extend new data size mismatch: group {index=} has {record_size=}, but new data has {size=}"
+            )
 
         if size:
             if not self._use_ld_blocks:
@@ -8194,7 +8212,9 @@ class MDF4(MDF_Common[Group]):
             record_size = channel_group.samples_byte_nr
             record_size += channel_group.invalidation_bytes_nr
 
-            ch_dtype = np.min_scalar_type(channel_group.cycles_nr)
+            # fixed; identical across all files in a session
+            # prevents size mismatch in concatenate
+            ch_dtype = np.dtype("<u4")  
             channel.dtype_fmt = ch_dtype
 
             count = 0
