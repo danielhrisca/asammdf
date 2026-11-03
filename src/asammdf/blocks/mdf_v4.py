@@ -1595,6 +1595,7 @@ class MDF4(MDF_Common[Group]):
 
                 if block_limit is not None:
                     new_data = new_data[:block_limit]
+                    original_size = len(new_data)
 
                 if len(new_data) > split_size - cur_size:
                     new_data = memoryview(new_data)
@@ -1611,20 +1612,22 @@ class MDF4(MDF_Common[Group]):
                         seek(invalidation_info.address)
                         compressed_size = typing.cast(int, invalidation_info.compressed_size)
                         new_invalidation_data = read(compressed_size)
-                        original_size = typing.cast(int, invalidation_info.original_size)
+                        # Keep data ``original_size`` intact; invalidation length is tracked
+                        # separately via ``inv_size`` / ``invalidation_original_size``.
+                        invalidation_original_size = typing.cast(int, invalidation_info.original_size)
 
                         if invalidation_info.block_type:
                             new_invalidation_data = decompress(
-                                new_invalidation_data, invalidation_info.block_type, original_size
+                                new_invalidation_data, invalidation_info.block_type, invalidation_original_size
                             )
 
                             if invalidation_info.block_type % 2 == 0:
                                 # tranposed data
                                 cols = typing.cast(int, param)
-                                lines = original_size // cols
+                                lines = invalidation_original_size // cols
                                 matrix_size = lines * cols
 
-                                if matrix_size != original_size:
+                                if matrix_size != invalidation_original_size:
                                     new_invalidation_data = (
                                         frombuffer(new_invalidation_data[:matrix_size], dtype=uint8)
                                         .reshape((cols, lines))
@@ -1659,8 +1662,9 @@ class MDF4(MDF_Common[Group]):
 
                 while original_size >= split_size - cur_size:
                     if cur_size:
-                        buffer_view[cur_size:] = new_data[: split_size - cur_size]
-                        new_data = new_data[split_size - cur_size :]
+                        take = split_size - cur_size
+                        buffer_view[cur_size : cur_size + take] = new_data[:take]
+                        new_data = new_data[take:]
 
                         if rm and invalidation_size:
                             invalidation_data.append(
@@ -1701,7 +1705,7 @@ class MDF4(MDF_Common[Group]):
                             has_yielded = True
 
                     else:
-                        buffer_view[:] = new_data[:split_size]
+                        buffer_view[:split_size] = new_data[:split_size]
                         new_data = new_data[split_size:]
                         if rm and invalidation_size:
                             invalidation_data_ = new_invalidation_data[:invalidation_split_size]
@@ -1754,7 +1758,7 @@ class MDF4(MDF_Common[Group]):
                     break
 
                 if original_size > 0:
-                    buffer_view[cur_size : cur_size + original_size] = new_data
+                    buffer_view[cur_size : cur_size + original_size] = new_data[:original_size]
                     cur_size += original_size
 
                     if rm and invalidation_size:
@@ -2015,7 +2019,10 @@ class MDF4(MDF_Common[Group]):
                             block_limit = total_size
                         else:
                             block_limit = None
-                        total_size -= original_size
+                        if block_limit is None:
+                            total_size -= original_size
+                        else:
+                            total_size = 0
 
                         yield DataBlockInfo(
                             address=address + v4c.DZ_COMMON_SIZE,
@@ -2070,7 +2077,10 @@ class MDF4(MDF_Common[Group]):
                                             else:
                                                 block_limit = None
 
-                                            total_size -= size
+                                            if block_limit is None:
+                                                total_size -= size
+                                            else:
+                                                total_size = 0
 
                                             yield DataBlockInfo(
                                                 address=addr,
@@ -2098,7 +2108,10 @@ class MDF4(MDF_Common[Group]):
                                         block_limit = total_size
                                     else:
                                         block_limit = None
-                                    total_size -= original_size
+                                    if block_limit is None:
+                                        total_size -= original_size
+                                    else:
+                                        total_size = 0
                                     yield DataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
                                         block_type=block_type_,
@@ -2134,7 +2147,10 @@ class MDF4(MDF_Common[Group]):
                                         block_limit = total_size
                                     else:
                                         block_limit = None
-                                    total_size -= size
+                                    if block_limit is None:
+                                        total_size -= size
+                                    else:
+                                        total_size = 0
                                     data_info = DataBlockInfo(
                                         address=addr + COMMON_SIZE,
                                         block_type=v4c.DT_BLOCK,
@@ -2161,7 +2177,10 @@ class MDF4(MDF_Common[Group]):
                                     else:
                                         block_limit = None
 
-                                    total_size -= original_size
+                                    if block_limit is None:
+                                        total_size -= original_size
+                                    else:
+                                        total_size = 0
                                     data_info = DataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
                                         block_type=block_type_,
@@ -2193,7 +2212,10 @@ class MDF4(MDF_Common[Group]):
                                                 block_limit = inval_total_size
                                             else:
                                                 block_limit = None
-                                            inval_total_size -= size
+                                            if block_limit is None:
+                                                inval_total_size -= size
+                                            else:
+                                                inval_total_size = 0
                                             data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
@@ -2220,7 +2242,10 @@ class MDF4(MDF_Common[Group]):
                                                 block_limit = inval_total_size
                                             else:
                                                 block_limit = None
-                                            inval_total_size -= original_size
+                                            if block_limit is None:
+                                                inval_total_size -= original_size
+                                            else:
+                                                inval_total_size = 0
                                             data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
@@ -2322,7 +2347,10 @@ class MDF4(MDF_Common[Group]):
                             block_limit = total_size
                         else:
                             block_limit = None
-                        total_size -= original_size
+                        if block_limit is None:
+                            total_size -= original_size
+                        else:
+                            total_size = 0
                         yield DataBlockInfo(
                             address=address + v4c.DZ_COMMON_SIZE,
                             block_type=block_type_,
@@ -2375,7 +2403,10 @@ class MDF4(MDF_Common[Group]):
                                             else:
                                                 block_limit = None
 
-                                            total_size -= size
+                                            if block_limit is None:
+                                                total_size -= size
+                                            else:
+                                                total_size = 0
 
                                             yield DataBlockInfo(
                                                 address=addr,
@@ -2403,7 +2434,10 @@ class MDF4(MDF_Common[Group]):
                                         block_limit = total_size
                                     else:
                                         block_limit = None
-                                    total_size -= original_size
+                                    if block_limit is None:
+                                        total_size -= original_size
+                                    else:
+                                        total_size = 0
                                     yield DataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
                                         block_type=block_type_,
@@ -2441,7 +2475,10 @@ class MDF4(MDF_Common[Group]):
                                         block_limit = total_size
                                     else:
                                         block_limit = None
-                                    total_size -= size
+                                    if block_limit is None:
+                                        total_size -= size
+                                    else:
+                                        total_size = 0
                                     data_info = DataBlockInfo(
                                         address=addr + COMMON_SIZE,
                                         block_type=v4c.DT_BLOCK,
@@ -2467,7 +2504,10 @@ class MDF4(MDF_Common[Group]):
                                         block_limit = total_size
                                     else:
                                         block_limit = None
-                                    total_size -= original_size
+                                    if block_limit is None:
+                                        total_size -= original_size
+                                    else:
+                                        total_size = 0
                                     data_info = DataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
                                         block_type=block_type_,
@@ -2500,7 +2540,10 @@ class MDF4(MDF_Common[Group]):
                                                 block_limit = inval_total_size
                                             else:
                                                 block_limit = None
-                                            inval_total_size -= size
+                                            if block_limit is None:
+                                                inval_total_size -= size
+                                            else:
+                                                inval_total_size = 0
                                             data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
@@ -2524,7 +2567,10 @@ class MDF4(MDF_Common[Group]):
                                                 block_limit = inval_total_size
                                             else:
                                                 block_limit = None
-                                            inval_total_size -= original_size
+                                            if block_limit is None:
+                                                inval_total_size -= original_size
+                                            else:
+                                                inval_total_size = 0
                                             data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
