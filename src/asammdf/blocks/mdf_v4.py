@@ -1945,6 +1945,9 @@ class MDF4(MDF_Common[Group]):
     ) -> Iterator[DataBlockInfo]:
         mapped = mapped or not is_file_like(stream)
 
+        if not total_size:
+            return
+
         if record_size > 4 * 1024 * 1024:
             READ_CHUNK_SIZE = record_size
         elif record_size:
