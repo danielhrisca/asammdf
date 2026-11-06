@@ -1,5 +1,6 @@
 numpy
 matplotlib
 asammdf
-mdfreader[compression]
+blosc
+mdfreader @ git+https://github.com/ratal/mdfreader@master
 psutil
