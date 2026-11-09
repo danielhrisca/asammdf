@@ -10,7 +10,14 @@ except ImportError:
     from zlib import decompress as zlib_decompress
 
 
-from lz4.frame import compress as lz_compress
+from lz4.frame import compress as _lz_compress
+try:
+    _lz_compress(b"", number_of_threads=8)
+    def lz_compress(data):
+        return _lz_compress(data, number_of_threads=16)
+except TypeError:
+    lz_compress = _lz_compress
+
 from lz4.frame import decompress as lz_decompress
 
 try:
