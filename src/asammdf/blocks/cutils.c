@@ -302,7 +302,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
 
       descr_init = PyArray_DescrFromType(NPY_STRING);
       descr = PyArray_DescrNew(descr_init);
-      Py_XDECREF(descr_init);
+      Py_XDECREF((PyObject *) descr_init);
 #if NPY_ABI_VERSION < 0x02000000
       descr->elsize = (int)max;
 #else
