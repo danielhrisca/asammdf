@@ -1,12 +1,12 @@
 [build-system]
-requires = ["scikit-build-core", "numpy>=2.0.0"]
+requires = ["scikit-build-core", "numpy>=2.2.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "asammdf"
 description = "ASAM MDF measurement data file parser"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = { text = "LGPLv3+" }
 authors = [{ name = "Daniel Hrisca", email = "daniel.hrisca@gmail.com" }]
 dynamic = ["version"]
@@ -16,8 +16,6 @@ classifiers = [
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -40,7 +38,7 @@ dependencies = [
     "lxml>=4.9.3",
     "lz4",
     "numexpr>=2.10.0",
-    "numpy>=2.0.0",
+    "numpy>=2.2.0",
     "pandas>=2.2.2",
     "python-dateutil",
     "typing-extensions>=4.10",
@@ -83,7 +81,7 @@ metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 sdist.include = ["ext"]
 wheel.packages = ["src/asammdf"]
-wheel.py-api = "cp310"
+wheel.py-api = "cp312"
 
 [tool.coverage]
 run.relative_files = true
@@ -103,7 +101,7 @@ skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x", "cp315*", "cp314t*"]
 [tool.mypy]
 files = "."
 exclude = ["build/", "ci/", "dist/", "doc/_build/", "ext/", "test/asammdf/gui/"]
-python_version = "3.10"
+python_version = "3.12"
 enable_error_code = ["deprecated"]
 strict = true
 
@@ -133,12 +131,12 @@ ignore_errors = true
 
 [tool.black]
 line-length = 120
-target-version = ['py310']
+target-version = ['py312']
 extend-exclude = "src/asammdf/gui/ui.*|ext.*"
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py312"
 extend-exclude = ["./src/asammdf/gui/ui*", "./ext*"]
 force-exclude = true
 
