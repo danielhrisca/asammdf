@@ -13,11 +13,11 @@
 #include <lz4frame.h>
 #include <zstd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(_WIN32)
 #include <windows.h>
 #include <process.h>
-#include <string.h>
 #define FSEEK64(file, address, whence) _fseeki64((file), (address), (whence))
 #define FTELL64(file) _ftelli64(file)
 #else
