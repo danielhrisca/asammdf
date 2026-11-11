@@ -19,7 +19,7 @@ find_package(
   NumPy
   )
 
-python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.10 src/asammdf/blocks/cutils.c)
+python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.12 src/asammdf/blocks/cutils.c)
 
 if (WITH_SYSTEM_DEFLATE)
   find_package(libdeflate REQUIRED)
