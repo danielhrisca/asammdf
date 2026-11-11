@@ -12,6 +12,7 @@
 #include <lz4.h>
 #include <lz4frame.h>
 #include <zstd.h>
+#include <stdlib.h>
 
 #if defined(_WIN32)
 #include <windows.h>
