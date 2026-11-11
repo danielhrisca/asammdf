@@ -11,6 +11,7 @@ from asammdf import MDF, Signal
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4
+from asammdf.blocks.v4_blocks import TextBlock
 
 CHANNEL_LEN = 100000
 
@@ -304,6 +305,38 @@ class TestMDF4(unittest.TestCase):
                 self.assertTrue(np.array_equal(ret_reference.samples, reference))
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
+
+    def test_unit_in_md_block(self) -> None:
+        # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
+        # instead of a TXBLOCK (mdflib writes it that way). The unit is the
+        # text of its <TX> element, not the XML.
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                Signal(
+                    np.arange(3, dtype=np.float64),
+                    timestamps=[0.0, 1.0, 2.0],
+                    name="speed",
+                    unit="km/h",
+                    conversion={"a": 2.0, "b": 0.0, "unit": "km/h"},
+                )
+            )
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "md_unit.mf4", overwrite=True)
+
+        # append an MDBLOCK and point every link to the "km/h" TXBLOCK at it
+        data = bytearray(Path(outfile).read_bytes())
+        tx_address = data.find(b"km/h\x00") - 24
+        self.assertEqual(data[tx_address : tx_address + 4], b"##TX")
+        data += bytes(-len(data) % 8)
+        md_address = len(data)
+        data += bytes(TextBlock(text="<CNunit><TX>km/h</TX></CNunit>", meta=True))
+        data = data.replace(tx_address.to_bytes(8, "little"), md_address.to_bytes(8, "little"))
+        Path(outfile).write_bytes(data)
+
+        with MDF(outfile) as mdf:
+            channel = mdf.groups[0].channels[1]
+            self.assertEqual(channel.unit, "km/h")
+            self.assertEqual(channel.conversion.unit, "km/h")
+            self.assertEqual(mdf.get("speed").unit, "km/h")
 
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:
