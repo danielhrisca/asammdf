@@ -334,8 +334,10 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(outfile) as mdf:
             channel = mdf.groups[0].channels[1]
+            conversion = channel.conversion
+            assert conversion is not None
             self.assertEqual(channel.unit, "km/h")
-            self.assertEqual(channel.conversion.unit, "km/h")
+            self.assertEqual(conversion.unit, "km/h")
             self.assertEqual(mdf.get("speed").unit, "km/h")
 
     @unittest.skip("temporary skip")
