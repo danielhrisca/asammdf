@@ -41,6 +41,7 @@ from .utils import (
     escape_xml_string,
     extract_display_names,
     extract_ev_tool,
+    extract_xml_comment,
     FLOAT64_u,
     get_text_v4,
     handle_incomplete_block,
@@ -829,6 +830,9 @@ class Channel:
                     self.unit = cache[self.unit_addr]
                 else:
                     self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
+                    # the unit can also be an MDBLOCK with the text in its <TX> element, otherwise keep it as it is
+                    if self.unit.startswith("<"):
+                        self.unit = extract_xml_comment(self.unit) or self.unit
                     cache[self.unit_addr] = self.unit
 
                 address = self.conversion_addr
@@ -1079,6 +1083,8 @@ class Channel:
                     self.name, self.display_names, self.comment = parsed_strings
 
                 self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
+                if self.unit.startswith("<"):
+                    self.unit = extract_xml_comment(self.unit) or self.unit
 
                 si_map = kwargs["si_map"]
                 cc_map = kwargs["cc_map"]
@@ -3104,6 +3110,8 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.name = get_text_v4(self.name_addr, stream, mapped=mapped, file_limit=file_limit)
             self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
+            if self.unit.startswith("<"):
+                self.unit = extract_xml_comment(self.unit) or self.unit
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 
             conv_type = conv
