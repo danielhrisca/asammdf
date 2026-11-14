@@ -6064,8 +6064,13 @@ class MDF4(MDF_Common[Group]):
                     else:
                         arrays: list[Any] = []
                         for field in ("ms", "min", "hour", "day", "month", "year"):
-                            arrays.append(signal[field])
-                        signal = np.rec.fromarrays(arrays).tobytes()
+                            if field == "hour":
+                                arrays.append(signal[field] + (signal["summer_time"] << 7))
+                            elif field == "day":
+                                arrays.append(signal[field] + (signal["day_of_week"] << 4))
+                            else:
+                                arrays.append(signal[field])
+                        signal = np.rec.fromarrays(arrays)
 
                     if signal.itemsize != sig_size:
                         raise MdfException(
@@ -6370,7 +6375,12 @@ class MDF4(MDF_Common[Group]):
                     else:
                         vals = []
                         for field in ("ms", "min", "hour", "day", "month", "year"):
-                            vals.append(signal[field])
+                            if field == "hour":
+                                vals.append(signal[field] + (signal["summer_time"] << 7))
+                            elif field == "day":
+                                vals.append(signal[field] + (signal["day_of_week"] << 4))
+                            else:
+                                vals.append(signal[field])
                         samples = np.rec.fromarrays(vals)
 
                 case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
