@@ -36,7 +36,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt update
-          sudo apt-get install libegl1 libopengl0 libxml2 libxml2-dev libxslt1-dev libxslt1.1 libxslt-dev python3-dev
+          sudo apt-get install libegl1 libopengl0 libxml2-16 libxml2-dev libxslt1-dev libxslt1.1 libxslt-dev python3-dev
 
       - name: Build wheels
         shell: bash
