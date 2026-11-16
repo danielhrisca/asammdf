@@ -831,7 +831,7 @@ class Channel:
                 else:
                     self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
                     # the unit can also be an MDBLOCK with the text in its <TX> element, otherwise keep it as it is
-                    if self.unit.startswith("<"):
+                    if self.unit.startswith("<CNunit"):
                         self.unit = extract_xml_comment(self.unit) or self.unit
                     cache[self.unit_addr] = self.unit
 
@@ -1083,7 +1083,7 @@ class Channel:
                     self.name, self.display_names, self.comment = parsed_strings
 
                 self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
-                if self.unit.startswith("<"):
+                if self.unit.startswith("<CNunit"):
                     self.unit = extract_xml_comment(self.unit) or self.unit
 
                 si_map = kwargs["si_map"]
@@ -3110,7 +3110,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.name = get_text_v4(self.name_addr, stream, mapped=mapped, file_limit=file_limit)
             self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, file_limit=file_limit)
-            if self.unit.startswith("<"):
+            if self.unit.startswith("<CCunit"):
                 self.unit = extract_xml_comment(self.unit) or self.unit
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 

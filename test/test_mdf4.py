@@ -380,8 +380,8 @@ class TestMDF4(unittest.TestCase):
 
     def test_unit_in_md_block(self) -> None:
         # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
-        # instead of a TXBLOCK (mdflib writes it that way). The unit is the
-        # text of its <TX> element, not the XML.
+        # with CNunit or CCunit XML instead of a TXBLOCK (unreleased mdflib wrote
+        # it that way). The unit is the text of its <TX> element, not the XML.
         with MDF(version="4.10") as mdf:
             mdf.append(
                 Signal(
@@ -394,14 +394,22 @@ class TestMDF4(unittest.TestCase):
             )
             outfile = mdf.save(Path(TestMDF4.tempdir.name) / "md_unit.mf4", overwrite=True)
 
-        # append an MDBLOCK and point every link to the "km/h" TXBLOCK at it
+        with MDF(outfile) as mdf:
+            channel = mdf.groups[0].channels[1]
+            conversion = channel.conversion
+            assert conversion is not None
+            # the unit is the 7th link of a CNBLOCK and the 2nd link of a CCBLOCK
+            unit_links = {channel.address + 24 + 6 * 8: "CNunit", conversion.address + 24 + 8: "CCunit"}
+
+        # append an MDBLOCK for each unit and point the unit link at it
         data = bytearray(Path(outfile).read_bytes())
-        tx_address = data.find(b"km/h\x00") - 24
-        self.assertEqual(data[tx_address : tx_address + 4], b"##TX")
-        data += bytes(-len(data) % 8)
-        md_address = len(data)
-        data += bytes(TextBlock(text="<CNunit><TX>km/h</TX></CNunit>", meta=True))
-        data = data.replace(tx_address.to_bytes(8, "little"), md_address.to_bytes(8, "little"))
+        for link, tag in unit_links.items():
+            tx_address = int.from_bytes(data[link : link + 8], "little")
+            self.assertEqual(data[tx_address : tx_address + 4], b"##TX")
+            data += bytes(-len(data) % 8)
+            md_address = len(data)
+            data += bytes(TextBlock(text=f"<{tag}><TX>km/h</TX></{tag}>", meta=True))
+            data[link : link + 8] = md_address.to_bytes(8, "little")
         Path(outfile).write_bytes(data)
 
         with MDF(outfile) as mdf:
