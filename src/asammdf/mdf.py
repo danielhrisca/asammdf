@@ -1183,7 +1183,6 @@ class MDF:
                 stream = self._mdf._tempfile
 
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-            gp.data_blocks_info_generator = None
 
             read = stream.read
             seek = stream.seek
@@ -1797,7 +1796,6 @@ class MDF:
             record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-            gp.data_blocks_info_generator = None
 
             read = stream.read
             seek = stream.seek

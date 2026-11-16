@@ -3734,7 +3734,7 @@ class MDF3(MDF_Common[Group]):
                 group = self.groups[idx]
 
                 group.data_location = v23c.LOCATION_TEMPORARY_FILE
-                group.set_blocks_info(data_blocks[rec_id])
+                group.data_blocks = data_blocks[rec_id]
                 group.sorted = True
 
     def included_channels(

@@ -52,8 +52,7 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         "channel_dependencies",
         "channel_group",
         "channels",
-        "data_blocks",
-        "data_blocks_info_generator",
+        "_data_blocks",
         "data_group",
         "data_location",
         "index",
@@ -81,8 +80,7 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.trigger: v3b.TriggerBlock | None = None
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
-        self.data_blocks: list[DataBlockInfo] = []
-        self.data_blocks_info_generator = None
+        self._data_blocks: list[DataBlockInfo] | Iterator[DataBlockInfo] | tuple[DataBlockInfo]= []
         self.signal_types: _ST
         self.single_channel_dtype: DTypeLike | None = None
         self.uses_ld = False
@@ -91,8 +89,15 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.data_location: int
         self.index = 0
 
-    def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
-        self.data_blocks = info
+    @property
+    def data_blocks(self):
+        if not isinstance(self._data_blocks, list):
+            self._data_blocks = list(self._data_blocks)
+        return self._data_blocks
+
+    @data_blocks.setter
+    def data_blocks(self, info: list[DataBlockInfo] | Iterator[DataBlockInfo] | tuple[DataBlockInfo]) -> None:
+        self._data_blocks = info
 
     def __contains__(self, item: str) -> bool:
         return hasattr(self, item)

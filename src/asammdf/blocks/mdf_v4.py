@@ -660,7 +660,7 @@ class MDF4(MDF_Common[Group]):
                 inval_total_size=inval_total_size,
                 record_size=record_size,
             )
-            data_blocks = list(data_blocks_info)  # load the info blocks directly here
+
             uses_ld = self._uses_ld(
                 address=address,
                 stream=stream,
@@ -669,7 +669,7 @@ class MDF4(MDF_Common[Group]):
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
-                grp.data_blocks = data_blocks
+                grp.data_blocks = data_blocks_info
                 grp.uses_ld = uses_ld
                 self._prepare_record(grp)
 
@@ -2050,6 +2050,7 @@ class MDF4(MDF_Common[Group]):
             elif id_string == b"##DL":
                 while address:
                     dl = DataList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
+
                     for i in range(dl.data_block_nr):
                         if total_size <= 0:
                             return
@@ -12145,7 +12146,7 @@ class MDF4(MDF_Common[Group]):
             for idx, rec_id in groups:
                 group = self.groups[idx]
                 group.data_location = v4c.LOCATION_TEMPORARY_FILE
-                group.set_blocks_info(final_records[rec_id])
+                group.data_blocks = final_records[rec_id]
                 group.sorted = True
 
         for i, group in enumerate(self.groups):
