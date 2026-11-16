@@ -103,7 +103,10 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         return hasattr(self, item)
 
     def clear(self) -> None:
-        self.data_blocks.clear()
+        if isinstance(self._data_blocks, list):
+            self._data_blocks.clear()
+        else:
+            self._data_blocks = []
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
