@@ -634,6 +634,7 @@ class Channel:
         "precision",
         "reserved0",
         "reserved1",
+        "signal_data",
         "source",
         "source_addr",
         "standard_C_size",
@@ -648,6 +649,7 @@ class Channel:
     def __init__(self, **kwargs: Unpack[ChannelKwargs]) -> None:
         self.dtype_fmt: np.dtype[Any] = np.dtype(np.void)
         self.axes = self.conversions = self.units = None
+        self.signal_data: list[SignalDataBlockInfo] | None = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]

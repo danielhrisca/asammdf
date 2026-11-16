@@ -1042,9 +1042,7 @@ class MDF4(MDF_Common[Group]):
             # signal data
             cn_data_addr = channel.data_block_addr
             if cn_data_addr:
-                grp.signal_data.append(list(self._get_signal_data_blocks_info(cn_data_addr, stream)))
-            else:
-                grp.signal_data.append(None)
+                channel.signal_data = list(self._get_signal_data_blocks_info(cn_data_addr, stream))
 
             if cn_data_addr:
                 self._cn_data_map[cn_data_addr] = entry
@@ -1238,8 +1236,6 @@ class MDF4(MDF_Common[Group]):
                                     else:
                                         dependencies.append(None)
 
-                                    grp.signal_data.append(None)
-
                                     # update channels db
                                     entry = (dg_cntr, ch_cntr)
                                     self.channels_db.add(new_block.name, entry)
@@ -1296,9 +1292,9 @@ class MDF4(MDF_Common[Group]):
         """
 
         if group is not None and index is not None:
-            info_blocks = group.signal_data[index]
+            info_blocks = group.channels[index].signal_data
 
-            if info_blocks is not None:
+            if info_blocks:
                 stream: tempfile._TemporaryFileWrapper[bytes] | FileLike | mmap.mmap
                 if offsets is None:
                     data_list: list[bytes] = []
@@ -2711,7 +2707,6 @@ class MDF4(MDF_Common[Group]):
         dg_cntr = len(self.groups)
 
         gp = Group(DataGroup())
-        gp_sdata = gp.signal_data = []
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
@@ -2798,7 +2793,6 @@ class MDF4(MDF_Common[Group]):
 
                 gp_channels.append(ch)
 
-                gp_sdata.append(None)
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
                 self.masters_db[dg_cntr] = 0
 
@@ -2829,7 +2823,6 @@ class MDF4(MDF_Common[Group]):
 
                 gp_channels.append(ch)
 
-                gp_sdata.append(None)
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
                 self.masters_db[dg_cntr] = 0
 
@@ -2895,21 +2888,6 @@ class MDF4(MDF_Common[Group]):
 
                     records = np.rec.fromarrays(values, dtype=types_)
 
-                    data_size = len(records) * records.itemsize
-                    if data_size:
-                        data_addr = tell()
-                        info = SignalDataBlockInfo(
-                            address=data_addr,
-                            compressed_size=data_size,
-                            original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
-                        )
-                        gp_sdata.append([info])
-                        records.tofile(file)
-                    else:
-                        data_addr = 0
-                        gp_sdata.append([])
-
                     byte_size = 8
                     cn_kwargs = {
                         "channel_type": v4c.CHANNEL_TYPE_VLSD,
@@ -2935,6 +2913,17 @@ class MDF4(MDF_Common[Group]):
                     ch.comment = signal.comment
                     ch.display_names = signal.display_names
                     ch.dtype_fmt = np.dtype("<u8")
+                    data_size = len(records) * records.itemsize
+                    if data_size:
+                        data_addr = tell()
+                        info = SignalDataBlockInfo(
+                            address=data_addr,
+                            compressed_size=data_size,
+                            original_size=data_size,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
+                        )
+                        ch.signal_data = [info]
+                        records.tofile(file)
 
                     # conversions for channel
                     conversion = conversion_transfer(signal.conversion, version=4)
@@ -3093,7 +3082,6 @@ class MDF4(MDF_Common[Group]):
                         samples = np.ascontiguousarray(samples)
                     fields.append((samples, byte_size))
 
-                    gp_sdata.append(None)
                     entry = (dg_cntr, ch_cntr)
                     self.channels_db.add(name, entry)
                     for _name in ch.display_names:
@@ -3146,7 +3134,6 @@ class MDF4(MDF_Common[Group]):
                 gp_channels.append(ch)
                 gp_sig_types.append((sig_type, 0))
 
-                gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
@@ -3262,8 +3249,6 @@ class MDF4(MDF_Common[Group]):
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                gp_sdata.append(None)
 
                 ch_cntr += 1
 
@@ -3514,7 +3499,6 @@ class MDF4(MDF_Common[Group]):
                         fields.append((samples, size))
                         gp_sig_types.append((sig_type, size))
 
-                        gp_sdata.append(None)
                         entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
@@ -3600,7 +3584,6 @@ class MDF4(MDF_Common[Group]):
 
                             fields.append((samples, byte_size))
 
-                            gp_sdata.append(None)
                             self.channels_db.add(name, entry)
 
                             ch_cntr += 1
@@ -3624,6 +3607,8 @@ class MDF4(MDF_Common[Group]):
                         data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
                     case _:
                         raise MdfException(f'wrong encoding "{encoding}" for string signal')
+
+                sdata = None
 
                 if self.compact_vlsd:
                     buffers: list[bytes] = []
@@ -3657,12 +3642,9 @@ class MDF4(MDF_Common[Group]):
                             original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        gp_sdata.append([info])
+                        sdata = [info]
                         file.seek(0, 2)
                         file.write(b"".join(buffers))
-                    else:
-                        data_addr = 0
-                        gp_sdata.append([])
 
                 else:
                     offsets = typing.cast(
@@ -3687,11 +3669,8 @@ class MDF4(MDF_Common[Group]):
                             original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        gp_sdata.append([info])
+                        sdata = [info]
                         records.tofile(file)
-                    else:
-                        data_addr = 0
-                        gp_sdata.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -3721,6 +3700,7 @@ class MDF4(MDF_Common[Group]):
                 ch.comment = signal.comment
                 ch.display_names = signal.display_names
                 ch.dtype_fmt = np.dtype("<u8")
+                ch.signal_data = sdata
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
@@ -3916,7 +3896,6 @@ class MDF4(MDF_Common[Group]):
         # add the master group
 
         gp = Group(DataGroup())
-        gp_sdata = gp.signal_data = []
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types: list[int] = []
@@ -3984,7 +3963,6 @@ class MDF4(MDF_Common[Group]):
 
         gp_channels.append(ch)
 
-        gp_sdata.append(None)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
 
@@ -4064,7 +4042,6 @@ class MDF4(MDF_Common[Group]):
 
         for signal in signals:
             gp = Group(DataGroup())
-            gp_sdata = gp.signal_data = []
             gp_channels = gp.channels = []
             gp_dep = gp.channel_dependencies = []
             gp.signal_types = gp_sig_types = []
@@ -4180,7 +4157,6 @@ class MDF4(MDF_Common[Group]):
 
                 gp_channels.append(ch)
 
-                gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
@@ -4295,8 +4271,6 @@ class MDF4(MDF_Common[Group]):
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                gp_sdata.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 (
@@ -4459,7 +4433,6 @@ class MDF4(MDF_Common[Group]):
                             size *= dim
                         offset += size
 
-                        gp_sdata.append(None)
                         entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
@@ -4529,7 +4502,6 @@ class MDF4(MDF_Common[Group]):
                             byte_size *= dim
                         offset += byte_size
 
-                        gp_sdata.append(None)
                         self.channels_db.add(name, entry)
 
                         ch_cntr += 1
@@ -4572,11 +4544,11 @@ class MDF4(MDF_Common[Group]):
                         original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
-                    gp_sdata.append([info])
+                    sdata = [info]
                     array.tofile(file)
                 else:
                     data_addr = 0
-                    gp_sdata.append([])
+                    sdata = None
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -4601,6 +4573,7 @@ class MDF4(MDF_Common[Group]):
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_names = signal.display_names
+                ch.signal_data = sdata
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
@@ -4724,7 +4697,6 @@ class MDF4(MDF_Common[Group]):
         dg_cntr = len(self.groups)
 
         gp = Group(DataGroup())
-        gp_sdata = gp.signal_data = []
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
@@ -4783,7 +4755,6 @@ class MDF4(MDF_Common[Group]):
         name = time_name
         gp_channels.append(ch)
 
-        gp_sdata.append(None)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
 
@@ -4864,7 +4835,6 @@ class MDF4(MDF_Common[Group]):
 
                 offset += byte_size
 
-                gp_sdata.append(None)
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 field_name = field_names.get_unique_name(name)
@@ -4888,6 +4858,8 @@ class MDF4(MDF_Common[Group]):
 
                 data = np.rec.fromarrays(values, dtype=types_)
 
+                
+
                 data_size = len(data) * data.itemsize
                 if data_size:
                     data_addr = tell()
@@ -4897,11 +4869,11 @@ class MDF4(MDF_Common[Group]):
                         original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
-                    gp_sdata.append([info])
+                    sdata = [info]
                     data.tofile(file)
                 else:
                     data_addr = 0
-                    gp_sdata.append([])
+                    sdata = None
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -4922,6 +4894,7 @@ class MDF4(MDF_Common[Group]):
                 ch.name = name
                 ch.unit = units.get(name, "")
                 ch.dtype_fmt = np.dtype("<u8")
+                ch.signal_data = sdata
 
                 gp_channels.append(ch)
 
@@ -5006,7 +4979,6 @@ class MDF4(MDF_Common[Group]):
         seek(0, 2)
 
         gp = grp
-        gp_sdata = gp.signal_data
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
         record = self._prepare_record(gp)
@@ -5114,7 +5086,6 @@ class MDF4(MDF_Common[Group]):
         gp_channels.append(ch)
         struct_self = entry
 
-        gp_sdata.append(None)
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
@@ -5198,7 +5169,6 @@ class MDF4(MDF_Common[Group]):
 
                 fields.append((samples, byte_size))
 
-                gp_sdata.append(None)
                 self.channels_db.add(name, entry)
 
                 ch_cntr += 1
@@ -5408,7 +5378,6 @@ class MDF4(MDF_Common[Group]):
                             samples = np.ascontiguousarray(samples)
                         fields.append((samples, size))
 
-                        gp_sdata.append(None)
                         entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
@@ -5493,7 +5462,6 @@ class MDF4(MDF_Common[Group]):
 
                             fields.append((samples, byte_size))
 
-                            gp_sdata.append(None)
                             self.channels_db.add(name, entry)
 
                             ch_cntr += 1
@@ -5557,7 +5525,6 @@ class MDF4(MDF_Common[Group]):
         seek(0, 2)
 
         gp = grp
-        gp_sdata = gp.signal_data
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
         record = self._prepare_record(gp)
@@ -5660,7 +5627,6 @@ class MDF4(MDF_Common[Group]):
         gp_channels.append(ch)
         struct_self = entry
 
-        gp_sdata.append(None)
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
@@ -5732,7 +5698,6 @@ class MDF4(MDF_Common[Group]):
 
                 offset += byte_size
 
-                gp_sdata.append(None)
                 self.channels_db.add(name, entry)
 
                 ch_cntr += 1
@@ -5866,7 +5831,6 @@ class MDF4(MDF_Common[Group]):
                             size *= dim
                         offset += size
 
-                        gp_sdata.append(None)
                         entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
@@ -5931,7 +5895,6 @@ class MDF4(MDF_Common[Group]):
                             byte_size *= dim
                         offset += byte_size
 
-                        gp_sdata.append(None)
                         self.channels_db.add(name, entry)
 
                         ch_cntr += 1
@@ -6155,8 +6118,8 @@ class MDF4(MDF_Common[Group]):
                                 original_size=data_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
-                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.signal_data)
-                            signal_data[i].append(info)
+                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.channels[i].signal_data)
+                            signal_data.append(info)
                             stream.write(b"".join(pairs))
 
                         offsets_arr += cur_offset  # type: ignore[misc, unused-ignore]
@@ -6185,8 +6148,8 @@ class MDF4(MDF_Common[Group]):
                                 original_size=block_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
-                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.signal_data)
-                            signal_data[i].append(info)
+                            signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.channels[i].signal_data)
+                            signal_data.append(info)
                             values_arr.tofile(stream)
 
                         offsets_arr += cur_offset
@@ -6411,9 +6374,9 @@ class MDF4(MDF_Common[Group]):
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         sd_block_infos = typing.cast(
-                            tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]], gp.signal_data[i]
+                            tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]], gp.channels[i].signal_data
                         )
-                        sd_block_infos[0].append(info)
+                        sd_block_infos.append(info)
                         write(values.tobytes())
 
                     offsets += cur_offset
@@ -7114,7 +7077,7 @@ class MDF4(MDF_Common[Group]):
                     data is None
                     and validate_blocks(blocks, record_size)
                     and not self._from_filelike
-                    and not grp.signal_data[ch_nr]
+                    and not grp.channels[ch_nr].signal_data
                     and grp.record[ch_nr]
                     and (
                         not master_is_required
@@ -11888,7 +11851,7 @@ class MDF4(MDF_Common[Group]):
             for rec_id, channel_group in cg_map.items():
                 if channel_group.address in self._cn_data_map:
                     gp_idx, cn_idx = self._cn_data_map[channel_group.address]
-                    self.groups[gp_idx].signal_data[cn_idx] = []
+                    self.groups[gp_idx].channels[cn_idx].signal_data = []
 
             group = self.groups[groups[0][0]]
 
@@ -12004,9 +11967,9 @@ class MDF4(MDF_Common[Group]):
                                         )
                                         signal_data = typing.cast(
                                             list[list[SignalDataBlockInfo] | None],
-                                            self.groups[dg_cntr].signal_data,
+                                            self.groups[dg_cntr].channels[ch_cntr].signal_data,
                                         )
-                                        signal_data[ch_cntr].append(info)
+                                        signal_data.append(info)
 
                                     else:
                                         block_info = DataBlockInfo(
@@ -12031,9 +11994,9 @@ class MDF4(MDF_Common[Group]):
                                         )
                                         signal_data = typing.cast(
                                             list[list[SignalDataBlockInfo] | None],
-                                            self.groups[dg_cntr].signal_data,
+                                            self.groups[dg_cntr].channels[ch_cntr].signal_data,
                                         )
-                                        signal_data[ch_cntr].append(info)
+                                        signal_data.append(info)
 
                                     else:
                                         block_info = DataBlockInfo(
@@ -12096,9 +12059,9 @@ class MDF4(MDF_Common[Group]):
                                             )
                                             signal_data = typing.cast(
                                                 list[list[SignalDataBlockInfo] | None],
-                                                self.groups[dg_cntr].signal_data,
+                                                self.groups[dg_cntr].channels[ch_cntr].signal_data,
                                             )
-                                            signal_data[ch_cntr].append(info)
+                                            signal_data.append(info)
 
                                         else:
                                             block_info = DataBlockInfo(
@@ -12124,9 +12087,9 @@ class MDF4(MDF_Common[Group]):
                                             )
                                             signal_data = typing.cast(
                                                 list[list[SignalDataBlockInfo] | None],
-                                                self.groups[dg_cntr].signal_data,
+                                                self.groups[dg_cntr].channels[ch_cntr].signal_data,
                                             )
-                                            signal_data[ch_cntr].append(info)
+                                            signal_data.append(info)
 
                                         else:
                                             block_info = DataBlockInfo(

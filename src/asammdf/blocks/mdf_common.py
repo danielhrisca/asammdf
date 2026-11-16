@@ -59,7 +59,6 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         "read_split_count",
         "record",
         "record_size",
-        "signal_data",
         "signal_types",
         "single_channel_dtype",
         "sorted",
@@ -74,7 +73,6 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.channel_group: _CG
         self.channels: list[_CN] = []
         self.channel_dependencies: list[_CD | None] = []
-        self.signal_data: list[list[SignalDataBlockInfo] | None] = []
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
         self.trigger: v3b.TriggerBlock | None = None
@@ -109,13 +107,12 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
             self._data_blocks = []
         self.channels.clear()
         self.channel_dependencies.clear()
-        self.signal_data.clear()
 
     def get_data_blocks(self) -> Iterator[DataBlockInfo]:
         yield from self.data_blocks
 
     def get_signal_data_blocks(self, index: int) -> Iterator[SignalDataBlockInfo]:
-        if blocks := self.signal_data[index]:
+        if blocks := self.channels[index].signal_data:
             yield from blocks
 
 

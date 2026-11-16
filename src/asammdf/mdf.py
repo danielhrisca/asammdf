@@ -1209,14 +1209,13 @@ class MDF:
                     inv_info.address = tell()
                     write(read(inv_info.compressed_size))
 
-            for signal_blocks in gp.signal_data:
-                if not signal_blocks:
-                    continue
-                for info in signal_blocks:
-                    seek(info.address)
-                    info.address = tell()
-                    info.location = v4c.LOCATION_TEMPORARY_FILE
-                    write(read(info.compressed_size))
+            for ch in gp.channels:
+                if signal_blocks := ch.signal_data:
+                    for info in signal_blocks:
+                        seek(info.address)
+                        info.address = tell()
+                        info.location = v4c.LOCATION_TEMPORARY_FILE
+                        write(read(info.compressed_size))
 
         return out
 
