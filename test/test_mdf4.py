@@ -10,7 +10,7 @@ import numpy as np
 from asammdf import MDF, Signal
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
-from asammdf.blocks.utils import get_fmt_v4
+from asammdf.blocks.utils import get_fmt_v4, MdfException
 
 CHANNEL_LEN = 100000
 
@@ -88,6 +88,78 @@ class TestMDF4(unittest.TestCase):
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)
+
+    def test_extend_canopen(self) -> None:
+        dates = np.array(
+            [
+                (1000, 10, 8, 1, 1, 26, 0, 4),
+                (2000, 20, 9, 2, 6, 26, 1, 5),
+                (3000, 30, 10, 3, 11, 26, 1, 6),
+                (4000, 40, 11, 4, 12, 26, 0, 7),
+            ],
+            dtype=[
+                ("ms", "<u2"),
+                ("min", "u1"),
+                ("hour", "u1"),
+                ("day", "u1"),
+                ("month", "u1"),
+                ("year", "u1"),
+                ("summer_time", "u1"),
+                ("day_of_week", "u1"),
+            ],
+        )
+        times = np.array(
+            [(1000, 17000), (2000, 17001), (3000, 17002), (4000, 17003)], dtype=[("ms", "<u4"), ("days", "<u2")]
+        )
+        counter = np.arange(4, dtype=np.int16)
+        timestamps = np.arange(4, dtype=np.float64)
+
+        for version, column in (("4.00", False), ("4.10", False), ("4.20", False), ("4.20", True)):
+            for stride in (1, 2):
+                with self.subTest(version=version, column=column, stride=stride):
+                    arrays = [np.repeat(values, stride)[::stride] for values in (timestamps, dates, times, counter)]
+                    originals = [values.copy() for values in arrays]
+                    if stride == 2:
+                        self.assertTrue(all(not values.flags["C_CONTIGUOUS"] for values in arrays))
+
+                    # Column storage is enabled when opening an existing 4.20 file.
+                    with MDF(version=version) as mdf:
+                        mdf.append(Signal(counter, timestamps, name="reference"))
+                        seed = mdf.save(Path(self.tempdir.name) / "canopen_seed.mf4", overwrite=True)
+
+                    names = ("canopen_date", "canopen_time", "counter")
+                    with MDF(seed, column_storage=column) as mdf:  # type: ignore[call-arg]
+                        signals = [
+                            Signal(values[:2], arrays[0][:2], name=name)
+                            for name, values in zip(names, arrays[1:], strict=True)
+                        ]
+                        group = mdf.append(signals, common_timebase=True)
+                        mdf.extend(group, [(values[2:], None) for values in arrays])
+                        for name, expected in zip(names, (dates, times, counter), strict=True):
+                            actual = mdf.get(name)
+                            np.testing.assert_array_equal(actual.samples, expected, strict=True)
+                            np.testing.assert_array_equal(actual.timestamps, timestamps)
+                        saved = mdf.save(Path(self.tempdir.name) / "canopen_extended.mf4", overwrite=True)
+
+                    with MDF(saved) as mdf:
+                        for name, expected in zip(names, (dates, times, counter), strict=True):
+                            actual = mdf.get(name)
+                            np.testing.assert_array_equal(actual.samples, expected, strict=True)
+                            np.testing.assert_array_equal(actual.timestamps, timestamps)
+                        np.testing.assert_array_equal(mdf.get("reference").samples, counter, strict=True)
+                    for values, original in zip(arrays, originals, strict=True):
+                        np.testing.assert_array_equal(values, original, strict=True)
+
+    def test_extend_canopen_rejects_wrong_record_size(self) -> None:
+        dtype = [(name, "<u2" if name == "ms" else "u1") for name in v4c.CANOPEN_DATE_FIELDS]
+        samples = np.zeros(2, dtype=dtype)
+        malformed_dtype = [(name, "<u4" if name == "ms" else "u1") for name in v4c.CANOPEN_DATE_FIELDS]
+        malformed = samples.astype(malformed_dtype)
+        with MDF(version="4.10") as mdf:
+            group = mdf.append(Signal(samples, np.array([0.0, 1.0]), name="date"))
+            with self.assertRaisesRegex(MdfException, "canopen signal has 9 B/record, expected 7"):
+                mdf.extend(group, [(np.array([2.0, 3.0]), None), (malformed, None)])
+            np.testing.assert_array_equal(mdf.get("date").samples, samples, strict=True)
 
     def test_read_mdf4_00(self) -> None:
         seed = np.random.randint(0, 2**31)
