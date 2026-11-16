@@ -5423,6 +5423,18 @@ class DataList(_DataListBase):
 
       * ``offset_<N>`` - int : byte offset of N-th data block
 
+    * ``timestamp_<N>`` - bytes : first raw time stamp of N-th data block (starting with
+      version 4.20 if FLAG_DL_TIME_VALUES is set). The bytes are int64 or float64
+      depending on the data type of the time master channel
+
+    * ``angle_<N>`` - bytes : first raw angle of N-th data block (starting with
+      version 4.20 if FLAG_DL_ANGLE_VALUES is set). The bytes are int64 or float64
+      depending on the data type of the angle master channel
+
+    * ``distance_<N>`` - bytes : first raw distance of N-th data block (starting with
+      version 4.20 if FLAG_DL_DISTANCE_VALUES is set). The bytes are int64 or float64
+      depending on the data type of the distance master channel
+
     Other attributes:
 
     * ``address`` - int : data list address
@@ -5480,6 +5492,7 @@ class DataList(_DataListBase):
                     )
                     for i, offset in enumerate(offsets):
                         setattr(self, f"offset_{i}", offset)
+
             else:
                 if self.address + COMMON_SIZE > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
@@ -5524,6 +5537,30 @@ class DataList(_DataListBase):
                     for i, offset in enumerate(offsets):
                         self[f"offset_{i}"] = offset
 
+            if self.flags & v4c.FLAG_DL_TIME_VALUES:
+                values: tuple[bytes, ...] = unpack(
+                    "8s" * (self.links_nr - 1),
+                    stream.read((self.links_nr - 1) * 8),
+                )
+                for i, value in enumerate(values):
+                    setattr(self, f"timestamp_{i}", value)
+
+            if self.flags & v4c.FLAG_DL_ANGLE_VALUES:
+                values: tuple[bytes, ...] = unpack(
+                    "8s" * (self.links_nr - 1),
+                    stream.read((self.links_nr - 1) * 8),
+                )
+                for i, value in enumerate(values):
+                    setattr(self, f"angle_{i}", value)
+
+            if self.flags & v4c.FLAG_DL_DISTANCE_VALUES:
+                values: tuple[bytes, ...] = unpack(
+                    "8s" * (self.links_nr - 1),
+                    stream.read((self.links_nr - 1) * 8),
+                )
+                for i, value in enumerate(values):
+                    setattr(self, f"distance_{i}", value)
+
         except KeyError:
             self.address = 0
             self.id = b"##DL"
@@ -5545,6 +5582,22 @@ class DataList(_DataListBase):
                 for i in range(self.data_block_nr):
                     self[f"offset_{i}"] = kwargs[f"offset_{i}"]  # type: ignore[literal-required]
 
+            if self.flags & v4c.FLAG_DL_TIME_VALUES:
+                self.block_len += 8 * self.data_block_nr
+                for i in range(self.data_block_nr):
+                    self[f"timestamp_{i}"] = kwargs[f"timestamp_{i}"]  # type: ignore[literal-required]
+
+            if self.flags & v4c.FLAG_DL_ANGLE_VALUES:
+                self.block_len += 8 * self.data_block_nr
+                for i in range(self.data_block_nr):
+                    self[f"angle_{i}"] = kwargs[f"angle_{i}"]  # type: ignore[literal-required]
+
+            if self.flags & v4c.FLAG_DL_DISTANCE_VALUES:
+                self.block_len += 8 * self.data_block_nr
+                for i in range(self.data_block_nr):
+                    self[f"distance_{i}"] = kwargs[f"distance_{i}"]  # type: ignore[literal-required]
+            
+
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
 
@@ -5561,6 +5614,18 @@ class DataList(_DataListBase):
             keys += ("flags", "reserved1", "data_block_nr")
             keys += tuple(f"offset_{i}" for i in range(self.data_block_nr))
             fmt = v4c.FMT_DATA_LIST.format(self.links_nr, self.data_block_nr)
+
+        if self.flags & v4c.FLAG_DL_TIME_VALUES:
+            keys += tuple(f"timestamp_{i}" for i in range(self.data_block_nr))
+            fmt += "8s" * self.data_block_nr
+
+        if self.flags & v4c.FLAG_DL_ANGLE_VALUES:
+            keys += tuple(f"angle_{i}" for i in range(self.data_block_nr))
+            fmt += "8s" * self.data_block_nr
+
+        if self.flags & v4c.FLAG_DL_DISTANCE_VALUES:
+            keys += tuple(f"distance_{i}" for i in range(self.data_block_nr))
+            fmt += "8s" * self.data_block_nr
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
 
