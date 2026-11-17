@@ -648,15 +648,6 @@ class MDF4(MDF_Common[Group]):
                 total_size = 10**12
                 inval_total_size = 10**12
 
-            data_blocks_info = self._get_data_blocks_info(
-                address=address,
-                stream=stream,
-                mapped=mapped,
-                total_size=total_size,
-                inval_total_size=inval_total_size,
-                record_size=record_size,
-            )
-
             uses_ld = self._uses_ld(
                 address=address,
                 stream=stream,
@@ -665,7 +656,14 @@ class MDF4(MDF_Common[Group]):
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
-                grp.data_blocks = data_blocks_info
+                grp.data_blocks = self._get_data_blocks_info(
+                    address=address,
+                    stream=stream,
+                    mapped=mapped,
+                    total_size=total_size,
+                    inval_total_size=inval_total_size,
+                    record_size=record_size,
+                )
                 grp.uses_ld = uses_ld
 
             self.groups.extend(new_groups)
@@ -5824,6 +5822,8 @@ class MDF4(MDF_Common[Group]):
                                 original_size=data_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
+                            if gp.channels[i].signal_data is None:
+                                gp.channels[i].signal_data = []
                             signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.channels[i].signal_data)
                             signal_data.append(info)
                             stream.write(b"".join(pairs))
@@ -5854,6 +5854,8 @@ class MDF4(MDF_Common[Group]):
                                 original_size=block_size,
                                 location=v4c.LOCATION_TEMPORARY_FILE,
                             )
+                            if gp.channels[i].signal_data is None:
+                                gp.channels[i].signal_data = []
                             signal_data = typing.cast(list[list[SignalDataBlockInfo] | None], gp.channels[i].signal_data)
                             signal_data.append(info)
                             values_arr.tofile(stream)
@@ -11571,6 +11573,7 @@ class MDF4(MDF_Common[Group]):
             step = float(SORT_STEPS - 2) / len(blocks) / len(common)
             count = float(current_progress_index)
             previous = count
+
             for block_info in blocks:
                 dtblock_address, dtblock_raw_size, dtblock_size, block_type, param = (
                     block_info.address,
