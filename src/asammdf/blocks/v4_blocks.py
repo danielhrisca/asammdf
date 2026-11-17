@@ -49,6 +49,10 @@ from .utils import (
     UINT8_uf,
     UINT64_u,
     UINT64_uf,
+    NoRecordInfo,
+    RecordInfo,
+    SignalDataBlockInfo,
+    get_fmt_v4,
 )
 
 COMPRESSION_LEVEL = 1
@@ -504,6 +508,7 @@ class ChannelKwargs(BlockKwargs, total=False):
     upper_ext_limit: float
     attachment_addr: int
     file_limit: int | float
+    dtype: np.dtype[Any] | None
 
 
 CN = b"##CN"
@@ -618,7 +623,7 @@ class Channel:
         "default_X_ch_addr",
         "default_X_dg_addr",
         "display_names",
-        "dtype_fmt",
+        "dtype",
         "fast_path",
         "flags",
         "id",
@@ -632,6 +637,7 @@ class Channel:
         "next_ch_addr",
         "pos_invalidation_bit",
         "precision",
+        "record_info",
         "reserved0",
         "reserved1",
         "signal_data",
@@ -647,9 +653,10 @@ class Channel:
     )
 
     def __init__(self, **kwargs: Unpack[ChannelKwargs]) -> None:
-        self.dtype_fmt: np.dtype[Any] = np.dtype(np.void)
+        self.dtype: np.dtype[Any] | None = kwargs.get("dtype", np.dtype(np.void))
         self.axes = self.conversions = self.units = None
         self.signal_data: list[SignalDataBlockInfo] | None = None
+        self.record_info = NoRecordInfo
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
@@ -1199,7 +1206,7 @@ class Channel:
                 v4c.CN_BLOCK_SIZE,
                 8,
                 0,
-                0,
+                kwargs.get("component_addr", 0),
                 0,
                 0,
                 0,
@@ -1241,6 +1248,7 @@ class Channel:
 
         self.standard_C_size = True
         self.fast_path: tuple[int, int, int, int, int, np.dtype[Any]] | None = None
+        self._prepare_record_info()
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
@@ -1584,6 +1592,63 @@ unit: {self.unit}
         else:
             result = False
         return result
+
+    def _prepare_record_info(self):
+        """Compute record.
+
+        Parameters
+        ----------
+        group : dict
+            MDF group dict.
+
+        Returns
+        -------
+        record : list
+            Mapping of channels to records fields, records fields dtype.
+        """
+        start_offset = self.byte_offset
+        bit_offset = self.bit_offset
+        data_type = self.data_type
+        bit_count = self.bit_count
+        ch_type = self.channel_type
+        # dependency_list = group.channel_dependencies[idx]
+
+        if ch_type not in v4c.VIRTUAL_TYPES:
+            # adjust size to 1, 2, 4 or 8 bytes
+            size = bit_offset + bit_count
+
+            byte_size, rem = divmod(size, 8)
+            if rem:
+                byte_size += 1
+            bit_size = byte_size * 8
+
+            if data_type in (
+                v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            ):
+                if size > 32:
+                    bit_offset += 64 - bit_size
+                elif size > 16:
+                    bit_offset += 32 - bit_size
+                elif size > 8:
+                    bit_offset += 16 - bit_size
+
+            if self.dtype == np.dtype(np.void):
+                self.dtype = np.dtype(get_fmt_v4(data_type, size, ch_type))
+
+            if (
+                bit_offset
+                or self.component_addr  # used to be "or dependency_list"
+                or (self.dtype.kind in "ui" and size < 64 and size not in (8, 16, 32))
+            ):
+                self.standard_C_size = False
+
+            self.record_info = RecordInfo(
+                self.dtype,
+                self.dtype.itemsize,
+                start_offset,
+                bit_offset,
+            )
 
 
 class _ChannelArrayBlockBase:

@@ -1,5 +1,6 @@
 """asammdf utility functions and classes"""
 
+from collections import namedtuple
 from collections.abc import Callable, Iterator
 from functools import lru_cache
 import importlib
@@ -1923,13 +1924,13 @@ class Timer:
             print(f"TIMER {self.name}:\n\t* inactive")
 
 
-def handle_incomplete_block(address: int, file_limit: int, file: StrPath | None = None) -> None:
+def handle_incomplete_block(address: int, file_limit: int | float, file: StrPath | None = None) -> None:
     if file is None:
         file = "The file"
     else:
         file = Path(file).name
 
-    msg = f"Incomplete block at 0x{address:x} exceeds the file size 0x{file_limit:x}. {file} might be corrupted or partially written."
+    msg = f"Incomplete block at 0x{address:x} exceeds the file size 0x{int(file_limit):x}. {file} might be corrupted or partially written."
     logger.warning(msg)
 
     if GLOBAL_OPTIONS["raise_on_incomplete_blocks"]:
@@ -2078,3 +2079,6 @@ def astype(arr, dtype):
     else:
         sig.samples = vals
         return sig
+
+RecordInfo = namedtuple('RecordInfo', ['dtype', 'byte_size', 'byte_offset', 'bit_offset'])
+NoRecordInfo = RecordInfo(None, 0, 0, 0)

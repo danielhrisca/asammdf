@@ -23,8 +23,11 @@ from . import v2_v3_constants as v23c
 from .utils import (
     BlockKwargs,
     get_fields,
+    get_fmt_v3,
     get_text_v3,
     MdfException,
+    NoRecordInfo,
+    RecordInfo,
     UINT16_u,
     UINT16_uf,
 )
@@ -98,6 +101,8 @@ class ChannelKwargs(BlockKwargs, total=False):
     long_name_addr: int
     display_name_addr: int
     additional_byte_offset: int
+    byte_order: int
+    dtype: np.dtype[Any] | None
 
 
 class Channel:
@@ -189,7 +194,7 @@ class Channel:
         "description",
         "display_name_addr",
         "display_names",
-        "dtype_fmt",
+        "dtype",
         "id",
         "long_name_addr",
         "max_raw_value",
@@ -197,6 +202,7 @@ class Channel:
         "name",
         "next_ch_addr",
         "range_flag",
+        "record_info",
         "sampling_rate",
         "short_name",
         "source",
@@ -211,7 +217,8 @@ class Channel:
         self.name = self.comment = self.unit = ""
         self.display_names: dict[str, str] = {}
         self.conversion = self.source = None
-        self.dtype_fmt: np.dtype[Any] | None = None
+        self.dtype: np.dtype[Any] | None = kwargs.get("dtype", None)
+        self.record_info = NoRecordInfo
 
         try:
             stream = kwargs["stream"]
@@ -574,6 +581,8 @@ class Channel:
         if self.name in self.display_names:
             del self.display_names[self.name]
 
+        self._prepare_record_info(kwargs.get("byte_order", v23c.BYTE_ORDER_INTEL))
+
     def to_blocks(
         self,
         address: int,
@@ -840,6 +849,61 @@ comment: {self.comment}
             except AttributeError:
                 continue
         return f"Channel (name: {self.name}, display names: {self.display_names}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
+
+    def _prepare_record_info(self, byte_order=v23c.BYTE_ORDER_INTEL):
+        """Compute record list.
+
+        Parameters
+        ----------
+        group : dict
+            MDF group dict.
+
+        Returns
+        -------
+        record : list
+            Mapping of channels to records fields, records fields dtype.
+        """
+    
+        start_offset = self.start_offset
+        try:
+            additional_byte_offset = self.additional_byte_offset
+            start_offset += 8 * additional_byte_offset
+        except AttributeError:
+            pass
+
+        byte_offset, bit_offset = divmod(start_offset, 8)
+        data_type = self.data_type
+        bit_count = self.bit_count
+
+        if not self.component_addr:
+            # adjust size to 1, 2, 4 or 8 bytes
+            size = bit_offset + bit_count
+
+            byte_size, rem = divmod(size, 8)
+            if rem:
+                byte_size += 1
+            bit_size = byte_size * 8
+
+            if data_type in (
+                v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            ):
+                if size > 32:
+                    bit_offset += 64 - bit_size
+                elif size > 16:
+                    bit_offset += 32 - bit_size
+                elif size > 8:
+                    bit_offset += 16 - bit_size
+
+            if not self.dtype:
+                self.dtype = np.dtype(get_fmt_v3(data_type, size, byte_order))
+
+            self.record_info = RecordInfo(
+                self.dtype,
+                self.dtype.itemsize,
+                byte_offset,
+                bit_offset,
+            )
 
 
 class _ChannelConversionBase:
