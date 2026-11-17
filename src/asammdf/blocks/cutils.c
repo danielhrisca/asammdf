@@ -1769,6 +1769,84 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
   }
   else
   {
+    cycles = PyLong_AsSsize_t(cycles_obj);
+    if (PyErr_Occurred())
+      return NULL;
+    if (cycles < 0) {
+      PyErr_SetString(PyExc_ValueError, "cycles must be non-negative");
+      return NULL;
+    }
+    if (thread_count <= 0) {
+      PyErr_SetString(PyExc_ValueError, "thread_count must be positive");
+      return NULL;
+    }
+
+    is_list = PyList_Check(data_blocks);
+    if (!is_list && !PyTuple_Check(data_blocks)) {
+      PyErr_SetString(PyExc_TypeError, "data_blocks must be a list or tuple");
+      return NULL;
+    }
+    signal_count = is_list ? PyList_Size(data_blocks) : PyTuple_Size(data_blocks);
+
+    /* Validate every input before allocating output or starting copy threads. */
+    for (Py_ssize_t i=0; i<signal_count; i++) {
+      Py_ssize_t available;
+      item = is_list ? PyList_GetItem(data_blocks, i) : PyTuple_GetItem(data_blocks, i);
+      if (PyList_Check(item)) {
+        if (PyList_Size(item) != 2) {
+          PyErr_SetString(PyExc_ValueError, "data block must contain a buffer and byte count");
+          return NULL;
+        }
+        array = PyList_GetItem(item, 0);
+        byte_count = PyLong_AsSsize_t(PyList_GetItem(item, 1));
+      }
+      else if (PyTuple_Check(item)) {
+        if (PyTuple_Size(item) != 2) {
+          PyErr_SetString(PyExc_ValueError, "data block must contain a buffer and byte count");
+          return NULL;
+        }
+        array = PyTuple_GetItem(item, 0);
+        byte_count = PyLong_AsSsize_t(PyTuple_GetItem(item, 1));
+      }
+      else {
+        PyErr_SetString(PyExc_TypeError, "data block must be a list or tuple");
+        return NULL;
+      }
+      if (PyErr_Occurred())
+        return NULL;
+      if (byte_count < 0) {
+        PyErr_SetString(PyExc_ValueError, "byte count must be non-negative");
+        return NULL;
+      }
+
+      if (PyByteArray_Check(array))
+        available = PyByteArray_Size(array);
+      else if (PyBytes_Check(array))
+        available = PyBytes_Size(array);
+      else if (PyArray_Check(array))
+        available = PyArray_NBYTES((PyArrayObject *)array);
+      else {
+        PyErr_SetString(PyExc_TypeError, "data block buffer must be bytes, bytearray or an ndarray");
+        return NULL;
+      }
+      if (cycles && byte_count > available / cycles) {
+        PyErr_Format(PyExc_ValueError, "data block %zd is too small for %zd records of %zd bytes",
+                     i, cycles, byte_count);
+        return NULL;
+      }
+      if (byte_count > PY_SSIZE_T_MAX - record_size) {
+        PyErr_SetString(PyExc_OverflowError, "record size is too large");
+        return NULL;
+      }
+      record_size += byte_count;
+    }
+    if (cycles && record_size > PY_SSIZE_T_MAX / cycles) {
+      PyErr_SetString(PyExc_OverflowError, "data block size is too large");
+      return NULL;
+    }
+    if (signal_count < thread_count)
+      thread_count = signal_count;
+
 #ifdef _WIN32
     HANDLE  *hThreads;
     DWORD   *dwThreadIdArray;
@@ -1778,24 +1856,12 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
     pthread_t * dwThreadIdArray;
     dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
 #endif
-    cycles = PyLong_AsLongLong(cycles_obj);
-    is_list = PyList_Check(data_blocks);
-    if (is_list) {
-      signal_count = PyList_Size(data_blocks);
-    }
-    else {
-      signal_count = PyTuple_Size(data_blocks);
-    }
-
     if (!signal_count)
     {
       out = PyByteArray_FromStringAndSize(NULL, 0);
     }
     else
     {
-      if (signal_count < thread_count) {
-        thread_count = signal_count;
-      }
       pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
       ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * thread_count);
 
