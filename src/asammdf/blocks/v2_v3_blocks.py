@@ -581,7 +581,7 @@ class Channel:
         if self.name in self.display_names:
             del self.display_names[self.name]
 
-        self._prepare_record_info(kwargs.get("byte_order", v23c.BYTE_ORDER_INTEL))
+        self.prepare_record_info(kwargs.get("byte_order", v23c.BYTE_ORDER_INTEL))
 
     def to_blocks(
         self,
@@ -850,7 +850,7 @@ comment: {self.comment}
                 continue
         return f"Channel (name: {self.name}, display names: {self.display_names}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
 
-    def _prepare_record_info(self, byte_order=v23c.BYTE_ORDER_INTEL):
+    def prepare_record_info(self, byte_order=v23c.BYTE_ORDER_INTEL):
         """Compute record list.
 
         Parameters

@@ -1208,6 +1208,8 @@ class MDF4(MDF_Common[Group]):
                                         bit_offset += coord * bit_factor
                                     new_block.byte_offset += byte_offset
                                     new_block.pos_invalidation_bit += bit_offset
+                                    new_block.component_addr = 0
+                                    new_block.prepare_record_info()
 
                                     # update channel name
                                     new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)

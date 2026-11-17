@@ -1248,7 +1248,7 @@ class Channel:
 
         self.standard_C_size = True
         self.fast_path: tuple[int, int, int, int, int, np.dtype[Any]] | None = None
-        self._prepare_record_info()
+        self.prepare_record_info()
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
@@ -1593,7 +1593,7 @@ unit: {self.unit}
             result = False
         return result
 
-    def _prepare_record_info(self):
+    def prepare_record_info(self):
         """Compute record.
 
         Parameters
@@ -1606,6 +1606,7 @@ unit: {self.unit}
         record : list
             Mapping of channels to records fields, records fields dtype.
         """
+        self.standard_C_size = True
         start_offset = self.byte_offset
         bit_offset = self.bit_offset
         data_type = self.data_type
