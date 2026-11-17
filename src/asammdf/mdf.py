@@ -83,6 +83,7 @@ from .blocks.utils import (
     MDF4_VERSIONS,
     MdfException,
     NamedTemporaryFile,
+    NoRecordInfo,
     plausible_timestamps,
     randomized_string,
     SUPPORTED_VERSIONS,
@@ -1824,7 +1825,8 @@ class MDF:
                         inv_info.address = tell()
                         write(read(inv_info.compressed_size))
 
-                for signal_blocks in gp.signal_data:
+                for channel in gp.channels:
+                    signal_blocks = channel.signal_data
                     if not signal_blocks:
                         continue
                     for info in signal_blocks:
@@ -1972,7 +1974,8 @@ class MDF:
                 gp.data_blocks = new_blocks
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
-                for signal_blocks in gp.signal_data:
+                for channel in gp.channels:
+                    signal_blocks = channel.signal_data
                     if progress and progress.stop:
                         raise Terminated
 
@@ -4555,14 +4558,14 @@ class MDF:
             pairs = [(group_index, ch_index) for ch_index in channel_indexes]
 
             master_index = self.masters_db.get(group_index, None)
-            if master_index is None or grp.record[master_index] is None:
+            if master_index is None or grp.channels[master_index].record_info is NoRecordInfo:
                 return self._select_fallback(
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
 
             master_channel = grp.channels[master_index]
             master_dtype, byte_size, byte_offset, master_bit_offset = typing.cast(
-                tuple[np.dtype[Any], int, int, int], grp.record[master_index]
+                tuple[np.dtype[Any], int, int, int], grp.channels[master_index].record_info
             )
             signals = [
                 (
@@ -4576,8 +4579,8 @@ class MDF:
                 channel = grp.channels[ch_index]
 
                 if (
-                    (info := grp.record[ch_index]) is None
-                    or grp.signal_data[ch_index]
+                    (info := channel.record_info) is NoRecordInfo
+                    or channel.signal_data
                     or grp.channel_dependencies[ch_index]
                 ):
                     return self._select_fallback(
@@ -4661,7 +4664,7 @@ class MDF:
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
                 channel = grp.channels[ch_index]
-                channel_dtype, byte_size, byte_offset, bit_offset = grp.record[ch_index]
+                channel_dtype, byte_size, byte_offset, bit_offset = channel.record_info
                 vals = np.frombuffer(raw_data, dtype=channel_dtype)
 
                 data_type = channel.data_type
