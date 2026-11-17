@@ -4,7 +4,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.error_dialog import Ui_ErrorDialog
 
-
 NEVER_SHOW = -1
 
 

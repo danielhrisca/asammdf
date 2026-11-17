@@ -1,10 +1,8 @@
 """MDF v2 and v3 constants"""
 
-from collections.abc import Callable
+from collections.abc import Buffer, Callable
 import struct
 from typing import Literal
-
-from typing_extensions import Buffer
 
 from .blocks_common import UnpackFrom
 

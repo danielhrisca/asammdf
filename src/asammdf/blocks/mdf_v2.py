@@ -1,6 +1,6 @@
 """ASAM MDF version 2 file format module"""
 
-from typing_extensions import Unpack
+from typing import Unpack
 
 from .mdf_v3 import Kwargs, MDF3
 from .types import StrPath

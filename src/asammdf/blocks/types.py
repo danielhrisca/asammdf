@@ -1,10 +1,9 @@
 from collections.abc import Sequence
 from os import PathLike
-from typing import Literal, TYPE_CHECKING, Union
+from typing import Any, Literal, TYPE_CHECKING, Union
 
 from canmatrix import CanMatrix
 from numpy.typing import NDArray
-from typing_extensions import Any
 
 if TYPE_CHECKING:
     from . import v2_v3_blocks as v3b

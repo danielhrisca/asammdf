@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from functools import partial
 from hashlib import md5
 import json
@@ -2495,7 +2495,7 @@ MultiRasterSeparator;&
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_ctime)
             else:
-                date_ = datetime.now(timezone.utc)
+                date_ = datetime.now(UTC)
             item = QtWidgets.QTreeWidgetItem()
             item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Created")
@@ -2505,7 +2505,7 @@ MultiRasterSeparator;&
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_mtime)
             else:
-                date_ = datetime.now(timezone.utc)
+                date_ = datetime.now(UTC)
             item = QtWidgets.QTreeWidgetItem()
             item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Last modified")

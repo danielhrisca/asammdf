@@ -5,12 +5,12 @@ from pathlib import Path
 import re
 from traceback import format_exc
 import typing
-from typing import Final, Literal, Union
+from typing import Final, Literal, NotRequired, Union
 
 import lxml.etree
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.utils import SignalFlags

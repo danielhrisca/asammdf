@@ -1,13 +1,11 @@
 """MDF v4 constants"""
 
-from collections.abc import Callable
+from collections.abc import Buffer, Callable
 from enum import IntEnum
 import re
 import struct
 import sys
 from typing import Literal
-
-from typing_extensions import Buffer
 
 from .blocks_common import UnpackFrom
 

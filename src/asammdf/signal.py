@@ -4,12 +4,11 @@ from collections.abc import Iterator
 import logging
 from pathlib import Path
 from textwrap import fill
-from typing import TYPE_CHECKING, Union
+from typing import Any, overload, TYPE_CHECKING, Union
 import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
-from typing_extensions import Any, overload
 
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b

@@ -11,6 +11,7 @@ except ImportError:
 
 
 from lz4.frame import compress as _lz_compress
+
 try:
     _lz_compress(b"", number_of_threads=8)
     def lz_compress(data):

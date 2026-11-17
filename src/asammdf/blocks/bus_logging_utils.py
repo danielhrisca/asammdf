@@ -1,11 +1,11 @@
 from traceback import format_exc
 import typing
-from typing import Final
+from typing import Any, Final
 
 from canmatrix import Frame, Signal
 import numpy as np
 from numpy.typing import NDArray
-from typing_extensions import Any, TypedDict
+from typing_extensions import TypedDict
 
 from . import v4_blocks as v4b
 from . import v4_constants as v4c

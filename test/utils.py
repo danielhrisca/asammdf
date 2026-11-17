@@ -1,8 +1,8 @@
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from typing_extensions import Any
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 import asammdf.blocks.v2_v3_blocks as v3b

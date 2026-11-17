@@ -1,6 +1,7 @@
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
-from typing_extensions import Any
 
 from ..signal import InvalidationArray
 from .blocks_common import UnpackFrom

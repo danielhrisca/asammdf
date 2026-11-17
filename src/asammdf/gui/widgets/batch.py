@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 import os
 from pathlib import Path
 from traceback import format_exc
@@ -1752,7 +1752,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         try:
             start_times = sorted(start_times)
         except TypeError:
-            start_times = [(st.replace(tzinfo=timezone.utc), name) for (st, name) in start_times]
+            start_times = [(st.replace(tzinfo=UTC), name) for (st, name) in start_times]
             start_times = sorted(start_times)
 
         self.files_list.clear()

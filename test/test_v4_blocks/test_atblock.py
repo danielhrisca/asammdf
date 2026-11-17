@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 from io import BytesIO
+from typing import SupportsBytes
 import unittest
-
-from typing_extensions import SupportsBytes
 
 from asammdf.blocks.utils import MdfException
 from asammdf.blocks.v4_blocks import AttachmentBlock

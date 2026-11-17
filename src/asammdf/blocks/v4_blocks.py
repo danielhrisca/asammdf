@@ -1,7 +1,7 @@
 """Classes that implement the blocks for MDF version 4"""
 
-from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from collections.abc import Buffer, Callable
+from datetime import datetime, timedelta, timezone, UTC
 from hashlib import md5
 import inspect
 import logging
@@ -13,7 +13,7 @@ from textwrap import wrap
 import time
 from traceback import format_exc
 import typing
-from typing import Final, Literal, TYPE_CHECKING, Union
+from typing import Any, Final, Literal, overload, SupportsBytes, TYPE_CHECKING, Union, Unpack
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
@@ -21,7 +21,7 @@ import dateutil.tz
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
+from typing_extensions import TypedDict
 
 from .. import tool
 from . import v4_constants as v4c
@@ -42,17 +42,17 @@ from .utils import (
     extract_display_names,
     extract_ev_tool,
     FLOAT64_u,
+    get_fmt_v4,
     get_text_v4,
     handle_incomplete_block,
     is_file_like,
     MdfException,
-    UINT8_uf,
-    UINT64_u,
-    UINT64_uf,
     NoRecordInfo,
     RecordInfo,
     SignalDataBlockInfo,
-    get_fmt_v4,
+    UINT8_uf,
+    UINT64_u,
+    UINT64_uf,
 )
 
 COMPRESSION_LEVEL = 1
@@ -6255,7 +6255,7 @@ class FileHistory:
         tz_local = False
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             tz_local = True
-            tz = timezone.utc
+            tz = UTC
         else:
             tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
@@ -6273,7 +6273,7 @@ class FileHistory:
     def time_stamp(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
-            self.abs_time = int(timestamp.replace(tzinfo=timezone.utc).timestamp() * 10**9)
+            self.abs_time = int(timestamp.replace(tzinfo=UTC).timestamp() * 10**9)
             self.tz_offset = 0
             self.daylight_save_time = 0
 
@@ -6707,7 +6707,7 @@ class HeaderBlock:
         timestamp = self.abs_time / 10**9
         tz_local = False
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            tz = timezone.utc
+            tz = UTC
             tz_local = True
         else:
             tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
@@ -6726,7 +6726,7 @@ class HeaderBlock:
     def start_time(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
-            self.abs_time = int(timestamp.replace(tzinfo=timezone.utc).timestamp() * 10**9)
+            self.abs_time = int(timestamp.replace(tzinfo=UTC).timestamp() * 10**9)
             self.tz_offset = 0
             self.daylight_save_time = 0
 

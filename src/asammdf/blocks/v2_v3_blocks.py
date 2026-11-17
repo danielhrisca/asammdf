@@ -1,7 +1,7 @@
 """Classes that implement the blocks for MDF versions 2 and 3"""
 
 from collections.abc import Iterator, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from getpass import getuser
 import logging
 from struct import pack, unpack, unpack_from
@@ -9,14 +9,14 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 import typing
-from typing import Final
+from typing import Any, Final, overload, SupportsBytes, Unpack
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import Any, overload, SupportsBytes, TypedDict, Unpack
+from typing_extensions import TypedDict
 
 from .. import tool
 from . import v2_v3_constants as v23c
@@ -2918,7 +2918,7 @@ class HeaderBlock:
                 self.time_quality = 0
                 self.timer_identification = "{:\0<32}".format("Local PC Reference Time").encode("latin-1")
 
-            self.start_time = datetime(1980, 1, 1, tzinfo=timezone.utc)
+            self.start_time = datetime(1980, 1, 1, tzinfo=UTC)
 
         self.author = self.author_field.strip(b" \r\n\t\0").decode("latin-1")
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
@@ -3078,14 +3078,14 @@ class HeaderBlock:
                 else:
                     timestamp_fmt = "{} {}".format(self.date.decode("ascii"), self.time.decode("ascii"))
 
-                    timestamp_dt = datetime.strptime(timestamp_fmt, "%d:%m:%Y %H:%M:%S").astimezone(timezone.utc)
+                    timestamp_dt = datetime.strptime(timestamp_fmt, "%d:%m:%Y %H:%M:%S").astimezone(UTC)
 
             else:
                 timestamp_fmt = "{} {}".format(self.date.decode("ascii"), self.time.decode("ascii"))
 
-                timestamp_dt = datetime.strptime(timestamp_fmt, "%d:%m:%Y %H:%M:%S").astimezone(timezone.utc)
+                timestamp_dt = datetime.strptime(timestamp_fmt, "%d:%m:%Y %H:%M:%S").astimezone(UTC)
         except:
-            return datetime.now().astimezone(timezone.utc)
+            return datetime.now().astimezone(UTC)
 
         return timestamp_dt
 

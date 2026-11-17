@@ -1,8 +1,8 @@
 from enum import IntEnum
 import os
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
-from typing_extensions import Any, TypedDict
+from typing_extensions import TypedDict
 
 from .types import StrPath
 

@@ -2,7 +2,7 @@
 
 import bisect
 from collections import defaultdict, deque
-from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from collections.abc import Buffer, Callable, Collection, Iterable, Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
@@ -21,7 +21,7 @@ import tempfile
 from tempfile import gettempdir
 from traceback import format_exc
 import typing
-from typing import BinaryIO, Final, Literal, TYPE_CHECKING
+from typing import Any, BinaryIO, Final, Literal, overload, SupportsBytes, TYPE_CHECKING, Unpack
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -54,13 +54,8 @@ from numpy import (
 from numpy.typing import DTypeLike, NDArray
 from pandas import DataFrame, Series
 from typing_extensions import (
-    Any,
-    Buffer,
-    overload,
-    SupportsBytes,
     TypedDict,
     TypeIs,
-    Unpack,
 )
 
 from .. import tool

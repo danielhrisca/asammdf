@@ -4,7 +4,7 @@ import bz2
 from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from enum import Enum
 from functools import reduce
 import gzip
@@ -21,7 +21,7 @@ from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
 import typing
-from typing import Literal, Optional, Union
+from typing import Any, Literal, LiteralString, Never, Optional, overload, Union, Unpack
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -34,7 +34,7 @@ from numpy import (
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import DataFrame
-from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
+from typing_extensions import TypedDict
 
 from . import tool
 from .blocks import mdf_v2, mdf_v3, mdf_v4
@@ -121,7 +121,7 @@ except:
     POLARS_AVAILABLE = False
 
 logger = logging.getLogger("asammdf")
-LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
+LOCAL_TIMEZONE = datetime.now(UTC).astimezone().tzinfo
 
 
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
@@ -138,10 +138,7 @@ class SearchMode(Enum):
     wildcard = "wildcard"
 
 
-if sys.version_info >= (3, 12):
-    _Quoting = Literal["ALL", "MINIMAL", "NONE", "NONNUMERIC", "NOTNULL", "STRINGS"]
-else:
-    _Quoting = Literal["ALL", "MINIMAL", "NONE", "NONNUMERIC"]
+_Quoting = Literal["ALL", "MINIMAL", "NONE", "NONNUMERIC", "NOTNULL", "STRINGS"]
 
 
 class _ExportKwargs(TypedDict, total=False):
@@ -3480,7 +3477,7 @@ class MDF:
             try:
                 oldest = min(start_times)
             except TypeError:
-                start_times = [timestamp.astimezone(timezone.utc) for timestamp in start_times]
+                start_times = [timestamp.astimezone(UTC) for timestamp in start_times]
                 oldest = min(start_times)
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in start_times]
@@ -3926,7 +3923,7 @@ class MDF:
             try:
                 oldest = min(start_times)
             except TypeError:
-                start_times = [timestamp.astimezone(timezone.utc) for timestamp in start_times]
+                start_times = [timestamp.astimezone(UTC) for timestamp in start_times]
                 oldest = min(start_times)
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in start_times]

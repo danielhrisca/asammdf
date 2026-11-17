@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 import sys
 import tempfile
+from typing import Any
 import unittest
 import urllib
 import urllib.request
@@ -14,7 +15,6 @@ import numexpr
 import numpy as np
 import numpy.typing as npt
 from pandas import DataFrame
-from typing_extensions import Any
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException

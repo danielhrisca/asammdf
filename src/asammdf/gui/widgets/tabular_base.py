@@ -59,7 +59,7 @@ except:
 Qt = QtCore.Qt
 
 logger = logging.getLogger("asammdf.gui")
-LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+LOCAL_TIMEZONE = datetime.datetime.now(datetime.UTC).astimezone().tzinfo
 
 
 MONOSPACE_FONT = None

@@ -2,9 +2,7 @@
 
 from copy import deepcopy
 import typing
-from typing import Literal
-
-from typing_extensions import overload
+from typing import Literal, overload
 
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c

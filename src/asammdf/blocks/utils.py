@@ -1,7 +1,7 @@
 """asammdf utility functions and classes"""
 
 from collections import namedtuple
-from collections.abc import Callable, Iterator
+from collections.abc import Buffer, Callable, Iterator
 from functools import lru_cache
 import importlib
 import logging
@@ -19,7 +19,7 @@ from tempfile import gettempdir, NamedTemporaryFile, TemporaryDirectory
 from time import perf_counter
 from types import TracebackType
 import typing
-from typing import Final, Literal, Optional, Union
+from typing import Any, Final, Literal, LiteralString, Optional, overload, Protocol, Union, Unpack
 import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
@@ -31,17 +31,11 @@ from numpy.typing import NDArray
 import pandas as pd
 from pandas import Series
 from typing_extensions import (
-    Any,
-    Buffer,
-    LiteralString,
-    overload,
     ParamSpec,
-    Protocol,
     runtime_checkable,
     TypedDict,
     TypeIs,
     TypeVar,
-    Unpack,
 )
 
 from . import v2_v3_constants as v3c

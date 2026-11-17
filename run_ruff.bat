@@ -1,3 +1,3 @@
-pip install ruff~=0.15.0 && ^
+pip install ruff && ^
 ruff check --fix && ^
 ruff format

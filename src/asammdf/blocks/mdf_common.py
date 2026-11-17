@@ -3,11 +3,11 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
 import logging
 from pathlib import Path
-from typing import Generic
+from typing import Any, Generic, Required
 
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
-from typing_extensions import Any, Required, TypedDict, TypeVar
+from typing_extensions import TypedDict, TypeVar
 
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b
@@ -49,10 +49,10 @@ _ST = TypeVar("_ST", list[int], list[int] | list[tuple[int, int]] | np.dtype[Any
 
 class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
+        "_data_blocks",
         "channel_dependencies",
         "channel_group",
         "channels",
-        "_data_blocks",
         "data_group",
         "data_location",
         "index",

@@ -1,7 +1,7 @@
 """ASAM MDF version 3 file format module"""
 
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Buffer, Callable, Iterable, Iterator, Sequence
 from datetime import datetime
 from functools import lru_cache
 from itertools import product
@@ -14,7 +14,7 @@ import sys
 import time
 from traceback import format_exc
 import typing
-from typing import BinaryIO, IO, Literal, TYPE_CHECKING
+from typing import Any, BinaryIO, IO, Literal, overload, SupportsBytes, TYPE_CHECKING, Unpack
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -36,7 +36,7 @@ from numpy import (
 )
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 from pandas import DataFrame
-from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
+from typing_extensions import TypedDict
 
 from .. import tool
 from ..signal import Signal
