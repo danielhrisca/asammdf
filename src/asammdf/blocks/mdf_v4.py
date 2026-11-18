@@ -3754,7 +3754,6 @@ class MDF4(MDF_Common[Group]):
         gp.signal_types = gp_sig_types
         gp.uses_ld = True
         gp.sorted = True
-        record = gp.record = []
 
         timestamps = signals[0].timestamps
 
@@ -4493,7 +4492,6 @@ class MDF4(MDF_Common[Group]):
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
-        record = gp.record = []
 
         cycles_nr = len(t)
 
