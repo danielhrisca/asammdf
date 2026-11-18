@@ -1355,36 +1355,36 @@ class WithMDIArea:
 
             if isinstance(widget, Tabular):
                 dfs = []
-
+                selections = {}
+                restored = set()
                 for uuid in uuids:
-                    uuids_signals = [
-                        (entry["name"], entry["group_index"], entry["channel_index"])
-                        for entry in signals_
-                        if entry["origin_uuid"] == uuid
-                    ]
-
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
                         continue
+                    file_index, file = file_info
+                    additions = [
+                        (entry["name"], entry["group_index"], entry["channel_index"])
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
+                        and entry["channel_index"] != file.mdf.masters_db.get(entry["group_index"])
+                    ]
+                    if not additions:
+                        continue
+                    # Read the complete selection for this file on a common raster.
+                    # MDF applies the configured interpolation before cells are formatted for display.
+                    channels = list(dict.fromkeys([*widget.channel_selection.get(uuid, ()), *additions]))
+                    selections[uuid] = channels
+                    df = self._tabular_file_dataframe(file_index, file, channels)
+                    prefix = f"{file_index + 1}: " if self.comparison else ""
+                    restored.update(prefix + name for name, _, _ in additions)
+                    dfs.append(df)
 
-                    _file_index, file = file_info
-
-                    selected_signals = file.mdf.to_dataframe(
-                        channels=uuids_signals,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        time_from_zero=False,
-                        use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
-                    )
-
-                    dfs.append(selected_signals)
-
-                signals = pd.concat(dfs, axis=1)
-
-                for name in signals.columns:
-                    if name.endswith(".ID"):
-                        signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
-
-                widget.add_new_channels(signals)
+                if dfs:
+                    deleted = widget.tree.pgdf.deleted_columns - restored
+                    signals = pd.concat(dfs, axis=1).drop(columns=list(deleted), errors="ignore")
+                    widget.add_new_channels(signals)
+                    widget.channel_selection.update(selections)
+                    widget.tree.pgdf.deleted_columns = deleted
 
             elif isinstance(widget, Numeric):
                 signals = []
@@ -3194,6 +3194,22 @@ class WithMDIArea:
 
         return w, plot
 
+    def _tabular_file_dataframe(self, file_index, file, channels, empty_channels="zeros"):
+        df = file.mdf.to_dataframe(
+            channels=channels,
+            ignore_value2text_conversions=self.ignore_value2text_conversions,
+            time_from_zero=False,
+            empty_channels=empty_channels,
+            use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
+        )
+        if self.comparison:
+            df.rename(columns={name: f"{file_index + 1}: {name}" for name in df.columns}, inplace=True)
+        for name in df.columns:
+            if name.endswith(".ID"):
+                dtype = "UInt32" if df[name].isna().any() else "<u4"
+                df[name] = df[name].astype(dtype) & 0x1FFFFFFF
+        return df
+
     def _add_tabular_window(self, names):
         if names and isinstance(names[0], str):
             signals_ = [
@@ -3231,6 +3247,7 @@ class WithMDIArea:
         uuids = {entry["origin_uuid"] for entry in signals_}
 
         dfs = []
+        selections = {}
         ranges = {}
         start = []
 
@@ -3282,19 +3299,8 @@ class WithMDIArea:
 
             uuids_signals = [entry for entry in uuids_signals if entry[2] != file.mdf.masters_db.get(entry[1], None)]
 
-            df = file.mdf.to_dataframe(
-                channels=uuids_signals,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                time_from_zero=False,
-                empty_channels="zeros",
-                use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
-            )
-
-            if self.comparison:
-                columns = {name: f"{file_index + 1}: {name}" for name in df.columns}
-                df.rename(columns=columns, inplace=True)
-
-            dfs.append(df)
+            selections[uuid] = uuids_signals
+            dfs.append(self._tabular_file_dataframe(file_index, file, uuids_signals))
 
         if not dfs:
             signals = pd.DataFrame()
@@ -3307,13 +3313,7 @@ class WithMDIArea:
 
             start = min(start)
 
-        for name in signals.columns:
-            if name.endswith(
-                ".ID",
-            ):
-                signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
-
-        tabular = Tabular(signals, start=start, parent=self, ranges=ranges, owner=self)
+        tabular = Tabular(signals, start=start, parent=self, ranges=ranges, owner=self, channel_selection=selections)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
@@ -4371,12 +4371,8 @@ class WithMDIArea:
             if not signals_:
                 return None, False
 
-        signals = self.mdf.to_dataframe(
-            channels=signals_,
-            time_from_zero=False,
-            ignore_value2text_conversions=self.ignore_value2text_conversions,
-            use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
-        )
+        file_index, file = self.file_by_uuid(uuid)
+        signals = self._tabular_file_dataframe(file_index, file, signals_, empty_channels="skip")
 
         found = set(signals.columns)
         dim = len(signals.index)
@@ -4392,6 +4388,7 @@ class WithMDIArea:
             start=self.mdf.header.start_time,
             parent=self,
             owner=self,
+            channel_selection={uuid: signals_},
         )
         tabular.pattern = pattern_info
 

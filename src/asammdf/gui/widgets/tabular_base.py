@@ -29,6 +29,7 @@
 import bisect
 import datetime
 import logging
+import re
 from traceback import format_exc
 import warnings
 
@@ -61,6 +62,8 @@ Qt = QtCore.Qt
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.UTC).astimezone().tzinfo
 
+
+DATA_BYTES = re.compile(r"(?P<data>.*?Data ?)Bytes(?P<cntr>_\d+)?")
 
 MONOSPACE_FONT = None
 
@@ -160,6 +163,7 @@ class DataFrameStorage:
         self.filter_viewer = None
 
         self.filters = []
+        self.deleted_columns = set()
         self.filtered_index_map = df.reset_index().index
 
         self.data_changed()
@@ -176,11 +180,15 @@ class DataFrameStorage:
     def delete_column(self, ix):
         col_name = self.df_unfiltered.columns[ix]
         self.df_unfiltered = self.df_unfiltered.drop(col_name, axis=1)
+        self.deleted_columns.add(col_name)
+        if col_name == self.sorted_column_name:
+            self.sorted_column_name = None
+            self.sort_state = "None"
 
         # Need to inform the PyQt model too so column widths properly shift
         self.dataframe_viewer._remove_column(ix)
 
-        self.parent.apply_filters()
+        self.tabular.apply_filters()
 
     def move_column(self, src, dest):
         cols = list(self.df_unfiltered.columns)
@@ -1379,71 +1387,33 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree.pgdf.df_unfiltered.rename(columns=original_names, inplace=True)
 
-    def add_new_channels(self, signals, mime_data=None):
-        if len(self.tree.pgdf.df_unfiltered) != len(self.tree.pgdf.df):
-            filtered = True
-        else:
-            filtered = False
-
-        index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
-        signals["Index"] = index
-
-        signals.set_index(index, inplace=True)
-        dropped = {}
-
-        ranges = dict(zip(self.tree.pgdf.df_unfiltered.columns, self.ranges.values(), strict=False))
-
-        for name_ in signals.columns:
-            col = signals[name_]
-            if col.dtype.kind == "O":
-                if name_.endswith("DataBytes"):
-                    try:
-                        sizes = signals[name_.replace("DataBytes", "DataLength")]
-                    except:
-                        sizes = None
-                    dropped[name_] = pd.Series(
-                        csv_bytearray2hex(
-                            col,
-                            sizes,
-                        ),
-                        index=signals.index,
-                    )
-
-                elif name_.endswith("Data Bytes"):
-                    try:
-                        sizes = signals[name_.replace("Data Bytes", "Data Length")]
-                    except:
-                        sizes = None
-                    dropped[name_] = pd.Series(
-                        csv_bytearray2hex(
-                            col,
-                            sizes,
-                        ),
-                        index=signals.index,
-                    )
-
-                elif col.dtype.name != "category":
-                    try:
-                        dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
-                    except:
-                        pass
-
-                self.signals_descr[name_] = 0
-
-            elif col.dtype.kind == "S":
+    @staticmethod
+    def _format_channel_values(signals):
+        formatted = {}
+        for name, column in signals.items():
+            if column.dtype.kind == "O" and (match := DATA_BYTES.fullmatch(name)):
+                length_name = f"{match['data']}Length{match['cntr'] or ''}"
+                present = column.notna()
+                sizes = None
+                if length_name in signals:
+                    sizes = [None if pd.isna(size) else int(size) for size in signals.loc[present, length_name]]
+                payloads = column.copy()
+                payloads.loc[present] = csv_bytearray2hex(column.loc[present], sizes)
+                formatted[name] = payloads
+            elif column.dtype.kind == "S":
                 try:
-                    dropped[name_] = pd.Series(npchar.decode(col, "utf-8"), index=signals.index)
-                except:
-                    dropped[name_] = pd.Series(npchar.decode(col, "latin-1"), index=signals.index)
-                self.signals_descr[name_] = 0
-            else:
-                self.signals_descr[name_] = 0
+                    formatted[name] = npchar.decode(column, "utf-8")
+                except UnicodeDecodeError:
+                    formatted[name] = npchar.decode(column, "latin-1")
+        return signals.assign(**formatted)
 
-            ranges[name_] = []
-
-        signals = signals.drop(columns=["Index", *list(dropped)])
-        for name, s in dropped.items():
-            signals[name] = s
+    def add_new_channels(self, signals, mime_data=None):
+        storage = self.tree.pgdf
+        ranges = self.ranges.copy()
+        signals = self._format_channel_values(signals)
+        for name in signals.columns:
+            self.signals_descr[name] = 0
+            ranges.setdefault(name, [])
 
         names = list(signals.columns)
         names = [
@@ -1452,16 +1422,39 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
         signals = signals[names]
 
-        df = pd.concat([self.tree.pgdf.df_unfiltered, signals], axis=1)
-        df.cached_size = df.shape
+        # The table uses integer row IDs for display and filtering. Join on the
+        # original sample times even when the visible table is sorted or shows dates.
+        existing = storage.df_unfiltered
+        existing = existing.set_index(self._original_ts_series.reindex(existing.index))
+        # MDF.to_dataframe keeps the first sample at a repeated timestamp.
+        if not existing.index.is_unique:
+            existing = existing.loc[~existing.index.duplicated()]
+        if not signals.index.is_unique:
+            signals = signals.loc[~signals.index.duplicated()]
+        columns = existing.columns.union(signals.columns, sort=False)
+        existing = existing.drop(columns=signals.columns, errors="ignore")
+        df = pd.concat([existing, signals], axis=1, sort=True).reindex(columns=columns)
 
-        self.tree.pgdf.df_unfiltered = self.tree.pgdf.df = df
+        timestamps = pd.Series(df.index.to_numpy(), index=np.arange(len(df), dtype="u8"), name="timestamps")
+        df.index = timestamps.index
+        self._original_timestamps = self._original_ts_series = timestamps
+        if self.time_as_date.isChecked():
+            df["timestamps"] = self.start + pd.to_timedelta(timestamps, unit="s")
+        else:
+            df["timestamps"] = timestamps
+
+        if storage.sorted_index_level is not None:
+            df = df.sort_index(ascending=storage.sort_state == "Asc")
+        elif storage.sorted_column_name is not None:
+            df = df.sort_values(storage.sorted_column_name, ascending=storage.sort_state == "Asc", kind="mergesort")
+        df.cached_size = df.shape
+        storage.df_unfiltered = storage.df = df
         self.ranges = ranges
 
-        if filtered:
+        if self.query.toPlainText():
             self.apply_filters()
         else:
-            self.tree.pgdf.data_changed()
+            storage.data_changed()
 
         self.tree.auto_size_header()
         self.tree.update_horizontal_scroll()
