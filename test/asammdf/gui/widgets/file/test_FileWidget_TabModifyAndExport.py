@@ -4,6 +4,7 @@ from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
+from asammdf import MDF, Signal, Source
 from test.asammdf.gui.test_base import OpenMDF
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
@@ -12,6 +13,56 @@ from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestTabModifyAndExport(TestFileWidget):
+    def test_lab_filter_round_trip(self):
+        path = pathlib.Path(self.test_workspace, "axle.mf4")
+        lab = path.with_suffix(".lab")
+        speed = Signal(name="ABS_FrontAxleSpeed", samples=[12], timestamps=[0.0])
+        literal = Signal(name="ABS —— None", samples=[1], timestamps=[0.0])
+        abs_signal = Signal(name="ABS", samples=[1], timestamps=[0.0])
+        abs_can = Signal(name="ABS —— CAN", samples=[2], timestamps=[0.0])
+        with MDF() as mdf:
+            mdf.append([speed, literal, abs_signal, abs_can])
+            mdf.append(
+                [speed, abs_signal], acq_source=Source("CAN", "CAN —— None", "", Source.SOURCE_BUS, Source.BUS_TYPE_CAN)
+            )
+            mdf.save(path)
+        self.addCleanup(self.settings.setValue, "test/natural_sort_old", self.settings.value("test/natural_sort_old"))
+        self.settings.setValue("test/natural_sort_old", False)
+        self.setUpFileWidget(measurement_file=path, default=True)
+        self.widget.aspects.setCurrentIndex(1)
+        self.widget.filter_view.setCurrentText("Natural sort")
+        entry = self.widget.mdf.whereis(speed.name)[0]
+        item = next(
+            item
+            for index in range(self.widget.filter_tree.topLevelItemCount())
+            if (item := self.widget.filter_tree.topLevelItem(index)).entry == entry
+        )
+        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
+
+        with (
+            mock.patch.object(QtWidgets.QFileDialog, "getSaveFileName", return_value=(str(lab), "")),
+            mock.patch.object(QtWidgets.QInputDialog, "getText", return_value=("lab", True)),
+        ):
+            self.widget.save_filter_list()
+
+        self.widget.clear_filter()
+        self.widget.load_filter_list(file_name=lab)
+        with self.subTest("new export"):
+            self.assertEqual(lab.read_text().splitlines()[-1], speed.name)
+            self.assertEqual(self.widget._selected_filter, {entry: speed.name})
+
+        # "ABS —— CAN —— None" could describe either ABS on "CAN —— None"
+        # or "ABS —— CAN" with no bus. The exact MDF name "ABS —— None" wins.
+        lab.write_text(
+            f"[lab]\n{speed.name} —— None      \n{speed.name} —— CAN —— None\n{literal.name}\nABS —— CAN —— None\n"
+        )
+        self.widget.clear_filter()
+        self.widget.load_filter_list(file_name=lab)
+        with self.subTest("older export"):
+            expected = dict.fromkeys(self.widget.mdf.whereis(speed.name), speed.name)
+            expected[self.widget.mdf.whereis(literal.name)[0]] = literal.name
+            self.assertEqual(self.widget._selected_filter, expected)
+
     def test_PushButton_ScrambleTexts(self):
         """
         Events:

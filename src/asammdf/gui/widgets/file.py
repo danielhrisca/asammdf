@@ -1544,25 +1544,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if file_name:
             file_name = Path(file_name)
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
-
-            signals = []
-            if self.filter_view.currentText() == "Internal file structure":
-                while item := iterator.value():
-                    iterator += 1
-
-                    if item.parent() is None:
-                        continue
-
-                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.text(0))
-            else:
-                while item := iterator.value():
-                    iterator += 1
-
-                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.text(0))
-
             suffix = file_name.suffix.lower()
             if suffix == ".lab":
                 section_name, ok = QtWidgets.QInputDialog.getText(
@@ -1581,7 +1562,23 @@ MultiRasterSeparator;&
 
 """)
                     output.write(f"[{section_name}]\n")
-                output.write("\n".join(natsorted(signals)))
+                output.write("\n".join(natsorted(self._selected_filter.values())))
+
+    def _legacy_lab_filter_channel(self, label):
+        # Older exports saved the natural-sort label, including its acquisition
+        # bus. Either component can itself contain the separator.
+        match = None
+        for separator in re.finditer(" —— ", label):
+            name = label[: separator.start()]
+            bus = label[separator.end() :]
+            for entry in self.mdf.channels_db.get(name, ()):
+                group = self.mdf.groups[entry[0]]
+                source = group.channel_group.acq_source
+                if bus == ((source.path if source else None) or "None").rstrip():
+                    if match is not None:
+                        return None
+                    match = entry, name
+        return match
 
     def load_filter_list(self, event=None, file_name=None):
         if file_name is None:
@@ -1602,29 +1599,32 @@ MultiRasterSeparator;&
             ):
                 return
 
+        is_lab = False
         if not isinstance(file_name, dict):
             file_name = Path(file_name)
 
-            if file_name.suffix.lower() == ".lab":
+            is_lab = file_name.suffix.lower() == ".lab"
+            if is_lab:
                 info = load_lab(file_name)
-                if info:
-                    if len(info) > 1:
-                        lab_section, ok = QtWidgets.QInputDialog.getItem(
-                            self,
-                            "Please select the ASAP section name",
-                            "Available sections:",
-                            list(info),
-                            0,
-                            False,
-                        )
-                        if ok:
-                            channels = info[lab_section]
-                        else:
-                            return
+                if not info:
+                    return
+                if len(info) > 1:
+                    lab_section, ok = QtWidgets.QInputDialog.getItem(
+                        self,
+                        "Please select the ASAP section name",
+                        "Available sections:",
+                        list(info),
+                        0,
+                        False,
+                    )
+                    if ok:
+                        channels = info[lab_section]
                     else:
-                        channels = list(info.values())[0]
+                        return
+                else:
+                    channels = list(info.values())[0]
 
-                    channels = [name.split(";")[0] for name in channels]
+                channels = [name.split(";")[0] for name in channels]
 
             else:
                 channels = load_channel_names_from_file(file_name)
@@ -1639,6 +1639,9 @@ MultiRasterSeparator;&
             if channel in channels_db:
                 entry = channels_db[channel][0]
                 _channels[entry] = channel
+            elif is_lab and (legacy := self._legacy_lab_filter_channel(channel)):
+                entry, name = legacy
+                _channels[entry] = name
 
         channels = _channels
 
