@@ -486,32 +486,590 @@ class AttachmentBlock:
         return f"ATBLOCK(address={self.address:x}, file_name={self.file_name}, comment={self.comment})"
 
 
-class ChannelKwargs(BlockKwargs, total=False):
-    at_map: dict[int, int]
-    parsed_strings: tuple[str, dict[str, str], str] | None
-    use_display_names: bool
-    cc_map: dict[bytes | int, "ChannelConversion"]
-    si_map: dict[Union[bytes, int, "Source"], "SourceInformation"]
-    channel_type: int
-    sync_type: int
-    data_type: int
-    bit_offset: int
-    byte_offset: int
-    bit_count: int
+class _ChannelArrayBlockBase:
+    __slots__ = (
+        "address",
+        "axis_channels",
+        "axis_conversions",
+        "block_len",
+        "byte_offset_base",
+        "ca_type",
+        "comparison_quantity_channel",
+        "dims",
+        "dynamic_size_channels",
+        "flags",
+        "id",
+        "input_quantity_channels",
+        "invalidation_bit_base",
+        "links_nr",
+        "output_quantity_channel",
+        "reserved0",
+        "storage",
+    )
+
+
+class ChannelArrayBlockKwargs(BlockKwargs, total=False):
+    ca_type: int
+    dims: int
+    dim_size_0: int
     flags: int
-    pos_invalidation_bit: int
-    precision: int
-    min_raw_value: float
-    max_raw_value: float
-    lower_limit: float
-    upper_limit: float
-    lower_ext_limit: float
-    upper_ext_limit: float
-    attachment_addr: int
+    byte_offset_base: int
+    invalidation_bit_base: int
     file_limit: int | float
-    dtype: np.dtype[Any] | None
-    index: int
-    group: int
+    cc_map: dict[bytes | int, "ChannelConversion"]
+
+
+class ChannelArrayBlock(_ChannelArrayBlockBase):
+    """
+    Other attributes:
+
+    * ``address`` - int : array block address
+    * ``axis_channels`` - list : list of (group index, channel index)
+      pairs referencing the axis of this array block
+    * ``dynamic_size_channels`` - list : list of (group index, channel index)
+      pairs referencing the axis dynamic size of this array block
+    * ``input_quantity_channels`` - list : list of (group index, channel index)
+      pairs referencing the input quantity channels of this array block
+    * ``output_quantity_channels`` - tuple | None : (group index, channel index)
+      pair referencing the output quantity channel of this array block
+    * ``comparison_quantity_channel`` - tuple | None : (group index, channel index)
+      pair referencing the comparison quantity channel of this array block
+    """
+
+    def __init__(self, **kwargs: Unpack[ChannelArrayBlockKwargs]) -> None:
+        self.axis_channels: list[tuple[int, int] | None] = []
+        self.dynamic_size_channels: list[tuple[int, int] | None] = []
+        self.input_quantity_channels: list[tuple[int, int] | None] = []
+        self.output_quantity_channel: tuple[int, int] | None = None
+        self.comparison_quantity_channel: tuple[int, int] | None = None
+
+        try:
+            self.address = address = kwargs["address"]
+
+            stream = kwargs["stream"]
+
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+
+            cc_map = kwargs["cc_map"]
+            file_limit = kwargs["file_limit"]
+
+            if address + COMMON_SIZE > file_limit:
+                handle_incomplete_block(address, file_limit)
+                raise KeyError
+
+            if mapped:
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
+
+                if self.id != b"##CA":
+                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                nr = self.links_nr
+                address += COMMON_SIZE
+                links: tuple[int, ...] = unpack_from(f"<{nr}Q", stream, address)
+                self.composition_addr = links[0]
+                links = links[1:]
+
+                address += nr * 8
+                values: tuple[int, int, int, int, int, int] = unpack_from("<2BHIiI", stream, address)
+                dims_nr = values[2]
+
+                (
+                    self.ca_type,
+                    self.storage,
+                    self.dims,
+                    self.flags,
+                    self.byte_offset_base,
+                    self.invalidation_bit_base,
+                ) = values
+
+                address += 16
+                dim_sizes: tuple[int, ...] = unpack_from(f"<{dims_nr}Q", stream, address)
+                for i, size in enumerate(dim_sizes):
+                    self[f"dim_size_{i}"] = size
+
+                stream.seek(address + dims_nr * 8)
+
+                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+                    data_links_nr = 1
+                    for size in dim_sizes:
+                        data_links_nr *= size
+
+                    for i in range(data_links_nr):
+                        self[f"data_link_{i}"] = links[i]
+
+                    links = links[data_links_nr:]
+
+                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                    for i in range(dims_nr):
+                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
+                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                    for i in range(dims_nr):
+                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
+                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                    self.output_quantity_dg_addr = links[0]
+                    self.output_quantity_cg_addr = links[1]
+                    self.output_quantity_ch_addr = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                    self.comparison_quantity_dg_addr = links[0]
+                    self.comparison_quantity_cg_addr = links[1]
+                    self.comparison_quantity_ch_addr = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_AXIS:
+                    for i in range(dims_nr):
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                (size,) = UINT64_uf(stream, address + 8)
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                raw_bytes = stream[address : address + size]
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+
+                    links = links[dims_nr:]
+
+                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                    for i in range(dims_nr):
+                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
+                            (value,) = FLOAT64_u(stream.read(8))
+                            self[f"axis_{i}_value_{j}"] = value
+            else:
+                stream.seek(address)
+
+                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(24))
+
+                if self.id != b"##CA":
+                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                nr = self.links_nr
+                links = unpack(f"<{nr}Q", stream.read(8 * nr))
+                self.composition_addr = links[0]
+                links = links[1:]
+
+                values = unpack("<2BHIiI", stream.read(16))
+                dims_nr = values[2]
+
+                (
+                    self.ca_type,
+                    self.storage,
+                    self.dims,
+                    self.flags,
+                    self.byte_offset_base,
+                    self.invalidation_bit_base,
+                ) = values
+
+                dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
+                for i, size in enumerate(dim_sizes):
+                    self[f"dim_size_{i}"] = size
+
+                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+                    data_links_nr = 1
+                    for size in dim_sizes:
+                        data_links_nr *= size
+
+                    for i in range(data_links_nr):
+                        self[f"data_link_{i}"] = links[i]
+
+                    links = links[data_links_nr:]
+
+                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                    for i in range(dims_nr):
+                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
+                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                    for i in range(dims_nr):
+                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
+                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                    self.output_quantity_dg_addr = links[0]
+                    self.output_quantity_cg_addr = links[1]
+                    self.output_quantity_ch_addr = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                    self.comparison_quantity_dg_addr = links[0]
+                    self.comparison_quantity_cg_addr = links[1]
+                    self.comparison_quantity_ch_addr = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_AXIS:
+                    current_address = stream.tell()
+                    for i in range(dims_nr):
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                stream.seek(address + 8)
+
+                                (size,) = UINT64_uf(stream.read(8))
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                stream.seek(address)
+                                raw_bytes = stream.read(size)
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+
+                    links = links[dims_nr:]
+
+                    stream.seek(current_address)
+
+                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+
+                    links = links[dims_nr * 3 :]
+
+                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                    for i in range(dims_nr):
+                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
+                            (value,) = FLOAT64_u(stream.read(8))
+                            self[f"axis_{i}_value_{j}"] = value
+
+        except KeyError:
+            self.id = b"##CA"
+            self.reserved0 = 0
+            self.address = 0
+
+            ca_type = kwargs["ca_type"]
+
+            if ca_type == v4c.CA_TYPE_ARRAY:
+                dims_nr = kwargs["dims"]
+                self.block_len = 48 + dims_nr * 8
+                self.links_nr = 1
+                self.composition_addr = 0
+                self.ca_type = v4c.CA_TYPE_ARRAY
+                self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
+                self.dims = dims_nr
+                self.flags = 0
+                self.byte_offset_base = kwargs.get("byte_offset_base", 1)
+                self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
+                for i in range(dims_nr):
+                    self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
+            elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
+                self.block_len = 56
+                self.links_nr = 1
+                self.composition_addr = 0
+                self.ca_type = v4c.CA_TYPE_SCALE_AXIS
+                self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
+                self.dims = 1
+                self.flags = 0
+                self.byte_offset_base = kwargs.get("byte_offset_base", 1)
+                self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
+                self.dim_size_0 = kwargs["dim_size_0"]
+
+            elif ca_type == v4c.CA_TYPE_LOOKUP:
+                flags = kwargs["flags"]
+                dims_nr = kwargs["dims"]
+                dim_size_sum = sum(kwargs[f"dim_size_{i}"] for i in range(dims_nr))  # type: ignore[literal-required]
+                if flags & v4c.FLAG_CA_FIXED_AXIS:
+                    self.block_len = 48 + dims_nr * 16 + dim_size_sum * 8
+                    self.links_nr = 1 + dims_nr
+                    self.composition_addr = 0
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
+                    self.ca_type = v4c.CA_TYPE_LOOKUP
+                    self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
+                    self.dims = dims_nr
+                    self.flags = v4c.FLAG_CA_FIXED_AXIS | v4c.FLAG_CA_AXIS
+                    self.byte_offset_base = kwargs.get("byte_offset_base", 1)
+                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
+                    for i in range(dims_nr):
+                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
+                    for i in range(dims_nr):
+                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
+                            self[f"axis_{i}_value_{j}"] = kwargs.get(f"axis_{i}_value_{j}", j)
+                else:
+                    self.block_len = 48 + dims_nr * 5 * 8
+                    self.links_nr = 1 + dims_nr * 4
+                    self.composition_addr = 0
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = 0
+                        self[f"scale_axis_{i}_cg_addr"] = 0
+                        self[f"scale_axis_{i}_ch_addr"] = 0
+                    self.ca_type = v4c.CA_TYPE_LOOKUP
+                    self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
+                    self.dims = dims_nr
+                    self.flags = v4c.FLAG_CA_AXIS
+                    self.byte_offset_base = kwargs.get("byte_offset_base", 1)
+                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
+                    for i in range(dims_nr):
+                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def __setitem__(self, item: str, value: object) -> None:
+        setattr(self, item, value)
+
+    def __str__(self) -> str:
+        return f"<ChannelArrayBlock (referenced channels: {self.axis_channels}, address: {hex(self.address)}, fields: {inspect.getmembers(self)})>"
+
+    def __bytes__(self) -> bytes:
+        flags = self.flags
+        dims_nr = self.dims
+
+        keys: tuple[str, ...] = (
+            "id",
+            "reserved0",
+            "block_len",
+            "links_nr",
+            "composition_addr",
+        )
+
+        if self.storage:
+            dim_sizes = [typing.cast(int, self[f"dim_size_{i}"]) for i in range(dims_nr)]
+
+            data_links_nr = 1
+            for size in dim_sizes:
+                data_links_nr *= size
+        else:
+            dim_sizes = []
+            data_links_nr = 0
+
+        if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+            keys += tuple(f"data_link_{i}" for i in range(data_links_nr))
+
+        if flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+            for i in range(dims_nr):
+                keys += (
+                    f"dynamic_size_{i}_dg_addr",
+                    f"dynamic_size_{i}_cg_addr",
+                    f"dynamic_size_{i}_ch_addr",
+                )
+
+        if flags & v4c.FLAG_CA_INPUT_QUANTITY:
+            for i in range(dims_nr):
+                keys += (
+                    f"input_quantity_{i}_dg_addr",
+                    f"input_quantity_{i}_cg_addr",
+                    f"input_quantity_{i}_ch_addr",
+                )
+
+        if flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+            keys += (
+                "output_quantity_dg_addr",
+                "output_quantity_cg_addr",
+                "output_quantity_ch_addr",
+            )
+
+        if flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+            keys += (
+                "comparison_quantity_dg_addr",
+                "comparison_quantity_cg_addr",
+                "comparison_quantity_ch_addr",
+            )
+
+        if flags & v4c.FLAG_CA_AXIS:
+            keys += tuple(f"axis_conversion_{i}_addr" for i in range(dims_nr))
+
+        if (flags & v4c.FLAG_CA_AXIS) and not (flags & v4c.FLAG_CA_FIXED_AXIS):
+            for i in range(dims_nr):
+                keys += (
+                    f"scale_axis_{i}_dg_addr",
+                    f"scale_axis_{i}_cg_addr",
+                    f"scale_axis_{i}_ch_addr",
+                )
+
+        keys += (
+            "ca_type",
+            "storage",
+            "dims",
+            "flags",
+            "byte_offset_base",
+            "invalidation_bit_base",
+        )
+
+        keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
+
+        if flags & v4c.FLAG_CA_FIXED_AXIS:
+            keys += tuple(
+                f"axis_{i}_value_{j}" for i in range(dims_nr) for j in range(typing.cast(int, self[f"dim_size_{i}"]))
+            )
+
+            dim_sizes = [1 for i in range(dims_nr) for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
+
+        if self.storage:
+            keys += tuple(f"cycle_count_{i}" for i in range(data_links_nr))
+
+        fmt = f"<4sI{self.links_nr + 2}Q2BHIiI{dims_nr}Q{sum(dim_sizes)}d{data_links_nr}Q"
+
+        result = pack(fmt, *[getattr(self, key) for key in keys])
+        return result
+
+    def get_axes_information(self) -> list:
+        axes = []
+
+        for i in range(self.dims):
+            info = {}
+
+            match self.ca_type:
+                case v4c.CA_TYPE_ARRAY:
+                    info["type"] = "NO_AXIS"
+                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case v4c.CA_TYPE_SCALE_AXIS:
+                    info["type"] = "SCALE_AXIS"
+                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case _:
+                    if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                        info["type"] = "FIXED_AXIS"
+                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+                        info["values"] = [
+                            self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))
+                        ]
+
+                    else:
+                        info["type"] = "REF_AXIS"
+                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
+                        info["ref"] = self.axis_channels[i]
+                        info["ref_name"] = ""
+
+            if self.flags & v4c.FLAG_CA_AXIS:
+                info["conversion"] = self[f"axis_conversion_{i}"]
+            else:
+                info["conversion"] = None
+
+            info["inverse_layout"] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
+            info["byte_offset_base"] = self.byte_offset_base
+            info["dtype_field_name"] = ""
+
+            axes.append(info)
+
+        return axes
+
+    def get_byte_offset_factors(self) -> list[int]:
+        """Return a list of factors f(d), used to calculate byte offset."""
+        return self._factors(self.byte_offset_base)
+
+    def get_bit_pos_inval_factors(self) -> list[int]:
+        """Return a list of factors f(d), used to calculate invalidation bit
+        position.
+        """
+        return self._factors(self.invalidation_bit_base)
+
+    def _factors(self, base: int) -> list[int]:
+        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
+            # column oriented layout: the first dimension varies fastest
+            order = range(self.dims)
+        else:
+            # row oriented layout: the last dimension varies fastest
+            order = range(self.dims - 1, -1, -1)
+
+        factors = [0] * self.dims
+        factor = base
+        for i in order:
+            factors[i] = factor
+            factor *= typing.cast(int, self[f"dim_size_{i}"])
+
+        return factors
+
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        cc_map: dict[bytes | int, int],
+    ) -> int:
+        if self.flags & v4c.FLAG_CA_AXIS:
+            for i in range(self.dims):
+                conversion = self[f"axis_conversion_{i}"]
+                if conversion:
+                    address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+                    self[f"axis_conversion_{i}_addr"] = conversion.address
+                else:
+                    self[f"axis_conversion_{i}_addr"] = 0
+
+        blocks.append(self)
+
+        self.address = address
+        address += self.block_len
+
+        return address
 
 
 CN = b"##CN"
@@ -617,6 +1175,7 @@ class Channel:
         "comment",
         "comment_addr",
         "component_addr",
+        "composition",
         "conversion",
         "conversion_addr",
         "conversions",
@@ -663,6 +1222,7 @@ class Channel:
         self.signal_data: list[SignalDataBlockInfo] | None = None
         self.record_info = NoRecordInfo
         self.index = self.group = 0
+        self.composition : list[Channel | ChannelArrayBlock] | None = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
@@ -1663,590 +2223,33 @@ unit: {self.unit}
             )
 
 
-class _ChannelArrayBlockBase:
-    __slots__ = (
-        "address",
-        "axis_channels",
-        "axis_conversions",
-        "block_len",
-        "byte_offset_base",
-        "ca_type",
-        "comparison_quantity_channel",
-        "dims",
-        "dynamic_size_channels",
-        "flags",
-        "id",
-        "input_quantity_channels",
-        "invalidation_bit_base",
-        "links_nr",
-        "output_quantity_channel",
-        "reserved0",
-        "storage",
-    )
-
-
-class ChannelArrayBlockKwargs(BlockKwargs, total=False):
-    ca_type: int
-    dims: int
-    dim_size_0: int
-    flags: int
-    byte_offset_base: int
-    invalidation_bit_base: int
-    file_limit: int | float
+class ChannelKwargs(BlockKwargs, total=False):
+    at_map: dict[int, int]
+    parsed_strings: tuple[str, dict[str, str], str] | None
+    use_display_names: bool
     cc_map: dict[bytes | int, "ChannelConversion"]
-
-
-class ChannelArrayBlock(_ChannelArrayBlockBase):
-    """
-    Other attributes:
-
-    * ``address`` - int : array block address
-    * ``axis_channels`` - list : list of (group index, channel index)
-      pairs referencing the axis of this array block
-    * ``dynamic_size_channels`` - list : list of (group index, channel index)
-      pairs referencing the axis dynamic size of this array block
-    * ``input_quantity_channels`` - list : list of (group index, channel index)
-      pairs referencing the input quantity channels of this array block
-    * ``output_quantity_channels`` - tuple | None : (group index, channel index)
-      pair referencing the output quantity channel of this array block
-    * ``comparison_quantity_channel`` - tuple | None : (group index, channel index)
-      pair referencing the comparison quantity channel of this array block
-    """
-
-    def __init__(self, **kwargs: Unpack[ChannelArrayBlockKwargs]) -> None:
-        self.axis_channels: list[tuple[int, int] | None] = []
-        self.dynamic_size_channels: list[tuple[int, int] | None] = []
-        self.input_quantity_channels: list[tuple[int, int] | None] = []
-        self.output_quantity_channel: tuple[int, int] | None = None
-        self.comparison_quantity_channel: tuple[int, int] | None = None
-
-        try:
-            self.address = address = kwargs["address"]
-
-            stream = kwargs["stream"]
-
-            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
-
-            cc_map = kwargs["cc_map"]
-            file_limit = kwargs["file_limit"]
-
-            if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address, file_limit)
-                raise KeyError
-
-            if mapped:
-                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_uf(stream, address)
-
-                if self.id != b"##CA":
-                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
-                    logger.exception(message)
-                    raise MdfException(message)
-
-                nr = self.links_nr
-                address += COMMON_SIZE
-                links: tuple[int, ...] = unpack_from(f"<{nr}Q", stream, address)
-                self.composition_addr = links[0]
-                links = links[1:]
-
-                address += nr * 8
-                values: tuple[int, int, int, int, int, int] = unpack_from("<2BHIiI", stream, address)
-                dims_nr = values[2]
-
-                (
-                    self.ca_type,
-                    self.storage,
-                    self.dims,
-                    self.flags,
-                    self.byte_offset_base,
-                    self.invalidation_bit_base,
-                ) = values
-
-                address += 16
-                dim_sizes: tuple[int, ...] = unpack_from(f"<{dims_nr}Q", stream, address)
-                for i, size in enumerate(dim_sizes):
-                    self[f"dim_size_{i}"] = size
-
-                stream.seek(address + dims_nr * 8)
-
-                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
-                    data_links_nr = 1
-                    for size in dim_sizes:
-                        data_links_nr *= size
-
-                    for i in range(data_links_nr):
-                        self[f"data_link_{i}"] = links[i]
-
-                    links = links[data_links_nr:]
-
-                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
-                    for i in range(dims_nr):
-                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
-                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
-                    for i in range(dims_nr):
-                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
-                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                    self.output_quantity_dg_addr = links[0]
-                    self.output_quantity_cg_addr = links[1]
-                    self.output_quantity_ch_addr = links[2]
-                    links = links[3:]
-
-                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                    self.comparison_quantity_dg_addr = links[0]
-                    self.comparison_quantity_cg_addr = links[1]
-                    self.comparison_quantity_ch_addr = links[2]
-                    links = links[3:]
-
-                if self.flags & v4c.FLAG_CA_AXIS:
-                    for i in range(dims_nr):
-                        address = links[i]
-                        self[f"axis_conversion_{i}_addr"] = address
-
-                        if address:
-                            if address in cc_map:
-                                conv = cc_map[address]
-                            else:
-                                if address + 16 > file_limit:
-                                    handle_incomplete_block(address, file_limit)
-                                    raise MdfException(f"Incomplete block at {address:x}")
-
-                                (size,) = UINT64_uf(stream, address + 8)
-
-                                if address + size > file_limit:
-                                    handle_incomplete_block(address, file_limit)
-                                    raise MdfException(f"Incomplete block at {address:x}")
-
-                                raw_bytes = stream[address : address + size]
-
-                                if raw_bytes in cc_map:
-                                    conv = cc_map[raw_bytes]
-                                else:
-                                    conv = ChannelConversion(
-                                        raw_bytes=raw_bytes,
-                                        stream=stream,
-                                        address=address,
-                                        mapped=mapped,
-                                        file_limit=file_limit,
-                                    )
-                                    cc_map[raw_bytes] = cc_map[address] = conv
-                        else:
-                            conv = None
-
-                        self[f"axis_conversion_{i}"] = conv
-
-                    links = links[dims_nr:]
-
-                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
-                    for i in range(dims_nr):
-                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
-                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
-
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
-                    for i in range(dims_nr):
-                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
-                            (value,) = FLOAT64_u(stream.read(8))
-                            self[f"axis_{i}_value_{j}"] = value
-            else:
-                stream.seek(address)
-
-                self.id, self.reserved0, self.block_len, self.links_nr = COMMON_u(stream.read(24))
-
-                if self.id != b"##CA":
-                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id!r}"'
-                    logger.exception(message)
-                    raise MdfException(message)
-
-                nr = self.links_nr
-                links = unpack(f"<{nr}Q", stream.read(8 * nr))
-                self.composition_addr = links[0]
-                links = links[1:]
-
-                values = unpack("<2BHIiI", stream.read(16))
-                dims_nr = values[2]
-
-                (
-                    self.ca_type,
-                    self.storage,
-                    self.dims,
-                    self.flags,
-                    self.byte_offset_base,
-                    self.invalidation_bit_base,
-                ) = values
-
-                dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
-                for i, size in enumerate(dim_sizes):
-                    self[f"dim_size_{i}"] = size
-
-                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
-                    data_links_nr = 1
-                    for size in dim_sizes:
-                        data_links_nr *= size
-
-                    for i in range(data_links_nr):
-                        self[f"data_link_{i}"] = links[i]
-
-                    links = links[data_links_nr:]
-
-                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
-                    for i in range(dims_nr):
-                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
-                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
-                    for i in range(dims_nr):
-                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
-                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                    self.output_quantity_dg_addr = links[0]
-                    self.output_quantity_cg_addr = links[1]
-                    self.output_quantity_ch_addr = links[2]
-                    links = links[3:]
-
-                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                    self.comparison_quantity_dg_addr = links[0]
-                    self.comparison_quantity_cg_addr = links[1]
-                    self.comparison_quantity_ch_addr = links[2]
-                    links = links[3:]
-
-                if self.flags & v4c.FLAG_CA_AXIS:
-                    current_address = stream.tell()
-                    for i in range(dims_nr):
-                        address = links[i]
-                        self[f"axis_conversion_{i}_addr"] = address
-
-                        if address:
-                            if address in cc_map:
-                                conv = cc_map[address]
-                            else:
-                                if address + 16 > file_limit:
-                                    handle_incomplete_block(address, file_limit)
-                                    raise MdfException(f"Incomplete block at {address:x}")
-
-                                stream.seek(address + 8)
-
-                                (size,) = UINT64_uf(stream.read(8))
-
-                                if address + size > file_limit:
-                                    handle_incomplete_block(address, file_limit)
-                                    raise MdfException(f"Incomplete block at {address:x}")
-
-                                stream.seek(address)
-                                raw_bytes = stream.read(size)
-
-                                if raw_bytes in cc_map:
-                                    conv = cc_map[raw_bytes]
-                                else:
-                                    conv = ChannelConversion(
-                                        raw_bytes=raw_bytes,
-                                        stream=stream,
-                                        address=address,
-                                        mapped=mapped,
-                                        file_limit=file_limit,
-                                    )
-                                    cc_map[raw_bytes] = cc_map[address] = conv
-                        else:
-                            conv = None
-
-                        self[f"axis_conversion_{i}"] = conv
-
-                    links = links[dims_nr:]
-
-                    stream.seek(current_address)
-
-                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
-                    for i in range(dims_nr):
-                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
-                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
-
-                    links = links[dims_nr * 3 :]
-
-                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
-                    for i in range(dims_nr):
-                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
-                            (value,) = FLOAT64_u(stream.read(8))
-                            self[f"axis_{i}_value_{j}"] = value
-
-        except KeyError:
-            self.id = b"##CA"
-            self.reserved0 = 0
-            self.address = 0
-
-            ca_type = kwargs["ca_type"]
-
-            if ca_type == v4c.CA_TYPE_ARRAY:
-                dims_nr = kwargs["dims"]
-                self.block_len = 48 + dims_nr * 8
-                self.links_nr = 1
-                self.composition_addr = 0
-                self.ca_type = v4c.CA_TYPE_ARRAY
-                self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
-                self.dims = dims_nr
-                self.flags = 0
-                self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
-                for i in range(dims_nr):
-                    self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
-            elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
-                self.block_len = 56
-                self.links_nr = 1
-                self.composition_addr = 0
-                self.ca_type = v4c.CA_TYPE_SCALE_AXIS
-                self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
-                self.dims = 1
-                self.flags = 0
-                self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
-                self.dim_size_0 = kwargs["dim_size_0"]
-
-            elif ca_type == v4c.CA_TYPE_LOOKUP:
-                flags = kwargs["flags"]
-                dims_nr = kwargs["dims"]
-                dim_size_sum = sum(kwargs[f"dim_size_{i}"] for i in range(dims_nr))  # type: ignore[literal-required]
-                if flags & v4c.FLAG_CA_FIXED_AXIS:
-                    self.block_len = 48 + dims_nr * 16 + dim_size_sum * 8
-                    self.links_nr = 1 + dims_nr
-                    self.composition_addr = 0
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}_addr"] = 0
-                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
-                    self.ca_type = v4c.CA_TYPE_LOOKUP
-                    self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
-                    self.dims = dims_nr
-                    self.flags = v4c.FLAG_CA_FIXED_AXIS | v4c.FLAG_CA_AXIS
-                    self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
-                    for i in range(dims_nr):
-                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
-                    for i in range(dims_nr):
-                        for j in range(typing.cast(int, self[f"dim_size_{i}"])):
-                            self[f"axis_{i}_value_{j}"] = kwargs.get(f"axis_{i}_value_{j}", j)
-                else:
-                    self.block_len = 48 + dims_nr * 5 * 8
-                    self.links_nr = 1 + dims_nr * 4
-                    self.composition_addr = 0
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}_addr"] = 0
-                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
-                    for i in range(dims_nr):
-                        self[f"scale_axis_{i}_dg_addr"] = 0
-                        self[f"scale_axis_{i}_cg_addr"] = 0
-                        self[f"scale_axis_{i}_ch_addr"] = 0
-                    self.ca_type = v4c.CA_TYPE_LOOKUP
-                    self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
-                    self.dims = dims_nr
-                    self.flags = v4c.FLAG_CA_AXIS
-                    self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
-                    for i in range(dims_nr):
-                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]  # type: ignore[literal-required]
-
-    def __getitem__(self, item: str) -> object:
-        return getattr(self, item)
-
-    def __setitem__(self, item: str, value: object) -> None:
-        setattr(self, item, value)
-
-    def __str__(self) -> str:
-        return f"<ChannelArrayBlock (referenced channels: {self.axis_channels}, address: {hex(self.address)}, fields: {inspect.getmembers(self)})>"
-
-    def __bytes__(self) -> bytes:
-        flags = self.flags
-        dims_nr = self.dims
-
-        keys: tuple[str, ...] = (
-            "id",
-            "reserved0",
-            "block_len",
-            "links_nr",
-            "composition_addr",
-        )
-
-        if self.storage:
-            dim_sizes = [typing.cast(int, self[f"dim_size_{i}"]) for i in range(dims_nr)]
-
-            data_links_nr = 1
-            for size in dim_sizes:
-                data_links_nr *= size
-        else:
-            dim_sizes = []
-            data_links_nr = 0
-
-        if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
-            keys += tuple(f"data_link_{i}" for i in range(data_links_nr))
-
-        if flags & v4c.FLAG_CA_DYNAMIC_AXIS:
-            for i in range(dims_nr):
-                keys += (
-                    f"dynamic_size_{i}_dg_addr",
-                    f"dynamic_size_{i}_cg_addr",
-                    f"dynamic_size_{i}_ch_addr",
-                )
-
-        if flags & v4c.FLAG_CA_INPUT_QUANTITY:
-            for i in range(dims_nr):
-                keys += (
-                    f"input_quantity_{i}_dg_addr",
-                    f"input_quantity_{i}_cg_addr",
-                    f"input_quantity_{i}_ch_addr",
-                )
-
-        if flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-            keys += (
-                "output_quantity_dg_addr",
-                "output_quantity_cg_addr",
-                "output_quantity_ch_addr",
-            )
-
-        if flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-            keys += (
-                "comparison_quantity_dg_addr",
-                "comparison_quantity_cg_addr",
-                "comparison_quantity_ch_addr",
-            )
-
-        if flags & v4c.FLAG_CA_AXIS:
-            keys += tuple(f"axis_conversion_{i}_addr" for i in range(dims_nr))
-
-        if (flags & v4c.FLAG_CA_AXIS) and not (flags & v4c.FLAG_CA_FIXED_AXIS):
-            for i in range(dims_nr):
-                keys += (
-                    f"scale_axis_{i}_dg_addr",
-                    f"scale_axis_{i}_cg_addr",
-                    f"scale_axis_{i}_ch_addr",
-                )
-
-        keys += (
-            "ca_type",
-            "storage",
-            "dims",
-            "flags",
-            "byte_offset_base",
-            "invalidation_bit_base",
-        )
-
-        keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
-
-        if flags & v4c.FLAG_CA_FIXED_AXIS:
-            keys += tuple(
-                f"axis_{i}_value_{j}" for i in range(dims_nr) for j in range(typing.cast(int, self[f"dim_size_{i}"]))
-            )
-
-            dim_sizes = [1 for i in range(dims_nr) for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
-
-        if self.storage:
-            keys += tuple(f"cycle_count_{i}" for i in range(data_links_nr))
-
-        fmt = f"<4sI{self.links_nr + 2}Q2BHIiI{dims_nr}Q{sum(dim_sizes)}d{data_links_nr}Q"
-
-        result = pack(fmt, *[getattr(self, key) for key in keys])
-        return result
-
-    def get_axes_information(self) -> list:
-        axes = []
-
-        for i in range(self.dims):
-            info = {}
-
-            match self.ca_type:
-                case v4c.CA_TYPE_ARRAY:
-                    info["type"] = "NO_AXIS"
-                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
-
-                case v4c.CA_TYPE_SCALE_AXIS:
-                    info["type"] = "SCALE_AXIS"
-                    info["size"] = typing.cast(int, self[f"dim_size_{i}"])
-
-                case _:
-                    if self.flags & v4c.FLAG_CA_FIXED_AXIS:
-                        info["type"] = "FIXED_AXIS"
-                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
-                        info["values"] = [
-                            self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))
-                        ]
-
-                    else:
-                        info["type"] = "REF_AXIS"
-                        info["size"] = typing.cast(int, self[f"dim_size_{i}"])
-                        info["ref"] = self.axis_channels[i]
-                        info["ref_name"] = ""
-
-            if self.flags & v4c.FLAG_CA_AXIS:
-                info["conversion"] = self[f"axis_conversion_{i}"]
-            else:
-                info["conversion"] = None
-
-            info["inverse_layout"] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
-            info["byte_offset_base"] = self.byte_offset_base
-            info["dtype_field_name"] = ""
-
-            axes.append(info)
-
-        return axes
-
-    def get_byte_offset_factors(self) -> list[int]:
-        """Return a list of factors f(d), used to calculate byte offset."""
-        return self._factors(self.byte_offset_base)
-
-    def get_bit_pos_inval_factors(self) -> list[int]:
-        """Return a list of factors f(d), used to calculate invalidation bit
-        position.
-        """
-        return self._factors(self.invalidation_bit_base)
-
-    def _factors(self, base: int) -> list[int]:
-        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
-            # column oriented layout: the first dimension varies fastest
-            order = range(self.dims)
-        else:
-            # row oriented layout: the last dimension varies fastest
-            order = range(self.dims - 1, -1, -1)
-
-        factors = [0] * self.dims
-        factor = base
-        for i in order:
-            factors[i] = factor
-            factor *= typing.cast(int, self[f"dim_size_{i}"])
-
-        return factors
-
-    def to_blocks(
-        self,
-        address: int,
-        blocks: list[bytes | SupportsBytes],
-        defined_texts: dict[bytes | str, int],
-        cc_map: dict[bytes | int, int],
-    ) -> int:
-        if self.flags & v4c.FLAG_CA_AXIS:
-            for i in range(self.dims):
-                conversion = self[f"axis_conversion_{i}"]
-                if conversion:
-                    address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
-                    self[f"axis_conversion_{i}_addr"] = conversion.address
-                else:
-                    self[f"axis_conversion_{i}_addr"] = 0
-
-        blocks.append(self)
-
-        self.address = address
-        address += self.block_len
-
-        return address
+    si_map: dict[Union[bytes, int, "Source"], "SourceInformation"]
+    channel_type: int
+    sync_type: int
+    data_type: int
+    bit_offset: int
+    byte_offset: int
+    bit_count: int
+    flags: int
+    pos_invalidation_bit: int
+    precision: int
+    min_raw_value: float
+    max_raw_value: float
+    lower_limit: float
+    upper_limit: float
+    lower_ext_limit: float
+    upper_ext_limit: float
+    attachment_addr: int
+    file_limit: int | float
+    dtype: np.dtype[Any] | None
+    index: int
+    group: int
+    composition: list[Channel | ChannelArrayBlock] | None
 
 
 class ChannelGroupKwargs(BlockKwargs, total=False):

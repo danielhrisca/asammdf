@@ -600,7 +600,7 @@ class MDF4(MDF_Common[Group]):
 
                 # Read channels by walking recursively in the channel group
                 # starting from the first channel
-                self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, mapped=mapped)
+                self._read_channels(ch_addr, grp, stream, mapped=mapped)
 
                 cg_addr = channel_group.next_cg_addr
 
@@ -803,11 +803,10 @@ class MDF4(MDF_Common[Group]):
         ch_addr: int,
         grp: Group,
         stream: FileLike | mmap.mmap,
-        dg_cntr: int,
-        ch_cntr: int,
         parent_channel: Channel,
         mapped: bool = ...,
-    ) -> tuple[int, list[ChannelArrayBlock] | list[tuple[int, int]], np.dtype[Any]]: ...
+        is_array: bool = False,
+    ) -> list[Channel | ChannelArrayBlock] | None: ...
 
     @overload
     def _read_channels(
@@ -815,22 +814,21 @@ class MDF4(MDF_Common[Group]):
         ch_addr: int,
         grp: Group,
         stream: FileLike | mmap.mmap,
-        dg_cntr: int,
-        ch_cntr: int,
         parent_channel: None = ...,
         mapped: bool = ...,
-    ) -> tuple[int, None, None]: ...
+        is_array: bool = False,
+    ) -> list[Channel | ChannelArrayBlock] | None: ...
 
     def _read_channels(
         self,
         ch_addr: int,
         grp: Group,
         stream: FileLike | mmap.mmap,
-        dg_cntr: int,
-        ch_cntr: int,
         parent_channel: Channel | None = None,
         mapped: bool = False,
-    ) -> tuple[int, list[ChannelArrayBlock] | list[tuple[int, int]] | None, np.dtype[Any] | None]:
+        is_array: bool = False,
+    ) -> list[Channel | ChannelArrayBlock] | None:
+
         use_display_names = self._use_display_names
 
         channels = grp.channels
@@ -838,10 +836,9 @@ class MDF4(MDF_Common[Group]):
         unique_names = UniqueDB()
 
         if parent_channel:
-            composition: list[tuple[int, int]] | None = []
-            composition_channels: list[Channel] | None = []
+            composition: list[Channel | ChannelArrayBlock] | None = []
         else:
-            composition = composition_channels = None
+            composition = None
 
         if grp.channel_group.path_separator:
             path_separator = chr(grp.channel_group.path_separator)
@@ -890,13 +887,11 @@ class MDF4(MDF_Common[Group]):
                     _name.split(path_separator, 1)[0]: val for _name, val in channel.display_names.items()
                 }
 
-            entry = (dg_cntr, ch_cntr)
+            entry = channels.add(channel, is_array=is_array)
             self._ch_map[ch_addr] = entry
 
-            channels.add(channel)
-            if composition is not None and composition_channels is not None:
-                composition.append(entry)
-                composition_channels.append(channel)
+            if composition is not None:
+                composition.append(channel)
 
             for _name in channel.display_names:
                 self.channels_db.add(_name, entry)
@@ -911,9 +906,8 @@ class MDF4(MDF_Common[Group]):
                 self._cn_data_map[cn_data_addr] = entry
 
             if channel.channel_type in MASTER_CHANNELS:
-                self.masters_db[dg_cntr] = ch_cntr
-
-            ch_cntr += 1
+                dg_index, ch_index = entry
+                self.masters_db[dg_index] = ch_index
 
             component_addr = channel.component_addr
 
@@ -924,90 +918,44 @@ class MDF4(MDF_Common[Group]):
                     )
                     break
 
-                index = ch_cntr - 1
-                dependencies.append(None)
-
                 # check if it is a CABLOCK or CNBLOCK
                 stream.seek(component_addr)
                 blk_id = stream.read(4)
                 if blk_id == b"##CN":
-                    (
-                        ch_cntr,
-                        ret_composition,
-                        ret_composition_dtype,
-                    ) = self._read_channels(
+                    ret_composition = self._read_channels(
                         component_addr,
                         grp,
                         stream,
-                        dg_cntr,
-                        ch_cntr,
                         channel,
                         mapped=mapped,
+                        is_array=is_array,
                     )
-                    dependencies[index] = ret_composition
+                    channel.composition = ret_composition
+                    # TO DO convert composition to dtype
+                    # channel.dtype = ret_composition_dtype
 
-                    channel.dtype = ret_composition_dtype
+                elif blk_id == b"##CA":
+                    sub_composition : list[Channel | ChannelArrayBlock] = []
+                    while component_addr:
+                        stream.seek(component_addr)
+                        blk_id = stream.read(4)
+                        if blk_id == b"##CN": 
+                            # sub structure
+                            ret_composition = self._read_channels(
+                                component_addr,
+                                grp,
+                                stream,
+                                channel,
+                                mapped=mapped,
+                                is_array=True,
+                            )
 
-                else:
-                    # only channel arrays with storage=CN_TEMPLATE are
-                    # supported so far
-                    channel.dtype = np.dtype(
-                        get_fmt_v4(
-                            channel.data_type,
-                            channel.bit_offset + channel.bit_count,
-                            channel.channel_type,
-                        )
-                    )
-
-                    ca_dependencies = []
-                    byte_offset_factors: list[int] = []
-                    bit_pos_inval_factors: list[int] = []
-                    dimensions: list[int] = []
-                    total_elem = 1
-
-                    if channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
-                        # read CA-CN nested structure
-                        ca_block = ChannelArrayBlock(
-                            address=component_addr,
-                            stream=stream,
-                            mapped=mapped,
-                            cc_map=self._cc_map,
-                            file_limit=self.file_limit,
-                        )
-                        if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                            logger.warning("Only CN template arrays are supported")
+                            sub_composition.extend(ret_composition)
                             break
 
-                        (
-                            ch_cntr,
-                            ret_composition,
-                            ret_composition_dtype,
-                        ) = self._read_channels(
-                            ca_block.composition_addr,
-                            grp,
-                            stream,
-                            dg_cntr,
-                            ch_cntr,
-                            channel,
-                            mapped=mapped,
-                        )
-                        ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
+                        elif blk_id == b"##CA": 
 
-                        channel.dtype = ret_composition_dtype
-
-                        if ret_composition:
-                            ca_dependencies.extend(ret_composition)
-
-                        dependencies[index] = ca_dependencies or None
-
-                    else:
-                        while component_addr:
-                            stream.seek(component_addr)
-                            blk_id = stream.read(4)
-                            if blk_id != b"##CA":
-                                logger.warning(f"expected b'##CA' header but found {blk_id}")
-                                break
-
+                            # array 
                             ca_block = ChannelArrayBlock(
                                 address=component_addr,
                                 stream=stream,
@@ -1019,92 +967,22 @@ class MDF4(MDF_Common[Group]):
                                 logger.warning("Only CN template arrays are supported")
                                 break
 
-                            ca_dependencies.append(ca_block)
+                            sub_composition.append(ca_block)
 
                             component_addr = ca_block.composition_addr
 
-                        dependencies[index] = ca_dependencies or None
+                        else:
+                            logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
+                            break
 
-                        if self._add_array_components:
-                            for ca_blck in ca_dependencies:
-                                # 1D array with dimensions
-                                for i in range(ca_blck.dims):
-                                    dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
-                                    dimensions.append(dim_size)
-                                    total_elem *= dim_size
+                    channel.composition = sub_composition
 
-                                # 1D arrays for byte offset and invalidation bit pos calculations
-                                byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
-                                bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+                    # TO DO convert composition to dtype
+                    # channel.dtype = ret_composition_dtype
 
-                            multipliers = [1] * len(dimensions)
-                            for i in range(len(dimensions) - 2, -1, -1):
-                                multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
-
-                            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                                """Convert 1D index to CA's nD coordinates."""
-                                coords = [0] * len(factors)
-                                for i, factor in enumerate(factors):
-                                    coords[i] = index // factor
-                                    index %= factor
-                                return coords
-
-                            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                                m = re.match(ch_parent_name, ch_name)
-                                n = re.search(r"\[\d+\]", ch_name)
-                                if m:
-                                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                                elif n:
-                                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-                                else:
-                                    name = ch_name + coords
-                                return name
-
-                            ch_len = len(channels)
-                            for elem_id in range(total_elem):
-                                for cn_id in range(index, ch_len):
-                                    nd_coords = _get_nd_coords(elem_id, multipliers)
-
-                                    # copy composition block
-                                    new_block = deepcopy(channels[cn_id])
-
-                                    # update byte offset & position of invalidation bit
-                                    byte_offset = bit_offset = 0
-                                    for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
-                                    ):
-                                        byte_offset += coord * byte_factor
-                                        bit_offset += coord * bit_factor
-                                    new_block.byte_offset += byte_offset
-                                    new_block.pos_invalidation_bit += bit_offset
-                                    new_block.component_addr = 0
-                                    new_block.prepare_record_info()
-
-                                    # update channel name
-                                    new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
-
-                                    # append to channel list
-                                    channels.append(new_block)
-
-                                    # update channel dependencies
-                                    if (deps := dependencies[cn_id]) is not None:
-                                        cn_deps: list[tuple[int, int]] = []
-                                        for dep in deps:
-                                            if not isinstance(dep, ChannelArrayBlock):
-                                                dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
-                                                cn_deps.append(dep_entry)
-                                        if deps:
-                                            dependencies.append(cn_deps)
-                                        else:
-                                            dependencies.append(None)
-                                    else:
-                                        dependencies.append(None)
-
-                                    # update channels db
-                                    entry = (dg_cntr, ch_cntr)
-                                    self.channels_db.add(new_block.name, entry)
-                                    ch_cntr += 1
+                else:
+                    logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
+                    break
 
             else:
                 channel.dtype = np.dtype(
@@ -1118,13 +996,15 @@ class MDF4(MDF_Common[Group]):
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
 
-        if composition_channels is not None and parent_channel:
-            composition_channels.sort(key=lambda x: x.byte_offset)
+        # TO DO
+        # use this when computing dtype from composition
+        if 0 and composition is not None and parent_channel:
+            composition.sort(key=lambda x: x.byte_offset)
             padding = 0
             dtype_fields: list[DTypeLike] = []
             offset = parent_channel.byte_offset
 
-            for comp_channel in composition_channels:
+            for comp_channel in composition:
                 if (delta := (comp_channel.byte_offset - offset)) > 0:
                     dtype_fields.append((f"__padding_{padding}__", f"V{delta}"))
                     padding += 1
@@ -1132,12 +1012,7 @@ class MDF4(MDF_Common[Group]):
 
                 offset = comp_channel.byte_offset + comp_channel.dtype.itemsize
 
-            composition_dtype = np.dtype(dtype_fields)
-
-        else:
-            composition_dtype = None
-
-        return ch_cntr, composition, composition_dtype
+        return composition
 
     def _load_signal_data(
         self,
@@ -6580,7 +6455,7 @@ class MDF4(MDF_Common[Group]):
 
         # get the channel object
         channel = grp.channels[ch_nr]
-        dependency_list = grp.channel_dependencies[ch_nr]
+        dependency_list = channel.composition
 
         master_is_required = not samples_only or bool(raster)
         master_index = self.masters_db.get(gp_nr, None)
@@ -11706,6 +11581,9 @@ class MDF4(MDF_Common[Group]):
             self.identification.unfinalized_standard_flags -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
 
     def _process_bus_logging(self) -> None:
+        # TO DO 
+        # implement this
+        return
         groups_count = len(self.groups)
         for index in range(groups_count):
             group = self.groups[index]

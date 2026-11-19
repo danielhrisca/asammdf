@@ -1084,11 +1084,16 @@ class ChannelsStore:
         self.index : int = 0
         self._group : int = group
 
-    def add(self, channel):
-        self._channels[self.index] = channel
-        channel.index = self.index
-        channel.group = self.group
+    def add(self, channel, is_array: bool = False) -> tuple[int, int]:
+        index = self.index
+        group = self.group
+
+        self._channels[index] = channel, is_array
+        channel.index = index
+        channel.group = group
         self.index += 1
+
+        return group, index
 
     def clear(self):
         self._channels.clear()
@@ -1105,12 +1110,12 @@ class ChannelsStore:
             ch.group = value
 
     def __getitem__(self, key):
-            return self._channels[key]
+            return self._channels[key][0]
 
     def __iter__(self):
-        for ch in self._channels.values():
-            if not ch.is_composition:
-                yield ch
+        for channel, is_array in self._channels.values():
+            if not is_array:
+                yield channel
 
     def __len__(self):
         return len(self._channels)
