@@ -1083,20 +1083,24 @@ class ChannelsStore:
         self._channels = {}
         self.index : int = 0
         self._group : int = group
+        self._last = None
 
-    def add(self, channel, is_array: bool = False) -> tuple[int, int]:
+    def add(self, channel, primary: bool = True) -> tuple[int, int]:
         index = self.index
         group = self.group
 
-        self._channels[index] = channel, is_array
+        self._channels[index] = channel, primary
         channel.index = index
         channel.group = group
+        if primary:
+            self._last = channel
         self.index += 1
 
         return group, index
 
     def clear(self):
         self._channels.clear()
+        self._last = None
         self.index = 0
 
     @property
@@ -1109,12 +1113,27 @@ class ChannelsStore:
         for ch in self._channels.values():
             ch.group = value
 
+    def __bool__(self):
+        return bool(self._channels)
+
     def __getitem__(self, key):
+        if isinstance(key, slice):
+            return list(self)[key]
+        elif key == -1:
+            if self._last is not None:
+                return self._last
+            else:
+                from pprint import pprint
+                pprint(self._channels)
+                print(self._last)
+                # does not exist and will raise exception
+                return self._channels[key]
+        else:
             return self._channels[key][0]
 
     def __iter__(self):
-        for channel, is_array in self._channels.values():
-            if not is_array:
+        for channel, primary in self._channels.values():
+            if primary:
                 yield channel
 
     def __len__(self):
