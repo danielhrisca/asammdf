@@ -1829,8 +1829,8 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "data block buffer must be bytes, bytearray or an ndarray");
         return NULL;
       }
-      if (cycles && byte_count > available / cycles) {
-        PyErr_Format(PyExc_ValueError, "data block %zd is too small for %zd records of %zd bytes",
+      if (cycles && available != byte_count * cycles) {
+        PyErr_Format(PyExc_ValueError, "data block for signal %zd does not match %zd cycles of %zd bytes",
                      i, cycles, byte_count);
         return NULL;
       }
