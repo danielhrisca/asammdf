@@ -17,6 +17,7 @@ from .utils import (
     DataBlockInfo,
     MdfException,
     SignalDataBlockInfo,
+    ChannelsStore,
 )
 
 logger = logging.getLogger("asammdf")
@@ -50,7 +51,6 @@ _ST = TypeVar("_ST", list[int], list[int] | list[tuple[int, int]] | np.dtype[Any
 class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
         "_data_blocks",
-        "channel_dependencies",
         "channel_group",
         "channels",
         "data_group",
@@ -68,11 +68,10 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         "uuid",
     )
 
-    def __init__(self, data_group: _DG) -> None:
+    def __init__(self, data_group: _DG, index: int = 0) -> None:
         self.data_group: _DG = data_group
         self.channel_group: _CG
-        self.channels: list[_CN] = []
-        self.channel_dependencies: list[_CD | None] = []
+        self.channels: ChannelsStore = ChannelsStore(index)
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
         self.trigger: v3b.TriggerBlock | None = None
@@ -85,7 +84,7 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.read_split_count = 0
         self.uuid = ""
         self.data_location: int
-        self.index = 0
+        self.index = index
 
     @property
     def data_blocks(self):
@@ -106,7 +105,6 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         else:
             self._data_blocks = []
         self.channels.clear()
-        self.channel_dependencies.clear()
 
     def get_data_blocks(self) -> Iterator[DataBlockInfo]:
         yield from self.data_blocks

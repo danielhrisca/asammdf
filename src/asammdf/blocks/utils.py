@@ -1077,6 +1077,45 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
                     self[channel_name] += (entry,)
 
 
+class ChannelsStore:
+
+    def __init__(self, group: int = 0):
+        self._channels = {}
+        self.index : int = 0
+        self._group : int = group
+
+    def add(self, channel):
+        self._channels[self.index] = channel
+        channel.index = self.index
+        channel.group = self.group
+        self.index += 1
+
+    def clear(self):
+        self._channels.clear()
+        self.index = 0
+
+    @property
+    def group(self):
+        return self._group
+
+    @group.setter
+    def group(self, value: int):
+        self._group = value
+        for ch in self._channels.values():
+            ch.group = value
+
+    def __getitem__(self, key):
+            return self._channels[key]
+
+    def __iter__(self):
+        for ch in self._channels.values():
+            if not ch.is_composition:
+                yield ch
+
+    def __len__(self):
+        return len(self._channels)
+
+
 def randomized_string(size: int) -> bytes:
     """Get a null-terminated string of length `size`.
 

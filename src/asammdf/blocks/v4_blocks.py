@@ -510,6 +510,8 @@ class ChannelKwargs(BlockKwargs, total=False):
     attachment_addr: int
     file_limit: int | float
     dtype: np.dtype[Any] | None
+    index: int
+    group: int
 
 
 CN = b"##CN"
@@ -628,6 +630,8 @@ class Channel:
         "fast_path",
         "flags",
         "id",
+        "index",
+        "group",
         "links_nr",
         "lower_ext_limit",
         "lower_limit",
@@ -658,6 +662,7 @@ class Channel:
         self.axes = self.conversions = self.units = None
         self.signal_data: list[SignalDataBlockInfo] | None = None
         self.record_info = NoRecordInfo
+        self.index = self.group = 0
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]

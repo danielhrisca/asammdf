@@ -23,7 +23,7 @@ from types import TracebackType
 import typing
 from typing import Any, Literal, LiteralString, Never, Optional, overload, Union, Unpack
 import xml.etree.ElementTree as ET
-import warning
+import warnings
 import zipfile
 
 from canmatrix import CanMatrix
@@ -289,7 +289,7 @@ class MDF:
         **kwargs: Unpack[MdfKwargs],
     ) -> None:
         if "raw" in kwargs:
-            warning.warn("the 'channels' argument for the MDF class has been removed", warning.DeprecationWarning, stacklevel=2)
+            warnings.warn("the 'channels' argument for the MDF class has been removed", warning.DeprecationWarning, stacklevel=2)
         
         if "callback" in kwargs:
             kwargs["progress"] = kwargs["callback"]

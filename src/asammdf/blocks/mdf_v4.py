@@ -556,9 +556,9 @@ class MDF4(MDF_Common[Group]):
                 cg_nr += 1
 
                 if cg_addr == first_cg_addr:
-                    grp = Group(group)
+                    grp = Group(group, index=dg_cntr)
                 else:
-                    grp = Group(group.copy())
+                    grp = Group(group.copy(), index=dg_cntr)
 
                 # read each channel group sequentially
                 block = ChannelGroup(
@@ -683,7 +683,7 @@ class MDF4(MDF_Common[Group]):
             )
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
-            for ch_index, dep_list in enumerate(grp.channel_dependencies):
+            for ch_index, dep_list in []:  ## enumerate(grp.channel_dependencies):
                 if not dep_list:
                     continue
 
@@ -835,8 +835,6 @@ class MDF4(MDF_Common[Group]):
 
         channels = grp.channels
 
-        dependencies = grp.channel_dependencies
-
         unique_names = UniqueDB()
 
         if parent_channel:
@@ -872,6 +870,7 @@ class MDF4(MDF_Common[Group]):
 
             if channel.data_type not in VALID_DATA_TYPES:
                 ch_addr = channel.next_ch_addr
+                logger.warning(f"Channel address {ch_addr:X} has an invalid data type {channel.data_type}")
                 continue
 
             if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
@@ -894,7 +893,7 @@ class MDF4(MDF_Common[Group]):
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
 
-            channels.append(channel)
+            channels.add(channel)
             if composition is not None and composition_channels is not None:
                 composition.append(entry)
                 composition_channels.append(channel)
@@ -1108,8 +1107,6 @@ class MDF4(MDF_Common[Group]):
                                     ch_cntr += 1
 
             else:
-                dependencies.append(None)
-
                 channel.dtype = np.dtype(
                     get_fmt_v4(
                         channel.data_type,
