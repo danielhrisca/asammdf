@@ -13,11 +13,13 @@ class MinimalTreeItem(QtWidgets.QTreeWidgetItem):
         parent=None,
         strings=None,
         origin_uuid=None,
+        original_name="",
     ):
         super().__init__(parent, strings)
         self.entry = entry
         self.name = name
         self.origin_uuid = origin_uuid
+        self.original_name = original_name or name
 
     def setText(self, column, text):
         if column == 0:

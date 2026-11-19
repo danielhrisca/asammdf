@@ -659,6 +659,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         ch.name,
                         strings=[ch.name if use_old else f"{ch.name} —— {bus:<10}"],
                         origin_uuid=self.uuid,
+                        original_name=ch.name
                     )
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
 
@@ -1555,13 +1556,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         continue
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.text(0))
+                        signals.append(item.original_name)
             else:
                 while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.text(0))
+                        signals.append(item.original_name)
 
             suffix = file_name.suffix.lower()
             if suffix == ".lab":
