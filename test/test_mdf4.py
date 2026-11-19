@@ -151,6 +151,24 @@ class TestMDF4(unittest.TestCase):
                     for values, original in zip(arrays, originals, strict=True):
                         np.testing.assert_array_equal(values, original, strict=True)
 
+    def test_extend_rejects_short_samples(self) -> None:
+        initial = np.array([1.0, 2.0])
+        timestamps = np.array([0.0, 1.0, 2.0, 3.0])
+        # The hidden second value must not be read through the one-element view.
+        backing = np.array([11.0, 999.0])
+        for version in ("4.00", "4.10", "4.20"):
+            with self.subTest(version=version), MDF(version=version) as mdf:
+                group = mdf.append(Signal(initial, timestamps[:2], name="value"))
+                with self.assertRaisesRegex(ValueError, "too small"):
+                    mdf.extend(group, [(timestamps[2:], None), (backing[:1], None)])
+                np.testing.assert_array_equal(mdf.get("value").samples, initial)
+                mdf.extend(group, [(timestamps[2:], None), (backing, None)])
+                saved = mdf.save(Path(self.tempdir.name) / "extended_samples.mf4", overwrite=True)
+                with MDF(saved) as reopened:
+                    actual = reopened.get("value")
+                    np.testing.assert_array_equal(actual.samples, np.concatenate((initial, backing)))
+                    np.testing.assert_array_equal(actual.timestamps, timestamps)
+
     def test_extend_canopen_rejects_wrong_record_size(self) -> None:
         dtype = [(name, "<u2" if name == "ms" else "u1") for name in v4c.CANOPEN_DATE_FIELDS]
         samples = np.zeros(2, dtype=dtype)
