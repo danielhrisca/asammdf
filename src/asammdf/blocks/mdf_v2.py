@@ -18,7 +18,6 @@ class MDF2(MDF3):
         self,
         name: StrPath | FileLike | None = None,
         version: Version2 = "2.14",
-        channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
     ) -> None:
         version = validate_version_argument(version, hint=2)
@@ -26,7 +25,7 @@ class MDF2(MDF3):
         if not kwargs.get("__internal__", False):
             raise MdfException("Always use the MDF class; do not use the class MDF2 directly")
 
-        super().__init__(name, version, channels=channels, **kwargs)
+        super().__init__(name, version, **kwargs)
 
 
 if __name__ == "__main__":

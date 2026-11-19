@@ -176,7 +176,7 @@ class Signal:  # noqa: PLW1641
         **kwargs,
     ) -> None:
         if "raw" in kwargs:
-            warnings.warn("the 'raw' argument for the Signal class has been removed", stacklevel=2)
+            raise Exception("the 'raw' argument for the Signal class has been removed")
         if not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '

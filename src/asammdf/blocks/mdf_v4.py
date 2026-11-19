@@ -282,7 +282,6 @@ class MDF4(MDF_Common[Group]):
         self,
         name: StrPath | FileLike | None = None,
         version: Version = "4.10",
-        channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
     ) -> None:
         if not kwargs.get("__internal__", False):
@@ -316,13 +315,6 @@ class MDF4(MDF_Common[Group]):
 
         self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
         self._add_array_components = kwargs.get("add_array_components", GLOBAL_OPTIONS["add_array_components"])
-
-        if channels is None:
-            self.load_filter: set[str] = set()
-            self.use_load_filter = False
-        else:
-            self.load_filter = set(channels)
-            self.use_load_filter = True
 
         self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._mapped_file: BinaryIO | None = None
@@ -839,7 +831,6 @@ class MDF4(MDF_Common[Group]):
         parent_channel: Channel | None = None,
         mapped: bool = False,
     ) -> tuple[int, list[ChannelArrayBlock] | list[tuple[int, int]] | None, np.dtype[Any] | None]:
-        filter_channels = self.use_load_filter
         use_display_names = self._use_display_names
 
         channels = grp.channels
@@ -866,138 +857,18 @@ class MDF4(MDF_Common[Group]):
                 logger.warning(f"Channel address {ch_addr:X} is outside the file size {self.file_limit}")
                 break
 
-            if filter_channels:
-                if mapped:
-                    (
-                        id_,
-                        links_nr,
-                        next_ch_addr,
-                        component_addr,
-                        name_addr,
-                        comment_addr,
-                    ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
-                    channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
-                    if use_display_names:
-                        comment = get_text_v4(
-                            comment_addr,
-                            stream,
-                            mapped=mapped,
-                            file_limit=self.file_limit,
-                        )
-                        display_names = extract_display_names(comment)
-                    else:
-                        display_names = {}
-                        comment = None
-
-                else:
-                    stream.seek(ch_addr)
-                    (
-                        id_,
-                        links_nr,
-                        next_ch_addr,
-                        component_addr,
-                        name_addr,
-                        comment_addr,
-                    ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
-                    stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
-                    channel_type = stream.read(1)[0]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
-
-                    if use_display_names:
-                        comment = get_text_v4(
-                            comment_addr,
-                            stream,
-                            mapped=mapped,
-                            file_limit=self.file_limit,
-                        )
-                        display_names = extract_display_names(comment)
-                    else:
-                        display_names = {}
-                        comment = None
-
-                if id_ != b"##CN":
-                    message = f'Expected "##CN" block @{hex(ch_addr)} but found "{id_!r}"'
-                    raise MdfException(message)
-
-                if self._remove_source_from_channel_names:
-                    name = name.split(path_separator, 1)[0]
-                    display_names = {_name.split(path_separator, 1)[0]: val for _name, val in display_names.items()}
-
-                if (
-                    parent_channel
-                    or channel_type in v4c.MASTER_TYPES
-                    or name in self.load_filter
-                    or (use_display_names and any(dsp_name in self.load_filter for dsp_name in display_names))
-                ):
-                    if comment is None:
-                        comment = get_text_v4(
-                            comment_addr,
-                            stream,
-                            mapped=mapped,
-                            file_limit=self.file_limit,
-                        )
-                    channel = Channel(
-                        address=ch_addr,
-                        stream=stream,
-                        cc_map=self._cc_map,
-                        si_map=self._si_map,
-                        at_map=self._attachments_map,
-                        use_display_names=use_display_names,
-                        mapped=mapped,
-                        parsed_strings=(name, display_names, comment),
-                        file_limit=self.file_limit,
-                    )
-
-                    si_path = getattr(channel.source, "path", "")
-                    if si_path and not self._remove_source_from_channel_names:
-                        path_name = f"{si_path}.{channel.name}"
-                        if path_name not in channel.display_names:
-                            channel.display_names[path_name] = "source_path"
-
-                elif not component_addr:
-                    ch_addr = next_ch_addr
-                    continue
-                else:
-                    if (component_addr + v4c.CC_ALG_BLOCK_SIZE) > self.file_limit:
-                        logger.warning(
-                            f"Channel component address {component_addr:X} is outside the file size {self.file_limit}"
-                        )
-                        break
-                    # check if it is a CABLOCK or CNBLOCK
-                    stream.seek(component_addr)
-                    blk_id = stream.read(4)
-                    if blk_id == b"##CN":
-                        (
-                            ch_cntr,
-                            _1,
-                            _2,
-                        ) = self._read_channels(
-                            component_addr,
-                            grp,
-                            stream,
-                            dg_cntr,
-                            ch_cntr,
-                            None,
-                            mapped=mapped,
-                        )
-
-                    ch_addr = next_ch_addr
-                    continue
-
-            else:
-                channel = Channel(
-                    address=ch_addr,
-                    stream=stream,
-                    cc_map=self._cc_map,
-                    si_map=self._si_map,
-                    at_map=self._attachments_map,
-                    use_display_names=use_display_names,
-                    mapped=mapped,
-                    parsed_strings=None,
-                    file_limit=self.file_limit,
-                    units_map=self._units_map,
-                )
+            channel = Channel(
+                address=ch_addr,
+                stream=stream,
+                cc_map=self._cc_map,
+                si_map=self._si_map,
+                at_map=self._attachments_map,
+                use_display_names=use_display_names,
+                mapped=mapped,
+                parsed_strings=None,
+                file_limit=self.file_limit,
+                units_map=self._units_map,
+            )
 
             if channel.data_type not in VALID_DATA_TYPES:
                 ch_addr = channel.next_ch_addr
