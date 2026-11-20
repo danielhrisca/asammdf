@@ -159,7 +159,7 @@ class TestMDF4(unittest.TestCase):
         for version in ("4.00", "4.10", "4.20"):
             with self.subTest(version=version), MDF(version=version) as mdf:
                 group = mdf.append(Signal(initial, timestamps[:2], name="value"))
-                with self.assertRaisesRegex(ValueError, "too small"):
+                with self.assertRaisesRegex(ValueError, "data block size.+does not match"):
                     mdf.extend(group, [(timestamps[2:], None), (backing[:1], None)])
                 np.testing.assert_array_equal(mdf.get("value").samples, initial)
                 mdf.extend(group, [(timestamps[2:], None), (backing, None)])

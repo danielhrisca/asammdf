@@ -4585,7 +4585,7 @@ class MDF:
                 if (
                     (info := channel.record_info) is NoRecordInfo
                     or channel.signal_data
-                    or grp.channel_dependencies[ch_index]
+                    or channel.composition
                 ):
                     return self._select_fallback(
                         channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate

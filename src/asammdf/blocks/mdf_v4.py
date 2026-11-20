@@ -2976,6 +2976,8 @@ class MDF4(MDF_Common[Group]):
                             parent_deps.insert(0, dep)
 
                 current_dt_offset = 0
+                array_channel = None
+
                 for name, dt_dtype, dt_offset in dt_fields:
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
@@ -2992,8 +2994,6 @@ class MDF4(MDF_Common[Group]):
                         conversion = signal.conversion or metadata.get("conversion", None)
                         if isinstance(conversion, dict):
                             conversion = from_dict(conversion)
-
-                        gp_dep.append(parent_deps)
 
                         # first we add the structure channel
                         s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
@@ -3025,6 +3025,8 @@ class MDF4(MDF_Common[Group]):
                         ch.display_names = signal.display_names
                         ch.conversion = conversion
 
+                        array_channel = ch
+
                         # source for channel
                         source = signal.source
                         if source:
@@ -3040,7 +3042,7 @@ class MDF4(MDF_Common[Group]):
 
                                 ch.source = new_source
 
-                        gp_channels.append(ch)
+                        entry = gp_channels.add(ch)
 
                         size = s_size // 8
                         for dim in shape:
@@ -3052,12 +3054,9 @@ class MDF4(MDF_Common[Group]):
                         fields.append((samples, size))
                         gp_sig_types.append((sig_type, size))
 
-                        entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
                             self.channels_db.add(_name, entry)
-
-                        ch_cntr += 1
 
                     elif name not in ref_names:
                         itemsize = samples.dtype.itemsize
@@ -3086,7 +3085,6 @@ class MDF4(MDF_Common[Group]):
                                 "dim_size_0": shape[0],
                             }
                             dep = ChannelArrayBlock(**ca_kwargs)
-                            gp_dep.append([dep])
 
                             # add components channel
                             s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
@@ -3114,9 +3112,9 @@ class MDF4(MDF_Common[Group]):
                             ch.name = axis.get("ref_name", "") or name
                             ch.unit = metadata.get("unit", "")
                             ch.comment = f"{array_name} axis {idx}"
-                            gp_channels.append(ch)
+                            ch.composition = [dep]
+                            entry = gp_channels.add(ch)
 
-                            entry = dg_cntr, ch_cntr
                             parent_dep_with_refs.axis_channels.append(entry)
                             for dim in shape:
                                 byte_size *= dim
@@ -3129,11 +3127,13 @@ class MDF4(MDF_Common[Group]):
 
                             self.channels_db.add(name, entry)
 
-                            ch_cntr += 1
-
                 if delta := (signal.samples.dtype.itemsize - current_dt_offset):
                     padding = np.zeros((signal.samples.shape[0], delta), dtype="u1")
                     fields.append((padding, delta))
+
+                if array_channel:
+                    array_channel.composition = parent_deps
+
             else:
                 encoding = signal.encoding
                 samples = signal.samples
@@ -4211,7 +4211,6 @@ class MDF4(MDF_Common[Group]):
         field_names.get_unique_name(name)
 
         offset += t_size // 8
-        ch_cntr += 1
 
         gp_sig_types.append(0)
 
@@ -4268,8 +4267,6 @@ class MDF4(MDF_Common[Group]):
 
                 fields.append(array)
                 types.append((field_name, array.dtype, array.shape[1:]))
-
-                ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 array = sig.to_numpy()
@@ -4330,8 +4327,6 @@ class MDF4(MDF_Common[Group]):
 
                 fields.append(offsets)
                 types.append((field_name, uint64))
-
-                ch_cntr += 1
 
         virtual_group.record_size = offset
         virtual_group.cycles_nr = cycles_nr
@@ -4701,7 +4696,6 @@ class MDF4(MDF_Common[Group]):
                     current_dt_offset = dt_offset + dt_dtype.itemsize
 
                     if name == array_name:
-                        gp_dep.append(parent_deps)
 
                         # first we add the structure channel
                         s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
@@ -4731,6 +4725,7 @@ class MDF4(MDF_Common[Group]):
                         ch.unit = signal.unit
                         ch.comment = signal.comment
                         ch.display_names = signal.display_names
+                        ch.composition = parent_deps
 
                         # source for channel
                         source = signal.source
@@ -4788,7 +4783,6 @@ class MDF4(MDF_Common[Group]):
                                 "dim_size_0": shape[0],
                             }
                             dep = ChannelArrayBlock(**ca_kwargs)
-                            gp_dep.append([dep])
 
                             # add components channel
                             s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
@@ -4816,6 +4810,7 @@ class MDF4(MDF_Common[Group]):
                             ch.name = name
                             ch.unit = metadata.get("unit", "")
                             ch.comment = f"{array_name} axis {idx}"
+                            ch.composition = [dep]
 
                             entry = gp_channels.add(ch)
 
