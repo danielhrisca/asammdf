@@ -1103,6 +1103,15 @@ class ChannelsStore:
         self._last = None
         self.index = 0
 
+    def contains(self, name):
+        for channel, primary in self._channels.values():
+            if channel.name == name:
+                return True
+            elif channel.display_names and name in channel.display_names:
+                return True
+
+        return False
+
     @property
     def group(self):
         return self._group
@@ -1123,9 +1132,6 @@ class ChannelsStore:
             if self._last is not None:
                 return self._last
             else:
-                from pprint import pprint
-                pprint(self._channels)
-                print(self._last)
                 # does not exist and will raise exception
                 return self._channels[key]
         else:
@@ -2137,5 +2143,33 @@ def astype(arr, dtype):
         sig.samples = vals
         return sig
 
+
 RecordInfo = namedtuple('RecordInfo', ['dtype', 'byte_size', 'byte_offset', 'bit_offset'])
 NoRecordInfo = RecordInfo(None, 0, 0, 0)
+
+
+def replace_metadata(dtype, name, attribute, value, current_name=""):
+    if dtype.fields:
+        new_dt = {
+            "names": [],
+            "formats": [],
+            "offsets": [],
+        }
+        for fname, (dt, offset, *_) in dtype.fields.items():
+            new_dt["names"].append(fname)
+            new_dt["offsets"].append(offset)
+            new_dt["formats"].append(replace_metadata(dt, name, attribute, value, fname))
+
+        if old_metadata := (dtype.metadata or dtype.base.metadata):
+            return np.dtype(new_dt, metadata=dict(old_metadata))
+        else:
+            return np.dtype(new_dt)
+
+    else:
+        if current_name and current_name != name:
+            return dtype
+        else:
+            metadata = dict(dtype.metadata or dtype.base.metadata or {})
+            metadata[attribute] = value
+            return np.dtype(np.lib.format.drop_metadata(dtype), metadata=metadata)
+

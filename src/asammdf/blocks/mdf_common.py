@@ -51,6 +51,7 @@ _ST = TypeVar("_ST", list[int], list[int] | list[tuple[int, int]] | np.dtype[Any
 class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
         "_data_blocks",
+        "channel_dependencies",
         "channel_group",
         "channels",
         "data_group",
@@ -72,6 +73,7 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.data_group: _DG = data_group
         self.channel_group: _CG
         self.channels: ChannelsStore = ChannelsStore(index)
+        self.channel_dependencies = []
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
         self.trigger: v3b.TriggerBlock | None = None

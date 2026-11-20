@@ -50,6 +50,7 @@ from .utils import (
     MdfException,
     NoRecordInfo,
     RecordInfo,
+    replace_metadata,
     SignalDataBlockInfo,
     UINT8_uf,
     UINT64_u,
@@ -101,6 +102,85 @@ __all__ = [
     "SourceInformation",
     "TextBlock",
 ]
+
+
+def dtype_with_composition(channel):
+    # if channel.bit_count:
+    #     dtype = np.dtype(get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type))
+    # else:
+    #     dtype = np.dtype('V0')
+
+    dtype = np.dtype(get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type))
+
+    name = channel.name
+    if dep_list := channel.composition:
+        if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
+            axes = []
+            for dep in dep_list:
+                axes.extend(dep.get_axes_information())
+
+            shape = tuple(axis["size"] for axis in axes)
+            shape = shape or (1,)
+
+            return np.dtype((dtype, shape))
+
+        else:
+            ca_blocks = []
+            cn_blocks = []
+            for dep in dep_list:
+                if isinstance(dep, ChannelArrayBlock):
+                    ca_blocks.append(dep)
+                else:
+                    cn_blocks.append(dep)
+
+            cn_blocks.sort(key=lambda x: x.byte_offset)
+
+            if ca_blocks:
+                axes = []
+                for dep in ca_blocks:
+                    axes.extend(dep.get_axes_information())
+        
+                shape = tuple(axis["size"] for axis in axes)
+                shape = shape or (1,)
+            else:
+                shape = None
+
+            offset = channel.byte_offset
+            total_size = channel.bit_count // 8
+
+            names = []
+            formats = []
+            offsets = []
+
+            computed_itemsize = 0
+
+            for comp_channel in cn_blocks:
+                comp_dtype = dtype_with_composition(comp_channel)
+                if comp_channel.conversion:
+                    comp_dtype = replace_metadata(comp_dtype, "", "conversion", comp_channel.conversion)
+                comp_offset = max(comp_channel.byte_offset - offset, 0)
+
+                names.append(comp_channel.name)
+                formats.append(comp_dtype)
+                offsets.append(comp_offset)
+
+                total_size = max(total_size, comp_offset + comp_dtype.itemsize)
+
+            dtype = np.dtype(
+                {
+                    "names": names,
+                    "formats": formats,
+                    "offsets": offsets,
+                    "itemsize": total_size,
+                }
+            )
+
+            if shape is not None:
+                dtype = np.dtype((dtype, shape))
+
+            return dtype
+
+    return dtype
 
 
 class AttachmentBlockKwargs(BlockKwargs, total=False):
@@ -1174,8 +1254,8 @@ class Channel:
         "channel_type",
         "comment",
         "comment_addr",
+        "_composition",
         "component_addr",
-        "composition",
         "conversion",
         "conversion_addr",
         "conversions",
@@ -1222,7 +1302,7 @@ class Channel:
         self.signal_data: list[SignalDataBlockInfo] | None = None
         self.record_info = NoRecordInfo
         self.index = self.group = 0
-        self.composition : list[Channel | ChannelArrayBlock] | None = None
+        self._composition : list[Channel | ChannelArrayBlock] | None = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
@@ -2163,6 +2243,19 @@ unit: {self.unit}
         else:
             result = False
         return result
+
+    @property 
+    def composition(self):
+        return self._composition
+
+    @composition.setter
+    def composition(self, value):
+        self._composition = value
+    
+        if self._composition:
+            self.dtype = dtype_with_composition(self)
+
+        self.prepare_record_info()
 
     def prepare_record_info(self):
         """Compute record.

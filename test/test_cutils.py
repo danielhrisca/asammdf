@@ -23,7 +23,7 @@ class TestDataBlockFromArrays(unittest.TestCase):
         # Keep the backing allocation alive so the old unchecked read is safe.
         backing = np.array([1, 2, 3, 4], dtype=np.uint8)
         for width in (1, 2):
-            with self.subTest(width=width), self.assertRaisesRegex(ValueError, "too small"):
+            with self.subTest(width=width), self.assertRaisesRegex(ValueError, "data block size.+does not match"):
                 data_block_from_arrays([(backing[:width], width)], 2)
 
     def test_interleaved_records(self) -> None:
@@ -44,7 +44,7 @@ class TestDataBlockFromArrays(unittest.TestCase):
     def test_short_buffers(self) -> None:
         buffers: tuple[Any, ...] = (b"\x01", bytearray(b"\x01"), np.arange(4, dtype=np.uint8)[::2])
         for data in buffers:
-            with self.subTest(buffer=type(data)), self.assertRaisesRegex(ValueError, "too small"):
+            with self.subTest(buffer=type(data)), self.assertRaisesRegex(ValueError, "data block size.+does not match"):
                 data_block_from_arrays([(data, 2)], 2)
 
     def test_invalid_counts(self) -> None:
@@ -59,7 +59,7 @@ class TestDataBlockFromArrays(unittest.TestCase):
                 data_block_from_arrays(blocks, cycles, threads)
 
     def test_large_counts(self) -> None:
-        with self.assertRaisesRegex(ValueError, "too small"):
+        with self.assertRaisesRegex(ValueError, f"does not match {sys.maxsize} records of 1 bytes"):
             data_block_from_arrays([(b"", 1)], sys.maxsize)
         with self.assertRaises(OverflowError):
             data_block_from_arrays([(b"", 0)], sys.maxsize + 1)

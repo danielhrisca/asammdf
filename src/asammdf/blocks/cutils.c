@@ -1830,8 +1830,8 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         return NULL;
       }
       if (cycles && available != byte_count * cycles) {
-        PyErr_Format(PyExc_ValueError, "data block for signal %zd does not match %zd cycles of %zd bytes",
-                     i, cycles, byte_count);
+        PyErr_Format(PyExc_ValueError, "data block size=%zd for signal %zd does not match %zd records of %zd bytes",
+                     available, i, cycles, byte_count);
         return NULL;
       }
       if (byte_count > PY_SSIZE_T_MAX - record_size) {

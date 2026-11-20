@@ -928,9 +928,8 @@ class MDF4(MDF_Common[Group]):
                         channel,
                         mapped=mapped,
                     )
+                    # channel.dtype is set inside the composition @property
                     channel.composition = ret_composition
-                    # TO DO convert composition to dtype
-                    # channel.dtype = ret_composition_dtype
 
                 elif blk_id == b"##CA":
                     sub_composition : list[Channel | ChannelArrayBlock] = []
@@ -972,10 +971,8 @@ class MDF4(MDF_Common[Group]):
                             logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
                             break
 
+                    # channel.dtype is set inside the composition @property
                     channel.composition = sub_composition
-
-                    # TO DO convert composition to dtype
-                    # channel.dtype = ret_composition_dtype
 
                 else:
                     logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
@@ -992,22 +989,6 @@ class MDF4(MDF_Common[Group]):
 
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
-
-        # TO DO
-        # use this when computing dtype from composition
-        if 0 and composition is not None and parent_channel:
-            composition.sort(key=lambda x: x.byte_offset)
-            padding = 0
-            dtype_fields: list[DTypeLike] = []
-            offset = parent_channel.byte_offset
-
-            for comp_channel in composition:
-                if (delta := (comp_channel.byte_offset - offset)) > 0:
-                    dtype_fields.append((f"__padding_{padding}__", f"V{delta}"))
-                    padding += 1
-                dtype_fields.append((unique_names.get_unique_name(comp_channel.name), comp_channel.dtype))
-
-                offset = comp_channel.byte_offset + comp_channel.dtype.itemsize
 
         return composition
 
@@ -2367,9 +2348,8 @@ class MDF4(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
-        gp_channels = gp.channels = []
-        gp_dep = gp.channel_dependencies = []
+        gp = Group(DataGroup(), index=dg_cntr)
+        gp_channels = gp.channels
         gp_sig_types = gp.signal_types = []
 
         cycles_nr = len(t)
@@ -2395,7 +2375,6 @@ class MDF4(MDF_Common[Group]):
 
         fields: list[tuple[bytes | NDArray[Any], int]] = []
 
-        ch_cntr = 0
         offset = 0
 
         defined_texts: dict[str, int] = {}
@@ -2451,15 +2430,10 @@ class MDF4(MDF_Common[Group]):
                 ch.conversion = conversion_transfer(virtual_master_conversion, version=4)
                 name = time_name
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.channels_db.add(name, entry)
                 self.masters_db[dg_cntr] = 0
-
-                # time channel doesn't have channel dependencies
-                gp_dep.append(None)
-
-                ch_cntr += 1
 
                 gp_sig_types.append((v4c.SIGNAL_TYPE_VIRTUAL, 0))
 
@@ -2481,20 +2455,16 @@ class MDF4(MDF_Common[Group]):
                 ch.source = source_block
                 name = time_name
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.channels_db.add(name, entry)
                 self.masters_db[dg_cntr] = 0
-
-                # time channel doesn't have channel dependencies
-                gp_dep.append(None)
 
                 if not t.flags["C_CONTIGUOUS"]:
                     t = np.ascontiguousarray(t)
                 fields.append((t, t.itemsize))
 
                 offset += t_size // 8
-                ch_cntr += 1
 
                 gp_sig_types.append((v4c.SIGNAL_TYPE_SCALAR, t_size // 8))
 
@@ -2595,13 +2565,12 @@ class MDF4(MDF_Common[Group]):
 
                             ch.source = new_source
 
-                    gp_channels.append(ch)
+                    entry = gp_channels.add(ch)
 
                     gp_sig_types.append((sig_type, 8))
 
                     offset += byte_size
 
-                    entry = (dg_cntr, ch_cntr)
                     self.channels_db.add(name, entry)
                     for _name in ch.display_names:
                         self.channels_db.add(_name, entry)
@@ -2609,11 +2578,6 @@ class MDF4(MDF_Common[Group]):
                     if not offsets.flags["C_CONTIGUOUS"]:
                         offsets = np.ascontiguousarray(offsets)
                     fields.append((offsets, 8))
-
-                    ch_cntr += 1
-
-                    # simple channels don't have channel dependencies
-                    gp_dep.append(None)
 
                 else:
                     byte_size = s_size // 8 or 1
@@ -2710,7 +2674,7 @@ class MDF4(MDF_Common[Group]):
 
                             ch.source = new_source
 
-                    gp_channels.append(ch)
+                    entry = gp_channels.add(ch)
 
                     offset += byte_size
 
@@ -2718,15 +2682,9 @@ class MDF4(MDF_Common[Group]):
                         samples = np.ascontiguousarray(samples)
                     fields.append((samples, byte_size))
 
-                    entry = (dg_cntr, ch_cntr)
                     self.channels_db.add(name, entry)
                     for _name in ch.display_names:
                         self.channels_db.add(_name, entry)
-
-                    ch_cntr += 1
-
-                    # simple channels don't have channel dependencies
-                    gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_VIRTUAL:
                 channel_type = v4c.CHANNEL_TYPE_VIRTUAL
@@ -2767,18 +2725,12 @@ class MDF4(MDF_Common[Group]):
 
                         ch.source = new_source
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
                 gp_sig_types.append((sig_type, 0))
 
-                entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                ch_cntr += 1
-
-                # virtual channels don't have channel dependencies
-                gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 vals: bytes | NDArray[Any]
@@ -2817,9 +2769,6 @@ class MDF4(MDF_Common[Group]):
                     gp_sig_types.append((sig_type, 7))
 
                 s_size = byte_size * 8
-
-                # there is no channel dependency
-                gp_dep.append(None)
 
                 # add channel block
                 cn_kwargs = {
@@ -2861,30 +2810,23 @@ class MDF4(MDF_Common[Group]):
 
                         ch.source = new_source
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
                 offset += byte_size
 
-                entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                ch_cntr += 1
-
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 (
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     _struct_self,
                     new_fields,
                 ) = self._append_structure_composition(
                     gp,
                     signal,
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
@@ -3322,11 +3264,10 @@ class MDF4(MDF_Common[Group]):
 
                         ch.source = new_source
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
                 offset += byte_size
 
-                entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
@@ -3335,11 +3276,6 @@ class MDF4(MDF_Common[Group]):
                     offsets = np.ascontiguousarray(offsets)
 
                 fields.append((offsets, 8))
-
-                ch_cntr += 1
-
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
 
         if invalidation_bytes_nr:
             unknown_origin = typing.cast(list[InvalidationArray], inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN))
@@ -3489,7 +3425,6 @@ class MDF4(MDF_Common[Group]):
 
         gp = Group(DataGroup())
         gp_channels = gp.channels = []
-        gp_dep = gp.channel_dependencies = []
         gp_sig_types: list[int] = []
         gp.signal_types = gp_sig_types
         gp.uses_ld = True
@@ -3557,9 +3492,6 @@ class MDF4(MDF_Common[Group]):
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
 
-        # time channel doesn't have channel dependencies
-        gp_dep.append(None)
-
         types.append((name, timestamps.dtype))
 
         offset += t_size // 8
@@ -3625,7 +3557,6 @@ class MDF4(MDF_Common[Group]):
         for signal in signals:
             gp = Group(DataGroup())
             gp_channels = gp.channels = []
-            gp_dep = gp.channel_dependencies = []
             gp.signal_types = gp_sig_types = []
             gp.sorted = True
             gp.uses_ld = True
@@ -3751,9 +3682,6 @@ class MDF4(MDF_Common[Group]):
 
                 offset = byte_size
 
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 if names == v4c.CANOPEN_TIME_FIELDS:
 
@@ -3779,9 +3707,6 @@ class MDF4(MDF_Common[Group]):
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
 
                 s_size = byte_size * 8
-
-                # there is no channel dependency
-                gp_dep.append(None)
 
                 # add channel block
                 cn_kwargs = {
@@ -3833,8 +3758,6 @@ class MDF4(MDF_Common[Group]):
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 (
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     _struct_self,
                     _new_fields,
                     new_types,
@@ -3843,8 +3766,6 @@ class MDF4(MDF_Common[Group]):
                     signal,
                     field_names,
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     defined_texts,
                 )
 
@@ -4149,9 +4070,6 @@ class MDF4(MDF_Common[Group]):
 
                 samples = offsets
 
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
             gp.channel_group.samples_byte_nr = offset
             if invalidation_bits is not None:
                 gp.channel_group.invalidation_bytes_nr = 1
@@ -4230,7 +4148,6 @@ class MDF4(MDF_Common[Group]):
 
         gp = Group(DataGroup())
         gp_channels = gp.channels = []
-        gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
 
         cycles_nr = len(t)
@@ -4288,9 +4205,6 @@ class MDF4(MDF_Common[Group]):
 
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
-
-        # time channel doesn't have channel dependencies
-        gp_dep.append(None)
 
         fields.append(t)
         types.append((name, t.dtype))
@@ -4357,9 +4271,6 @@ class MDF4(MDF_Common[Group]):
 
                 ch_cntr += 1
 
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 array = sig.to_numpy()
 
@@ -4422,9 +4333,6 @@ class MDF4(MDF_Common[Group]):
 
                 ch_cntr += 1
 
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
         virtual_group.record_size = offset
         virtual_group.cycles_nr = cycles_nr
 
@@ -4467,8 +4375,6 @@ class MDF4(MDF_Common[Group]):
         grp: Group,
         signal: Signal,
         offset: int,
-        dg_cntr: int,
-        ch_cntr: int,
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
@@ -4484,7 +4390,6 @@ class MDF4(MDF_Common[Group]):
 
         gp = grp
         gp_channels = gp.channels
-        gp_dep = gp.channel_dependencies
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -4583,18 +4488,14 @@ class MDF4(MDF_Common[Group]):
 
                 ch.source = new_source
 
-        entry = dg_cntr, ch_cntr
-        gp_channels.append(ch)
+        entry = gp_channels.add(ch)
         struct_self = entry
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        ch_cntr += 1
-
-        dep_list: list[tuple[int, int]] = []
-        gp_dep.append(dep_list)
+        composition = []
 
         # then we add the fields
         for name in names:
@@ -4650,9 +4551,8 @@ class MDF4(MDF_Common[Group]):
                     ch.conversion = dtype.metadata.get("conversion", None)
                     ch.unit = dtype.metadata.get("unit", "")
 
-                entry = (dg_cntr, ch_cntr)
-                gp_channels.append(ch)
-                dep_list.append(entry)
+                entry = gp_channels.add(ch, primary=False)
+                composition.append(ch)
 
                 offset += byte_size
 
@@ -4662,9 +4562,6 @@ class MDF4(MDF_Common[Group]):
                 fields.append((samples, byte_size))
 
                 self.channels_db.add(name, entry)
-
-                ch_cntr += 1
-                gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -4850,7 +4747,7 @@ class MDF4(MDF_Common[Group]):
 
                                 ch.source = new_source
 
-                        gp_channels.append(ch)
+                        entry = gp_channels.add(ch)
 
                         size = s_size // 8
                         for dim in shape:
@@ -4861,12 +4758,9 @@ class MDF4(MDF_Common[Group]):
                             samples = np.ascontiguousarray(samples)
                         fields.append((samples, size))
 
-                        entry = (dg_cntr, ch_cntr)
                         self.channels_db.add(name, entry)
                         for _name in ch.display_names:
                             self.channels_db.add(_name, entry)
-
-                        ch_cntr += 1
 
                     elif not name.startswith("axis_"):
                         itemsize = samples.dtype.itemsize
@@ -4923,9 +4817,8 @@ class MDF4(MDF_Common[Group]):
                             ch.unit = metadata.get("unit", "")
                             ch.comment = f"{array_name} axis {idx}"
 
-                            gp_channels.append(ch)
+                            entry = gp_channels.add(ch)
 
-                            entry = dg_cntr, ch_cntr
                             parent_dep_with_refs.axis_channels.append(entry)
                             for dim in shape:
                                 byte_size *= dim
@@ -4937,8 +4830,6 @@ class MDF4(MDF_Common[Group]):
                             fields.append((samples, byte_size))
 
                             self.channels_db.add(name, entry)
-
-                            ch_cntr += 1
 
                 if delta := (array_samples.dtype.itemsize - current_dt_offset):
                     padding = np.zeros((array_samples.shape[0], delta), dtype="u1")
@@ -4953,24 +4844,22 @@ class MDF4(MDF_Common[Group]):
                 )
                 (
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     sub_structure,
                     new_fields,
                 ) = self._append_structure_composition(
                     grp,
                     struct,
                     offset,
-                    dg_cntr,
-                    ch_cntr,
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
                 )
-                dep_list.append(sub_structure)
+                composition.append(sub_structure)
                 fields.extend(new_fields)
 
-        return offset, dg_cntr, ch_cntr, struct_self, fields
+        self.composition = composition
+
+        return offset, struct_self, fields
 
     def _append_structure_composition_column_oriented(
         self,
@@ -5000,7 +4889,6 @@ class MDF4(MDF_Common[Group]):
 
         gp = grp
         gp_channels = gp.channels
-        gp_dep = gp.channel_dependencies
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -5098,7 +4986,7 @@ class MDF4(MDF_Common[Group]):
 
         entry = dg_cntr, ch_cntr
         gp_channels.append(ch)
-        struct_self = entry
+        struct_self = entrys
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
@@ -5163,7 +5051,6 @@ class MDF4(MDF_Common[Group]):
                 self.channels_db.add(name, entry)
 
                 ch_cntr += 1
-                gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -6501,7 +6388,7 @@ class MDF4(MDF_Common[Group]):
                         raw=raw,
                     )
                 else:
-                    dependency_list = typing.cast(list[ChannelArrayBlock], dependency_list)
+                    dependency_list = typing.cast(list[ChannelArrayBlock | Channel], dependency_list)
                     samples, timestamps, invalidation_bits, encoding = self._get_array(
                         channel=channel,
                         group=grp,
@@ -6905,8 +6792,8 @@ class MDF4(MDF_Common[Group]):
         conditions = [
             _dtype.itemsize == channel.bit_count // 8,
             all(
-                groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
-                for (dg_nr, ch_nr) in dependency_list
+                ch.channel_type != v4c.CHANNEL_TYPE_VLSD
+                for ch in dependency_list
             ),
         ]
         channel_values: list[NDArray[Any]] | list[list[NDArray[Any]]]
@@ -6938,9 +6825,10 @@ class MDF4(MDF_Common[Group]):
 
             channel_values = flat_channel_values
         else:
+            print('long way')
             unique_names = UniqueDB()
             fast_path = False
-            names = [unique_names.get_unique_name(grp.channels[ch_nr].name) for _, ch_nr in dependency_list]
+            names = [unique_names.get_unique_name(ch.name) for ch in dependency_list]
 
             channel_values_list: list[list[NDArray[Any]]] = [[] for _ in dependency_list]
             masters = []
@@ -6948,10 +6836,10 @@ class MDF4(MDF_Common[Group]):
 
             count = 0
             for fragment in fragments:
-                for i, (dg_nr, ch_nr) in enumerate(dependency_list):
+                for i, ch in enumerate(dependency_list):
                     vals = self.get(
-                        group=dg_nr,
-                        index=ch_nr,
+                        group=gp_nr,
+                        index=ch.index,
                         samples_only=True,
                         data=fragment,
                         ignore_invalidation_bits=ignore_invalidation_bits,
@@ -8294,12 +8182,13 @@ class MDF4(MDF_Common[Group]):
         if (group_index, ch.name) in self.vlsd_max_length:
             return self.vlsd_max_length[(group_index, ch.name)]
         else:
+            
             offsets, *_ = self._get_scalar(
                 ch,
                 group,
                 group_index,
                 channel_index,
-                group.channel_dependencies[channel_index],
+                ch.composition,
                 raster=None,
                 data=None,
                 ignore_invalidation_bits=True,
@@ -8522,7 +8411,6 @@ class MDF4(MDF_Common[Group]):
 
             ch_info: list[list[int]] = []
             group_info[group_index] = ch_info
-            dependency_list = grp.channel_dependencies
 
             for channel_index in channels:
                 channel = grp.channels[channel_index]
@@ -8532,7 +8420,7 @@ class MDF4(MDF_Common[Group]):
                     > grp.channel_group.samples_byte_nr
                 ):
                     ch_info.append([0, 0])
-                elif dependency_list[channel_index]:
+                elif channel.composition:
                     ch_info.append([0, 0])
                 else:
                     if (record := channel.record_info) is not NoRecordInfo:
@@ -11591,9 +11479,7 @@ class MDF4(MDF_Common[Group]):
             self.identification.unfinalized_standard_flags -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
 
     def _process_bus_logging(self) -> None:
-        # TO DO 
-        # implement this
-        return
+
         groups_count = len(self.groups)
         for index in range(groups_count):
             group = self.groups[index]
@@ -11603,7 +11489,7 @@ class MDF4(MDF_Common[Group]):
                 if (
                     source
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
-                    and "CAN_DataFrame" in [ch.name for ch in group.channels]
+                    and group.channels.contains("CAN_DataFrame")
                 ):
                     try:
                         self._process_can_logging(index, group)
@@ -11614,7 +11500,7 @@ class MDF4(MDF_Common[Group]):
                 if (
                     source
                     and source.bus_type in (v4c.BUS_TYPE_LIN, v4c.BUS_TYPE_OTHER)
-                    and "LIN_Frame" in [ch.name for ch in group.channels]
+                    and group.channels.contains("LIN_Frame")
                 ):
                     try:
                         self._process_lin_logging(index, group)
