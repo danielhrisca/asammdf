@@ -3925,13 +3925,18 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
                 idx2 = np.searchsorted(upper_vals, new_values, side="right")
             else:
+                # integer raw values include the upper bound
                 idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
-                idx2 = np.searchsorted(upper_vals, new_values, side="right") - 1
+                idx2 = np.searchsorted(upper_vals, new_values, side="left")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
 
-            new_values = np.zeros(len(new_values), dtype=phys_vals.dtype)
+            dtype = phys_vals.dtype
+            if len(idx_ne):
+                # the default can need a wider type than the table values, for example NaN
+                dtype = np.result_type(phys_vals, np.asarray(self.default))
+            new_values = np.zeros(len(new_values), dtype=dtype)
 
             if len(idx_ne):
                 new_values[idx_ne] = self.default
