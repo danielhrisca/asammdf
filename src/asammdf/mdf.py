@@ -2327,8 +2327,9 @@ class MDF:
 
             .. versionadded:: 6.2.0
 
-        escapechar : str, default '"'
+        escapechar : str | None, default '"'
             Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
+            The default is None on Python 3.13 and newer when quotechar is '"'.
 
             .. versionadded:: 6.2.0
 
@@ -2683,7 +2684,9 @@ class MDF:
             quoting_name = kwargs.get("quoting", "MINIMAL").upper()
             quoting: Literal[0, 1, 2, 3] = getattr(csv, f"QUOTE_{quoting_name}")
 
-            escapechar = kwargs.get("escapechar", '"')
+            # Python 3.13 rejects the same character as quotechar and escapechar
+            default_escapechar = None if quotechar == '"' and sys.version_info >= (3, 13) else '"'
+            escapechar = kwargs.get("escapechar", default_escapechar)
             if escapechar is not None:
                 escapechar = escapechar[0]
 

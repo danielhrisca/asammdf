@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import csv
 from pathlib import Path
 import tempfile
 import tracemalloc
@@ -89,6 +90,17 @@ class TestMDF4(unittest.TestCase):
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)
+
+    def test_export_csv_defaults(self) -> None:
+        path = Path(self.tempdir.name) / "export.csv"
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(np.array([7.0, 9.0]), [0.0, 1.0], name='sig,"a"'))
+            mdf.export("csv", filename=path, single_time_base=True)
+
+        with open(path, newline="") as csv_file:
+            rows = list(csv.reader(csv_file))
+        self.assertEqual(rows[0][-1], 'sig,"a"')
+        self.assertEqual([float(row[-1]) for row in rows[1:]], [7.0, 9.0])
 
     def test_extend_canopen(self) -> None:
         dates = np.array(
