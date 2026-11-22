@@ -3850,6 +3850,9 @@ class ChannelConversion(_ChannelConversionBase):
 
                 else:
                     X = vals
+                    if X.dtype.kind in "iu" and (P1 or P4):
+                        # an integer square in numexpr can overflow before the float parameters apply
+                        X = X.astype("f8")
                     try:
                         vals = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
@@ -3871,6 +3874,9 @@ class ChannelConversion(_ChannelConversionBase):
                     if P1 != P5:
                         new_values = new_values * (P1 / P5)
                 else:
+                    if X.dtype.kind in "iu" and (P1 or P4):
+                        # an integer square in numexpr can overflow before the float parameters apply
+                        X = X.astype("f8")
                     try:
                         new_values = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
