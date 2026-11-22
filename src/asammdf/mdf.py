@@ -5023,7 +5023,7 @@ class MDF:
                     signal.samples = samples
 
                 signal.conversion = None
-                if signal.samples.dtype.kind == "S":
+                if signal.samples.dtype.kind == "S" and (signal.encoding is None or conversion is not None):
                     signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
 
         if validate:
