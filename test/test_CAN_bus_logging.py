@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from hashlib import md5
 import os
 from pathlib import Path
 import tempfile
@@ -147,7 +148,9 @@ BA_ "VFrameFormat" BO_ 2348810494 3;
 """
 
 
-def can_logging(ids: list[int], ide: list[int], speed: list[float]) -> MDF:
+def can_logging(
+    ids: list[int], ide: list[int], speed: list[float], attachment: tuple[bytes, Path, str] | None = None
+) -> MDF:
     """CAN log on bus 1 with the TSC1 engine speed in bytes 1 and 2 of every frame."""
     dtype = np.dtype(
         [
@@ -166,7 +169,9 @@ def can_logging(ids: list[int], ide: list[int], speed: list[float]) -> MDF:
     acq_source = Source(name="CAN", path="CAN", comment="", source_type=v4c.SOURCE_BUS, bus_type=v4c.BUS_TYPE_CAN)
     mdf = MDF(version="4.10")
     t = np.arange(len(ids), dtype="f8") * 0.01
-    cg_nr = mdf.append(Signal(samples=rec, timestamps=t, name="CAN_DataFrame"), acq_source=acq_source)
+    cg_nr = mdf.append(
+        Signal(samples=rec, timestamps=t, name="CAN_DataFrame", attachment=attachment), acq_source=acq_source
+    )
     mdf.groups[cg_nr].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
     return mdf
 
@@ -252,6 +257,22 @@ class TestBusFrameSelection(unittest.TestCase):
             with MDF(path) as mdf:
                 speed = mdf.get_can_signal("EngRqedSpeed", database=dbc)
                 self.assertTrue(np.array_equal(speed.samples, [1000.0] * 4))
+
+    def test_embedded_j1939_database_ignores_standard_frames(self) -> None:
+        dbc = J1939_DBC.encode()
+        with tempfile.TemporaryDirectory() as tmp:
+            with can_logging(
+                [0x0C00000B, 0x00B, 0x123] * 4,
+                [1, 0, 0] * 4,
+                [1000.0, 2000.0, 3000.0] * 4,
+                attachment=(dbc, Path("j1939.dbc"), md5(dbc).hexdigest()),
+            ) as mdf:
+                # with the database attached to the CAN_DataFrame channel the frames are decoded on opening
+                mdf.groups[0].channel_group.flags |= v4c.FLAG_CG_PLAIN_BUS_EVENT
+                path = mdf.save(Path(tmp) / "j1939.mf4")
+
+            with MDF(path) as mdf:
+                self.assertTrue(np.array_equal(mdf.get("EngRqedSpeed").samples, [1000.0] * 4))
 
 
 if __name__ == "__main__":

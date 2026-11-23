@@ -11573,6 +11573,17 @@ class MDF4(MDF_Common[Group]):
                             continue
 
                         idx = bus_msg_ids == msg_id
+
+                        # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+                        if is_j1939 and msg_id == 0:
+                            try:
+                                ide = self.get(
+                                    "CAN_DataFrame.IDE", group=group_index, data=fragment, samples_only=True
+                                )[0]
+                                idx &= ide[idx_] == 1
+                            except MdfException:
+                                pass
+
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 
