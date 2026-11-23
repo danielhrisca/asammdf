@@ -4956,15 +4956,18 @@ class MDF:
                             sig.invalidation_bits = InvalidationArray(inval_array)
 
                 else:
-                    sigs = typing.cast(list[tuple[NDArray[Any], None]], sigs)
+                    sigs = typing.cast(list[tuple[NDArray[Any], NDArray[np.bool] | None]], sigs)
                     samples, _ = sigs[0]
                     next_pos = current_pos + len(samples)
                     master[current_pos:next_pos] = samples
 
                     for signal, (samples, inval) in zip(signals, sigs[1:], strict=False):
                         signal.samples[current_pos:next_pos] = samples
+                        if signal.invalidation_bits is None and inval is not None:
+                            signal.invalidation_bits = InvalidationArray(np.zeros(cycles, dtype=inval.dtype))
+
                         if signal.invalidation_bits is not None:
-                            signal.invalidation_bits[current_pos:next_pos] = inval
+                            signal.invalidation_bits[current_pos:next_pos] = False if inval is None else inval
 
                 current_pos = next_pos
 
