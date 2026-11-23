@@ -243,6 +243,16 @@ class TestBusFrameSelection(unittest.TestCase):
             out = mdf.extract_bus_logging({"LIN": [(dbc, 0)]})
             self.assertEqual([group.channel_group.cycles_nr for group in out.groups], [3, 3])
 
+    def test_get_can_signal_j1939_ignores_standard_frames(self) -> None:
+        dbc = load_can_database("j1939.dbc", contents=J1939_DBC)
+        with tempfile.TemporaryDirectory() as tmp:
+            with can_logging([0x0C00000B, 0x00B, 0x123] * 4, [1, 0, 0] * 4, [1000.0, 2000.0, 3000.0] * 4) as mdf:
+                path = mdf.save(Path(tmp) / "j1939.mf4")
+
+            with MDF(path) as mdf:
+                speed = mdf.get_can_signal("EngRqedSpeed", database=dbc)
+                self.assertTrue(np.array_equal(speed.samples, [1000.0] * 4))
+
 
 if __name__ == "__main__":
     unittest.main()

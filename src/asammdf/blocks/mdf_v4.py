@@ -8936,6 +8936,14 @@ class MDF4(MDF_Common[Group]):
             can_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
             indexes = argwhere(can_ids.samples == frame.arbitration_id.pgn).ravel()
+
+            # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+            if frame.arbitration_id.pgn == 0:
+                try:
+                    ide = self.get("CAN_DataFrame.IDE", group=index, samples_only=True, data=data)[0]
+                    indexes = indexes[ide[indexes] == 1]
+                except MdfException:
+                    pass
         else:
             indexes = argwhere(can_ids.samples == frame.arbitration_id.id).ravel()
 
