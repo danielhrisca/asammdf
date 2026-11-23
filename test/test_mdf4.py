@@ -59,6 +59,44 @@ class TestMDF4(unittest.TestCase):
                         else:
                             np.testing.assert_array_equal(signal.invalidation_bits, invalid, strict=True)
 
+    def test_all_values_invalid_flag(self) -> None:
+        timestamps = np.arange(5, dtype=np.float64)
+        samples = np.arange(5, dtype=np.int16)
+        masked = np.array([False, True, False, True, False])
+        for with_invalidation_bytes in (True, False):
+            signals = [Signal(samples, timestamps, name="flagged")]
+            if with_invalidation_bytes:
+                signals.append(Signal(samples, timestamps, name="masked", invalidation_bits=masked))
+            with MDF(version="4.10") as mdf:
+                mdf.append(signals, common_timebase=True)
+                path = mdf.save(Path(self.tempdir.name) / "all_values_invalid.mf4", overwrite=True)
+            with MDF(path) as mdf:
+                address = next(ch.address for ch in mdf.groups[0].channels if ch.name == "flagged")
+
+            # set cn_flags to bit 0 only and leave cn_inval_bit_pos unused
+            data = bytearray(path.read_bytes())
+            links_nr = struct.unpack_from("<Q", data, address + 16)[0]
+            struct.pack_into("<2I", data, address + 24 + 8 * links_nr + 12, v4c.FLAG_CN_ALL_INVALID, 0xFFFFFFFF)
+            path.write_bytes(data)
+
+            for large_file in (False, True):
+                with (
+                    self.subTest(with_invalidation_bytes=with_invalidation_bytes, large_file=large_file),
+                    MDF(path) as mdf,
+                    patch("asammdf.blocks.mdf_v4.validate_blocks", return_value=large_file),
+                    patch("asammdf.mdf.validate_blocks", return_value=large_file),
+                ):
+                    self.assertEqual(len(mdf.get("flagged")), 0)
+                    for signal in mdf.get("flagged", ignore_invalidation_bits=True), mdf.select(["flagged"])[0]:
+                        np.testing.assert_array_equal(signal.samples, samples, strict=True)
+                        np.testing.assert_array_equal(signal.invalidation_bits, np.ones(5, dtype=bool), strict=True)
+                    if with_invalidation_bytes:
+                        signal = mdf.get("masked", ignore_invalidation_bits=True)
+                        np.testing.assert_array_equal(signal.invalidation_bits, masked, strict=True)
+                    with MDF(path, ignore_invalidation_bits=True) as unmasked:  # type: ignore[call-arg]
+                        self.assertEqual(len(unmasked.get("flagged")), 5)
+                        self.assertEqual(len(unmasked.select(["flagged"], validate=True)[0]), 5)
+
     def test_invalidation_buffers_are_released(self) -> None:
         cycles = 100_000
         timestamps = np.arange(cycles, dtype=np.float64)
