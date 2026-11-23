@@ -3526,6 +3526,7 @@ class MDF3(MDF_Common[Group]):
 
             self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
+            self._closed = False
             self._read(self._file)
 
         return dst

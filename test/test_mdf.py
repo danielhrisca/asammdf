@@ -737,6 +737,25 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(scrambled)
                 Path(scrambled).unlink()
 
+    def test_save_to_open_file(self) -> None:
+        t = np.arange(5, dtype="f8")
+        for version in ("3.30", "4.10"):
+            with self.subTest(version=version):
+                with MDF(version=version) as mdf:
+                    mdf.append(Signal(t, t, name="s0"))
+                    path = mdf.save(Path(TestMDF.tempdir.name) / "save_to_open_file", overwrite=True)
+
+                with MDF(path) as mdf:
+                    for i in (1, 2, 3):
+                        mdf.append(Signal(t * i, t, name=f"s{i}"))
+                        mdf.save(path, overwrite=True)
+
+                with MDF(path) as mdf:
+                    self.assertEqual(len(mdf.groups), 4)
+                    np.testing.assert_array_equal(mdf.get("s3").samples, t * 3, strict=True)
+
+                path.unlink()
+
     def test_iter_groups(self) -> None:
         dfs = [
             DataFrame(
