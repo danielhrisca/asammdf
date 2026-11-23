@@ -637,6 +637,14 @@ class MDF4(MDF_Common[Group]):
                     total_size += channel_group.samples_byte_nr * channel_group.cycles_nr
                     inval_total_size += channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     record_size = channel_group.samples_byte_nr
+                elif channel_group.flags & v4c.FLAG_CG_VLSD:
+                    # a VLSD CG stores the total payload size in cg_data_bytes and cg_inval_bytes,
+                    # each of its records adds the record ID and a 4 byte length
+                    total_size += (
+                        channel_group.samples_byte_nr
+                        + (channel_group.invalidation_bytes_nr << 32)
+                        + (record_id_nr + 4) * channel_group.cycles_nr
+                    )
                 else:
                     total_size += (
                         channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr + record_id_nr
@@ -644,7 +652,9 @@ class MDF4(MDF_Common[Group]):
 
                     record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
-            if self.identification.unfinalized_standard_flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+            if self.identification.unfinalized_standard_flags & (
+                v4c.FLAG_UNFIN_UPDATE_CG_COUNTER | v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+            ):
                 total_size = 10**12
                 inval_total_size = 10**12
 

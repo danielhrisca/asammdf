@@ -10,6 +10,7 @@ from unittest.mock import patch
 import numpy as np
 
 from asammdf import MDF, Signal
+from asammdf.blocks import v4_blocks as v4b
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4, MdfException
@@ -297,6 +298,66 @@ class TestMDF4(unittest.TestCase):
 
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+
+    def test_read_unsorted_vlsd_channel_group(self) -> None:
+        # bus loggers such as mdflib store the frame bytes as VLSD records of a
+        # second channel group in the same unsorted data group. All frames must
+        # be read from the DTBLOCK, also a single long frame or empty frames.
+        for payloads in ([bytes(range(64))], [b""] * 50):
+            with self.subTest(frames=len(payloads)):
+                cycles = len(payloads)
+                timestamps = np.arange(cycles) * 0.1
+                records = b""
+                offset = 0
+                for payload, timestamp in zip(payloads, timestamps, strict=True):
+                    records += b"\x02" + len(payload).to_bytes(4, "little") + payload
+                    records += b"\x01" + timestamp.tobytes() + offset.to_bytes(8, "little")
+                    offset += 4 + len(payload)
+
+                hd = v4b.HeaderBlock()
+                dg = v4b.DataGroup(record_id_len=1)
+                cg = v4b.ChannelGroup(record_id=1, cycles_nr=cycles, samples_byte_nr=16)
+                # cg_data_bytes of a VLSD channel group is the total payload size
+                vlsd_cg = v4b.ChannelGroup(
+                    record_id=2, cycles_nr=cycles, flags=v4c.FLAG_CG_VLSD, samples_byte_nr=len(b"".join(payloads))
+                )
+                time_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_MASTER,
+                    sync_type=v4c.SYNC_TYPE_TIME,
+                    data_type=v4c.DATA_TYPE_REAL_INTEL,
+                    bit_count=64,
+                )
+                data_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_VLSD,
+                    data_type=v4c.DATA_TYPE_BYTEARRAY,
+                    byte_offset=8,
+                    bit_count=64,
+                )
+                time_name = v4b.TextBlock(text="t")
+                data_name = v4b.TextBlock(text="DataBytes")
+                dt = v4b.DataBlock(data=records)
+
+                blocks = [hd, dg, cg, vlsd_cg, time_ch, data_ch, time_name, data_name, dt]
+                address = 64
+                for block in blocks:
+                    block.address = address
+                    address += len(bytes(block))
+                hd.first_dg_addr = dg.address
+                dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+                cg.next_cg_addr, cg.first_ch_addr = vlsd_cg.address, time_ch.address
+                time_ch.next_ch_addr, time_ch.name_addr = data_ch.address, time_name.address
+                data_ch.data_block_addr, data_ch.name_addr = vlsd_cg.address, data_name.address
+
+                outfile = Path(TestMDF4.tempdir.name) / f"unsorted_vlsd_{cycles}.mf4"
+                outfile.write_bytes(
+                    bytes(v4b.FileIdentificationBlock(version="4.10")) + b"".join(bytes(block) for block in blocks)
+                )
+
+                with MDF(outfile) as mdf:
+                    signal = mdf.get("DataBytes")
+
+                self.assertEqual([bytes(frame) for frame in signal.samples], payloads)
+                np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
 
     def test_attachment_blocks_wo_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
