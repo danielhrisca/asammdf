@@ -722,6 +722,8 @@ class MDF3(MDF_Common[Group]):
                     # update channel map
                     entry = dg_cntr, ch_cntr
                     ch_map[ch_addr] = entry
+                    new_ch.group = dg_cntr
+                    new_ch.index = ch_cntr
 
                     for name in (new_ch.name, *tuple(new_ch.display_names)):
                         if name:
@@ -1117,6 +1119,8 @@ class MDF3(MDF_Common[Group]):
                 "dtype": timestamps.dtype,
             }
             channel = Channel(**cn_kargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name = time_name
             channel.conversion = cc_block
             channel.source = new_source
@@ -1226,6 +1230,8 @@ class MDF3(MDF_Common[Group]):
                 s_size = max(s_size, 8)
 
                 channel = Channel(**cn_kargs)
+                channel.group = dg_cntr
+                channel.index = ch_cntr
                 channel.name = signal.name
                 channel.comment = signal.comment
                 channel.source = new_source
@@ -1301,6 +1307,8 @@ class MDF3(MDF_Common[Group]):
                     "byte_order": byte_order, 
                 }
                 channel = Channel(**cn_kargs)
+                channel.group = new_dg_cntr
+                channel.index = new_ch_cntr
                 channel.name = name = time_name
                 channel.source = new_source
                 channel.conversion = cc_block
@@ -1395,6 +1403,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.source = new_source
                     channel.conversion = cc_block
@@ -1567,6 +1577,8 @@ class MDF3(MDF_Common[Group]):
                 s_size = max(s_size, 8)
 
                 channel = Channel(**cn_kargs)
+                channel.group = new_dg_cntr
+                channel.index = new_ch_cntr
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
 
@@ -1631,6 +1643,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.source = new_source
                     new_gp_channels.append(channel)
@@ -1722,6 +1736,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.comment = signal.comment
                     channel.source = new_source
@@ -1787,6 +1803,8 @@ class MDF3(MDF_Common[Group]):
                         s_size = max(s_size, 8)
 
                         channel = Channel(**cn_kargs)
+                        channel.group = new_dg_cntr
+                        channel.index = new_ch_cntr
                         channel.name = name
                         channel.source = new_source
                         new_gp_channels.append(channel)
@@ -1995,6 +2013,8 @@ class MDF3(MDF_Common[Group]):
                 "byte_order": byte_order,
             }
             channel = Channel(**cn_kargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name = time_name
             channel.conversion = conversion
             channel.source = source
@@ -2051,6 +2071,8 @@ class MDF3(MDF_Common[Group]):
             s_size = max(s_size, 8)
 
             channel = Channel(**cn_kwargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name
             channel.source = new_source
 
