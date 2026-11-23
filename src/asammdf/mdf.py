@@ -5631,8 +5631,6 @@ class MDF:
                     master = np.array([], dtype="<f4")
 
             master_ = master
-            if time_from_zero and len(master_):
-                master_ -= master_[0]
             channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
             # approximation with all float64 dtype
             itemsize = channel_count * 8
@@ -5880,6 +5878,9 @@ class MDF:
 
                     new_index = self.header.start_time + delta
                     df.set_index(new_index, inplace=True)
+
+                elif time_from_zero and len(master_) and master_[0] != 0:
+                    df.set_index(df.index - master_[0], inplace=True)
 
                 yield df
 
