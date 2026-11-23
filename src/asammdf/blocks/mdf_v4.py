@@ -4317,7 +4317,7 @@ class MDF4(MDF_Common[Group]):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
-    ) -> tuple[int, int, int, tuple[int, int], list[tuple[NDArray[Any], int]]]:
+    ) -> tuple[int, Channel, list[tuple[NDArray[Any], int]]]:
 
         si_map = self._si_map
 
@@ -4382,7 +4382,7 @@ class MDF4(MDF_Common[Group]):
             cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
             cn_kwargs["pos_invalidation_bit"] = origin[1]
 
-        ch = Channel(**cn_kwargs)
+        struct_self = ch = Channel(**cn_kwargs)
         ch.name = name
         ch.unit = signal.unit
         ch.comment = signal.comment
@@ -4428,13 +4428,12 @@ class MDF4(MDF_Common[Group]):
                 ch.source = new_source
 
         entry = gp_channels.add(ch)
-        struct_self = entry
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        composition = []
+        composition = ch.composition = []
 
         # then we add the fields
         for name in names:
@@ -4795,8 +4794,6 @@ class MDF4(MDF_Common[Group]):
                 )
                 composition.append(sub_structure)
                 fields.extend(new_fields)
-
-        self.composition = composition
 
         return offset, struct_self, fields
 
@@ -6311,13 +6308,9 @@ class MDF4(MDF_Common[Group]):
         if vals is None:
             if dependency_list:
                 if not isinstance(dependency_list[0], ChannelArrayBlock):
-                    dependency_list = typing.cast(list[tuple[int, int]], dependency_list)
                     samples, timestamps, invalidation_bits, encoding = self._get_structure(
                         channel=channel,
                         group=grp,
-                        group_index=gp_nr,
-                        channel_index=ch_nr,
-                        dependency_list=dependency_list,
                         raster=raster,
                         data=data,
                         ignore_invalidation_bits=ignore_invalidation_bits,
@@ -6614,9 +6607,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
@@ -6631,9 +6621,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
@@ -6648,9 +6635,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
@@ -6665,9 +6649,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
@@ -6682,9 +6663,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: bool,
@@ -6698,9 +6676,6 @@ class MDF4(MDF_Common[Group]):
         self,
         channel: Channel,
         group: Group,
-        group_index: int,
-        channel_index: int,
-        dependency_list: list[tuple[int, int]],
         raster: RasterType | None,
         data: Fragment | None,
         ignore_invalidation_bits: bool,
@@ -6710,7 +6685,7 @@ class MDF4(MDF_Common[Group]):
         raw: bool,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]:
         grp = group
-        gp_nr = group_index
+        gp_nr = group.index
         # get data group record
 
         # get group data
@@ -6721,7 +6696,7 @@ class MDF4(MDF_Common[Group]):
             fragments = iter((data,))
             one_piece = True
 
-        groups = self.groups
+        dependency_list = channel.composition
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
             v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
@@ -6764,7 +6739,6 @@ class MDF4(MDF_Common[Group]):
 
             channel_values = flat_channel_values
         else:
-            print('long way')
             unique_names = UniqueDB()
             fast_path = False
             names = [unique_names.get_unique_name(ch.name) for ch in dependency_list]
@@ -10321,10 +10295,10 @@ class MDF4(MDF_Common[Group]):
                 for j, channel in enumerate(channels):
                     address = self.write_channel(channel, gp, address, blocks, defined_texts, cc_map, si_map, compression)
                     
-                group_channels = gp.channels
+                group_channels = list(gp.channels)
                 if group_channels:
-                    for j, channel in enumerate(group_channels[:-1]):
-                        channel.next_ch_addr = group_channels[j + 1].address
+                    for j, ch in enumerate(group_channels[:-1]):
+                        ch.next_ch_addr = group_channels[j+1].address
                     group_channels[-1].next_ch_addr = 0
 
                 # channel group
