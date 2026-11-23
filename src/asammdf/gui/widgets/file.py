@@ -640,35 +640,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             items = []
             for i, group in enumerate(self.mdf.groups):
-                for j, ch in enumerate(group.channels):
-                    entry = i, j
+                if source := group.channel_group.acq_source:
+                    bus = source.path or "None"
+                else:
+                    bus = "None"
 
-                    if search_name.pattern and not search_name.pattern.search(ch.name):
-                        continue
+                if search_bus.pattern and not search_bus.pattern.search(bus):
+                    continue
+                    
+                if use_old:
+                    bus = None
 
-                    if source := group.channel_group.acq_source:
-                        bus = source.path or "None"
-                    else:
-                        bus = "None"
-
-                    if search_bus.pattern and not search_bus.pattern.search(bus):
-                        continue
-
-                    channel = MinimalTreeItem(
-                        entry,
-                        ch.name,
-                        strings=[ch.name if use_old else f"{ch.name} —— {bus:<10}"],
+                items.extend(
+                    add_children(
+                        None,
+                        group.channels,
+                        signals,
                         origin_uuid=self.uuid,
-                        original_name=ch.name
+                        version=self.mdf.version,
+                        bus=bus,
+                        pattern=search_name.pattern,
                     )
-                    channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-
-                    if entry in signals:
-                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                    else:
-                        channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-                    items.append(channel)
+                )
 
             if len(items) < 30000:
                 items = natsorted(items, key=lambda x: x.name)
@@ -737,14 +730,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
 
-                channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
-
                 add_children(
                     channel_group,
-                    channels,
-                    group.channel_dependencies,
+                    group.channels,
                     signals,
-                    entries=None,
                     origin_uuid=self.uuid,
                     version=self.mdf.version,
                 )
@@ -761,7 +750,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
                 channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
-                channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 

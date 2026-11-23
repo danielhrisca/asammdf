@@ -10,6 +10,7 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ...blocks.v4_blocks import Channel
 from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
 from ...signal import Signal
 from .. import utils
@@ -58,51 +59,63 @@ def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
 def add_children(
     widget,
     channels,
-    channel_dependencies,
     signals,
-    entries=None,
     origin_uuid=None,
     version="4.11",
+    bus=None,
+    pattern=None,
 ):
     children = []
-    if entries is not None:
-        channels_ = [channels[i] for _, i in entries]
-    else:
-        channels_ = channels
 
-    for ch in channels_:
-        if ch.added:
+    for ch in channels:
+
+        if pattern and not pattern.search(ch.name):
             continue
 
-        entry = ch.entry
+        entry = ch.group, ch.index
 
-        child = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=origin_uuid)
+        child = MinimalTreeItem(entry, ch.name, strings=[ch.name if bus is None else f"{ch.name} —— {bus:<10}"], origin_uuid=origin_uuid)
+        child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
 
-        dep = channel_dependencies[entry[1]]
         if version >= "4.00":
-            if dep and isinstance(dep[0], tuple):
-                child.setFlags(
-                    child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
-                )
+            if ch.composition and all(isinstance(dep, Channel) for dep in ch.composition):
 
-                add_children(
-                    child,
-                    channels,
-                    channel_dependencies,
-                    signals,
-                    dep,
-                    origin_uuid=origin_uuid,
-                )
+                if widget is None:
+
+                    grand_children = add_children(
+                        None,
+                        ch.composition,
+                        signals,
+                        origin_uuid=origin_uuid,
+                        bus=bus,
+                        pattern=pattern
+                    )
+
+                    children.extend(grand_children)
+
+                else:
+                    child.setFlags(
+                        child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                    )
+                    
+                    add_children(
+                        child,
+                        ch.composition,
+                        signals,
+                        origin_uuid=origin_uuid,
+                    )
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.CheckState.Checked)
         else:
             child.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
-        ch.added = True
         children.append(child)
 
-    widget.addChildren(children)
+    if widget and children:
+        widget.addChildren(children)
+
+    return children
 
 
 def add_new_items(tree, root, items, pos):

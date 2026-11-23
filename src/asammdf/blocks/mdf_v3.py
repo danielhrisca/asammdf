@@ -664,7 +664,7 @@ class MDF3(MDF_Common[Group]):
                 kargs["record_id_len"] = record_id_nr
                 kargs["address"] = data_group.address
 
-                new_groups.append(Group(DataGroup(**kargs)))
+                new_groups.append(Group(DataGroup(**kargs), version=3))
                 grp = new_groups[-1]
                 grp.channels = []
                 grp.trigger = trigger
@@ -1066,7 +1066,7 @@ class MDF3(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
+        gp = Group(DataGroup(), version=3)
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
@@ -1262,7 +1262,7 @@ class MDF3(MDF_Common[Group]):
                 v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION,
             ):
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(DataGroup())
+                new_gp = Group(DataGroup(), version=3)
                 new_gp_channels = new_gp.channels = []
                 new_gp_dep = new_gp.channel_dependencies = []
                 new_gp_sig_types = new_gp.signal_types = []
@@ -1480,7 +1480,7 @@ class MDF3(MDF_Common[Group]):
 
             else:
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(DataGroup())
+                new_gp = Group(DataGroup(), version=3)
                 new_gp_channels = new_gp.channels = []
                 new_gp_dep = new_gp.channel_dependencies = []
                 new_gp_sig_types = new_gp.signal_types = []
@@ -1953,7 +1953,7 @@ class MDF3(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
+        gp = Group(DataGroup(), version=3)
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []

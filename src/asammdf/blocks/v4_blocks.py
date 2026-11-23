@@ -1086,7 +1086,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     else:
                         info["type"] = "REF_AXIS"
                         info["size"] = typing.cast(int, self[f"dim_size_{i}"])
-                        info["ref"] = self.axis_channels[i]
+                        info["ref"] = self.axis_channels[i] if i < len(self.axis_channels) else None
                         info["ref_name"] = ""
 
             if self.flags & v4c.FLAG_CA_AXIS:

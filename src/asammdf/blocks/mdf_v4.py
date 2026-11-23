@@ -209,11 +209,7 @@ class MDF4(MDF_Common[Group]):
 
     * ``data_group`` - `DataGroup` object
     * ``channel_group`` - `ChannelGroup` object
-    * ``channels`` - list of `Channel` objects with the same order as found in
-      the MDF file
-    * ``channel_dependencies`` - list of `ChannelArrayBlock` objects in case of
-      channel arrays; list of `Channel` objects in case of structure channel
-      composition
+    * ``channels`` - ChannelsStore containing `Channel` objects 
     * ``data_blocks`` - list of `DataBlockInfo` objects, each one containing
       address, type, size and other information about the block
     * ``data_location`` - integer code for data location (original file,
@@ -683,56 +679,7 @@ class MDF4(MDF_Common[Group]):
             )
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
-            for ch_index, dep_list in []:  ## enumerate(grp.channel_dependencies):
-                if not dep_list:
-                    continue
-
-                for dep in dep_list:
-                    if isinstance(dep, ChannelArrayBlock):
-                        if dep.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
-                            for i in range(dep.dims):
-                                ch_addr = typing.cast(int, dep[f"dynamic_size_{i}_ch_addr"])
-                                if ch_addr:
-                                    ref_channel = self._ch_map[ch_addr]
-                                    dep.dynamic_size_channels.append(ref_channel)
-                                else:
-                                    dep.dynamic_size_channels.append(None)
-
-                        if dep.flags & v4c.FLAG_CA_INPUT_QUANTITY:
-                            for i in range(dep.dims):
-                                ch_addr = typing.cast(int, dep[f"input_quantity_{i}_ch_addr"])
-                                if ch_addr:
-                                    ref_channel = self._ch_map[ch_addr]
-                                    dep.input_quantity_channels.append(ref_channel)
-                                else:
-                                    dep.input_quantity_channels.append(None)
-
-                        if dep.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                            ch_addr = dep.output_quantity_ch_addr
-                            if ch_addr:
-                                ref_channel = self._ch_map[ch_addr]
-                                dep.output_quantity_channel = ref_channel
-                            else:
-                                dep.output_quantity_channel = None
-
-                        if dep.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                            ch_addr = dep.comparison_quantity_ch_addr
-                            if ch_addr:
-                                ref_channel = self._ch_map[ch_addr]
-                                dep.comparison_quantity_channel = ref_channel
-                            else:
-                                dep.comparison_quantity_channel = None
-
-                        if (dep.flags & v4c.FLAG_CA_AXIS) and not (dep.flags & v4c.FLAG_CA_FIXED_AXIS):
-                            for i in range(dep.dims):
-                                ch_addr = typing.cast(int, dep[f"scale_axis_{i}_ch_addr"])
-                                if ch_addr:
-                                    ref_channel = self._ch_map[ch_addr]
-                                    dep.axis_channels.append(ref_channel)
-                                else:
-                                    dep.axis_channels.append(None)
-                    else:
-                        break
+            self._process_ca_refs(grp.channels)
 
         self._sort(
             stream,
@@ -4146,8 +4093,8 @@ class MDF4(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
-        gp_channels = gp.channels = []
+        gp = Group(DataGroup(), index=dg_cntr)
+        gp_channels = gp.channels
         gp_sig_types = gp.signal_types = []
 
         cycles_nr = len(t)
@@ -4163,7 +4110,6 @@ class MDF4(MDF_Common[Group]):
 
         fields: list[NDArray[Any]] = []
         types: list[DTypeLike | tuple[str, np.dtype[Any], tuple[int, ...]]] = []
-        ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
 
@@ -4201,9 +4147,9 @@ class MDF4(MDF_Common[Group]):
         ch.unit = time_unit
         ch.name = time_name
         name = time_name
-        gp_channels.append(ch)
+        entry = gp_channels.add(ch)
 
-        self.channels_db.add(name, (dg_cntr, ch_cntr))
+        self.channels_db.add(name, entry)
         self.masters_db[dg_cntr] = 0
 
         fields.append(t)
@@ -4257,11 +4203,11 @@ class MDF4(MDF_Common[Group]):
                 ch.name = name
                 ch.unit = units.get(name, "")
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
                 offset += byte_size
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.channels_db.add(name, entry)
 
                 field_name = field_names.get_unique_name(name)
 
@@ -4278,8 +4224,6 @@ class MDF4(MDF_Common[Group]):
                 types_: list[DTypeLike] = [("", uint32), ("", array.dtype)]
 
                 data = np.rec.fromarrays(values, dtype=types_)
-
-                
 
                 data_size = len(data) * data.itemsize
                 if data_size:
@@ -4317,11 +4261,11 @@ class MDF4(MDF_Common[Group]):
                 ch.unit = units.get(name, "")
                 ch.signal_data = sdata
 
-                gp_channels.append(ch)
+                entry = gp_channels.add(ch)
 
                 offset += byte_size
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.channels_db.add(name, entry)
 
                 field_name = field_names.get_unique_name(name)
 
@@ -7201,8 +7145,7 @@ class MDF4(MDF_Common[Group]):
                         if axis_channel is None:
                             axisname = f"axis_{i}"
                             axis_values = array(
-                                [arange(shape[0])] * cycles,
-                                dtype=f"({shape[0]},)f8",
+                                [arange(shape[0], dtype='f8')] * cycles,
                             )
 
                         else:
@@ -7244,7 +7187,7 @@ class MDF4(MDF_Common[Group]):
 
                             axis_values = axis_values[axisname]
                             if len(axis_values) == 0 and cycles:
-                                axis_values = array([arange(shape[0])] * cycles)
+                                axis_values = array([arange(shape[0], dtype='f8')] * cycles)
 
                         axis["ref_name"] = axisname
                         axis["dtype_field_name"] = axisname
@@ -8070,9 +8013,8 @@ class MDF4(MDF_Common[Group]):
         byte_offset = channel.byte_offset
         bit_count = channel.bit_count
 
-        if ch_nr >= 0:
-            dependencies = group.channel_dependencies[ch_nr]
-            if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
+        if ch_nr >= 0 and (dependencies := channel.composition):
+            if isinstance(dependencies[0], ChannelArrayBlock):
                 ca_block = dependencies[0]
 
                 size = bit_count // 8
@@ -8218,52 +8160,10 @@ class MDF4(MDF_Common[Group]):
             for gp_index in groups:
                 group = self.groups[gp_index]
 
-                included_channels = set(range(len(group.channels)))
+                included_channels = set(group.channels.primary_channels())
                 master_index = self.masters_db.get(gp_index, None)
                 if master_index is not None:
                     included_channels.remove(master_index)
-
-                for dependencies in group.channel_dependencies:
-                    if dependencies is None:
-                        continue
-
-                    if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                        dependencies = typing.cast(list[tuple[int, int]], dependencies)
-                        for _, ch_nr in dependencies:
-                            try:
-                                included_channels.remove(ch_nr)
-                            except KeyError:
-                                pass
-                    else:
-                        dependencies = typing.cast(list[ChannelArrayBlock], dependencies)
-                        for dep in dependencies:
-                            for referenced_channels in (
-                                dep.axis_channels,
-                                dep.dynamic_size_channels,
-                                dep.input_quantity_channels,
-                            ):
-                                for gp_nr, ch_nr in filter(None, referenced_channels):
-                                    if gp_nr == gp_index:
-                                        try:
-                                            included_channels.remove(ch_nr)
-                                        except KeyError:
-                                            pass
-
-                            if dep.output_quantity_channel:
-                                gp_nr, ch_nr = dep.output_quantity_channel
-                                if gp_nr == gp_index:
-                                    try:
-                                        included_channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
-
-                            if dep.comparison_quantity_channel:
-                                gp_nr, ch_nr = dep.comparison_quantity_channel
-                                if gp_nr == gp_index:
-                                    try:
-                                        included_channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
 
                 gps[gp_index] = sorted(included_channels)
 
@@ -8294,49 +8194,8 @@ class MDF4(MDF_Common[Group]):
                 group = self.groups[gp_index]
 
                 if minimal:
-                    channel_dependencies = [group.channel_dependencies[ch_nr] for ch_nr in gps_idx]
-
-                    for dependencies in channel_dependencies:
-                        if dependencies is None:
-                            continue
-
-                        if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                            dependencies = typing.cast(list[tuple[int, int]], dependencies)
-                            for _, ch_nr in dependencies:
-                                try:
-                                    gps_idx.remove(ch_nr)
-                                except KeyError:
-                                    pass
-                        else:
-                            dependencies = typing.cast(list[ChannelArrayBlock], dependencies)
-                            for dep in dependencies:
-                                for referenced_channels in (
-                                    dep.axis_channels,
-                                    dep.dynamic_size_channels,
-                                    dep.input_quantity_channels,
-                                ):
-                                    for gp_nr, ch_nr in filter(None, referenced_channels):
-                                        if gp_nr == gp_index:
-                                            try:
-                                                gps_idx.remove(ch_nr)
-                                            except KeyError:
-                                                pass
-
-                                if dep.output_quantity_channel:
-                                    gp_nr, ch_nr = dep.output_quantity_channel
-                                    if gp_nr == gp_index:
-                                        try:
-                                            gps_idx.remove(ch_nr)
-                                        except KeyError:
-                                            pass
-
-                                if dep.comparison_quantity_channel:
-                                    gp_nr, ch_nr = dep.comparison_quantity_channel
-                                    if gp_nr == gp_index:
-                                        try:
-                                            gps_idx.remove(ch_nr)
-                                        except KeyError:
-                                            pass
+                    primary = set(group.channels.primary_channels())
+                    gps_idx = gps_idx & primary
 
                     gp_master = self.masters_db.get(gp_index, None)
                     if gp_master is not None and gp_master in gps_idx:
@@ -10495,10 +10354,8 @@ class MDF4(MDF_Common[Group]):
                         raise Terminated
 
             for gp in self.groups:
-                # to do handle the new composition
-                continue
-                for dep_list in gp.channel_dependencies:
-                    if dep_list:
+                for channel in gp.channels:
+                    if dep_list := channel.composition:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             dep_list = typing.cast(list[ChannelArrayBlock], dep_list)
                             for dep in dep_list:
@@ -11939,6 +11796,71 @@ class MDF4(MDF_Common[Group]):
                             self.extend(index, sigs_samples)
                 self._set_temporary_master(None)
 
+    def _process_ca_refs(self, channels):
+        for channel in channels:
+            if not (dep_list := channel.composition):
+                continue
+
+            ca_blocks = [
+                block 
+                for block in dep_list
+                if isinstance(block, ChannelArrayBlock)
+            ]
+
+            cn_blocks = [
+                block 
+                for block in dep_list
+                if isinstance(block, Channel)
+            ]
+
+            for dep in ca_blocks:
+                if dep.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                    for i in range(dep.dims):
+                        ch_addr = typing.cast(int, dep[f"dynamic_size_{i}_ch_addr"])
+                        if ch_addr:
+                            ref_channel = self._ch_map[ch_addr]
+                            dep.dynamic_size_channels.append(ref_channel)
+                        else:
+                            dep.dynamic_size_channels.append(None)
+
+                if dep.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                    for i in range(dep.dims):
+                        ch_addr = typing.cast(int, dep[f"input_quantity_{i}_ch_addr"])
+                        if ch_addr:
+                            ref_channel = self._ch_map[ch_addr]
+                            dep.input_quantity_channels.append(ref_channel)
+                        else:
+                            dep.input_quantity_channels.append(None)
+
+                if dep.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                    ch_addr = dep.output_quantity_ch_addr
+                    if ch_addr:
+                        ref_channel = self._ch_map[ch_addr]
+                        dep.output_quantity_channel = ref_channel
+                    else:
+                        dep.output_quantity_channel = None
+
+                if dep.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                    ch_addr = dep.comparison_quantity_ch_addr
+                    if ch_addr:
+                        ref_channel = self._ch_map[ch_addr]
+                        dep.comparison_quantity_channel = ref_channel
+                    else:
+                        dep.comparison_quantity_channel = None
+
+                if (dep.flags & v4c.FLAG_CA_AXIS) and not (dep.flags & v4c.FLAG_CA_FIXED_AXIS):
+                    for i in range(dep.dims):
+                        ch_addr = typing.cast(int, dep[f"scale_axis_{i}_ch_addr"])
+                        if ch_addr:
+                            ref_channel = self._ch_map[ch_addr]
+                            dep.axis_channels.append(ref_channel)
+                        else:
+                            dep.axis_channels.append(None)
+
+            if cn_blocks:
+                self._process_ca_refs(cn_blocks)
+
+
     def reload_header(self) -> None:
         if not self._file:
             raise RuntimeError("self._file is None")
@@ -11976,7 +11898,6 @@ def debug_channel(
     print("sorted:", group.sorted, file=file)
     print("data location:", group.data_location, file=file)
     print("data blocks:", group.data_blocks, file=file)
-    print("dependencies", group.channel_dependencies, file=file)
     print(file=file)
 
     cg = group.channel_group

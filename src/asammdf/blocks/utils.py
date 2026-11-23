@@ -1122,6 +1122,13 @@ class ChannelsStore:
         for ch in self._channels.values():
             ch.group = value
 
+    def primary_channels(self):
+        return [
+            index
+            for index, (channel, primary) in self._channels.items()
+            if primary
+        ]
+
     def __bool__(self):
         return bool(self._channels)
 
