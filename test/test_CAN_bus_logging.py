@@ -183,6 +183,39 @@ class TestBusFrameSelection(unittest.TestCase):
             self.assertTrue(np.array_equal(speed.samples, [1000.0] * 4))
             self.assertTrue(np.array_equal(speed.timestamps, np.arange(0, 12, 3) * 0.01))
 
+    def test_j1939_message_per_destination(self) -> None:
+        dbc = load_can_database(
+            "j1939.dbc",
+            contents=J1939_DBC.replace(
+                'BO_ 2348810494 TSC1: 8 Vector__XXX\n SG_ EngRqedSpeed : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX',
+                'BO_ 2348810251 TSC1_A: 8 Vector__XXX\n SG_ SpeedA : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX\n'
+                'BO_ 2348814347 TSC1_B: 8 Vector__XXX\n SG_ SpeedB : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX',
+            ).replace(
+                'BA_ "VFrameFormat" BO_ 2348810494 3;',
+                'BA_ "VFrameFormat" BO_ 2348810251 3;\nBA_ "VFrameFormat" BO_ 2348814347 3;',
+            ),
+        )
+        # the database has one TSC1 message for each of the destinations 0x00 and 0x10
+        with can_logging([0x0C00000B, 0x0C00100B] * 3, [1] * 6, [100.0, 200.0] * 3) as mdf:
+            out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+
+            self.assertEqual(sorted(group.channels[1].name for group in out.groups), ["SpeedA", "SpeedB"])
+
+    def test_j1939_one_group_per_pgn_and_source_address(self) -> None:
+        dbc = load_can_database("j1939.dbc", contents=J1939_DBC)
+        # TSC1 from source address 0x0B to destinations 0x00 and 0x10, only the second one in the last frames
+        ids = [0x0C00000B, 0x0C00100B] * 2 + [0x0C00100B] * 6
+        speed = [100.0 * i for i in range(len(ids))]
+        with can_logging(ids, [1] * len(ids), speed) as mdf:
+            for fragment_size in (None, 64):
+                with self.subTest(fragment_size=fragment_size):
+                    if fragment_size:
+                        mdf.configure(read_fragment_size=fragment_size)
+                    out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+
+                    self.assertEqual(len(out.groups), 1)
+                    self.assertTrue(np.array_equal(out.get("EngRqedSpeed").samples, speed))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9273,6 +9273,7 @@ class MDF4(MDF_Common[Group]):
             }
 
             msg_map: dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], int] = {}
+            j1939_ids: dict[tuple[int, int, int, str], int] = {}
 
             for i, group in enumerate(self.groups):
                 if (
@@ -9340,6 +9341,7 @@ class MDF4(MDF_Common[Group]):
 
                         total_unique_ids = total_unique_ids | set(unique_ids)
 
+                        done_j1939: set[tuple[int, int, str]] = set()
                         for msg_id, is_extended in sorted(unique_ids):
                             message = messages.get((msg_id, is_extended), None)
 
@@ -9366,6 +9368,14 @@ class MDF4(MDF_Common[Group]):
                             if is_j1939:
                                 source_address = msg_id & 0xFF
                                 pgn_number = message.arbitration_id.pgn
+                                # the frames are selected by PGN and SA, so each pair is decoded once per
+                                # message and keeps the first CAN ID seen whatever the priority or destination
+                                j1939_key = (pgn_number, source_address, message.name)
+                                if j1939_key in done_j1939:
+                                    unknown_ids[(msg_id, is_extended)].append(False)
+                                    continue
+                                done_j1939.add(j1939_key)
+                                msg_id = j1939_ids.setdefault((bus, *j1939_key), msg_id)
                                 key = (pgn_number, source_address, True)
                                 found_ids[dbc_name].add((key, message.name))
 
