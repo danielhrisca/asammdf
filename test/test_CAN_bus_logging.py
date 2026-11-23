@@ -216,6 +216,33 @@ class TestBusFrameSelection(unittest.TestCase):
                     self.assertEqual(len(out.groups), 1)
                     self.assertTrue(np.array_equal(out.get("EngRqedSpeed").samples, speed))
 
+    def test_lin_frames_of_each_bus(self) -> None:
+        dbc = load_can_database(
+            "lin.dbc",
+            contents='VERSION ""\n\nBO_ 32 LinFrame: 1 Vector__XXX\n SG_ LinValue : 0|8@1+ (1,0) [0|255] "" Vector__XXX\n',
+        )
+        # frame 0x20 with value 11 on bus 1 and 22 on bus 2
+        dtype = np.dtype([("LIN_Frame.BusChannel", "u1"), ("LIN_Frame.ID", "u1"), ("LIN_Frame.DataBytes", "u1", (1,))])
+        rec = np.zeros(6, dtype=dtype)
+        rec["LIN_Frame.BusChannel"] = [1, 2] * 3
+        rec["LIN_Frame.ID"] = 0x20
+        rec["LIN_Frame.DataBytes"][:, 0] = [11, 22] * 3
+
+        acq_source = Source(name="LIN", path="LIN", comment="", source_type=v4c.SOURCE_BUS, bus_type=v4c.BUS_TYPE_LIN)
+        with MDF(version="4.10") as mdf:
+            cg_nr = mdf.append(
+                Signal(samples=rec, timestamps=np.arange(6, dtype="f8"), name="LIN_Frame"), acq_source=acq_source
+            )
+            mdf.groups[cg_nr].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+
+            for bus, values in ((1, [11] * 3), (2, [22] * 3)):
+                with self.subTest(bus=bus):
+                    out = mdf.extract_bus_logging({"LIN": [(dbc, bus)]})
+                    self.assertTrue(np.array_equal(out.get("LinValue").samples, values))
+
+            out = mdf.extract_bus_logging({"LIN": [(dbc, 0)]})
+            self.assertEqual([group.channel_group.cycles_nr for group in out.groups], [3, 3])
+
 
 if __name__ == "__main__":
     unittest.main()

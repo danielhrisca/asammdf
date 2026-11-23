@@ -9712,7 +9712,7 @@ class MDF4(MDF_Common[Group]):
 
                             unknown_ids[msg_id].append(False)
 
-                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            idx = np.argwhere((bus_msg_ids == msg_id) & (bus_ids == bus)).ravel()
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
