@@ -4588,7 +4588,8 @@ class MDF4(MDF_Common[Group]):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
                 # compute additional byte offset for large records size
                 if sig.dtype.kind == "O":
-                    array = encode(sig.to_numpy(dtype=str), "utf-8")
+                    # to_numpy(dtype=str) cuts pyarrow backed text with missing values to one character
+                    array = encode(sig.to_numpy().astype(str), "utf-8")
                 else:
                     array = sig.to_numpy()
 
