@@ -9344,6 +9344,10 @@ class MDF4(MDF_Common[Group]):
                             message = messages.get((msg_id, is_extended), None)
 
                             if message is None:
+                                if not is_extended:
+                                    # J1939 frames always have 29-bit identifiers
+                                    unknown_ids[(msg_id, is_extended)].append(True)
+                                    continue
                                 tmp_pgn = msg_id >> 8
                                 ps = tmp_pgn & 0xFF
                                 pf = (msg_id >> 16) & 0xFF
@@ -9383,7 +9387,9 @@ class MDF4(MDF_Common[Group]):
 
                             if is_j1939:
                                 idx = np.argwhere(
-                                    (j1939_msg_pgns == pgn_number) & (j9193_msg_sa == source_address)
+                                    (j1939_msg_pgns == pgn_number)
+                                    & (j9193_msg_sa == source_address)
+                                    & (bus_msg_ide == 1)
                                 ).ravel()
                             else:
                                 idx = np.argwhere((bus_msg_ids == msg_id) & (bus_msg_ide == is_extended)).ravel()
