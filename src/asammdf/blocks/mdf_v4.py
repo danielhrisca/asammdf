@@ -8941,6 +8941,8 @@ class MDF4(MDF_Common[Group]):
             if frame.arbitration_id.pgn == 0:
                 try:
                     ide = self.get("CAN_DataFrame.IDE", group=index, samples_only=True, data=data)[0]
+                    if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                        ide = self.get("CAN_DataFrame.IDE", group=index, samples_only=True, data=data, raw=True)[0]
                     indexes = indexes[ide[indexes] == 1]
                 except MdfException:
                     pass
@@ -11580,6 +11582,14 @@ class MDF4(MDF_Common[Group]):
                                 ide = self.get(
                                     "CAN_DataFrame.IDE", group=group_index, data=fragment, samples_only=True
                                 )[0]
+                                if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                                    ide = self.get(
+                                        "CAN_DataFrame.IDE",
+                                        group=group_index,
+                                        data=fragment,
+                                        samples_only=True,
+                                        raw=True,
+                                    )[0]
                                 idx &= ide[idx_] == 1
                             except MdfException:
                                 pass
