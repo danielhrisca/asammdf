@@ -2276,7 +2276,6 @@ unit: {self.unit}
         data_type = self.data_type
         bit_count = self.bit_count
         ch_type = self.channel_type
-        # dependency_list = group.channel_dependencies[idx]
 
         if ch_type not in v4c.VIRTUAL_TYPES:
             # adjust size to 1, 2, 4 or 8 bytes

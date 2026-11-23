@@ -750,6 +750,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
                 channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 

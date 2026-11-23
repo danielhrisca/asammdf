@@ -1141,18 +1141,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if widget.mode == "Natural sort":
                     items = []
                     for i, group in enumerate(mdf.groups):
-                        for j, ch in enumerate(group.channels):
-                            entry = i, j
 
-                            channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
-                            channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-
-                            if entry in signals:
-                                channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            else:
-                                channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-                            items.append(channel)
+                        items.extend(
+                            add_children(
+                                None,
+                                group.channels,
+                                signals,
+                                origin_uuid=uuid,
+                                version=mdf.version,
+                            )
+                        )
 
                     if len(items) < 30000:
                         items = natsorted(items, key=lambda x: x.name)
@@ -1215,10 +1213,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         add_children(
                             channel_group,
-                            channels,
-                            group.channel_dependencies,
+                            group.channels,
                             signals,
-                            entries=None,
                             origin_uuid=uuid,
                             version=mdf.version,
                         )
