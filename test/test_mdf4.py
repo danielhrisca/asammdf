@@ -12,6 +12,7 @@ import numpy as np
 from asammdf import MDF, Signal
 from asammdf.blocks import v4_blocks as v4b
 from asammdf.blocks import v4_constants as v4c
+from asammdf.blocks.conversion_utils import from_dict
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4, MdfException
 from asammdf.blocks.v4_blocks import EventBlock, TextBlock
@@ -756,6 +757,44 @@ class TestMDF4(unittest.TestCase):
         with MDF(outfile) as mdf:
             self.assertEqual(mdf.get("voltage").unit, "V")
             self.assertEqual(mdf.get("unitless").unit, "")
+
+    def test_structure_member_conversions(self) -> None:
+        # the conversions belong to the structure members, not to the structure
+        linear = from_dict({"a": 2.0, "b": 1.0})
+        text = from_dict({"val_0": 0, "text_0": b"Off", "val_1": 1, "text_1": b"On"})
+        raw = np.array([0, 1, 2], dtype=np.uint8)
+        samples = np.rec.fromarrays(
+            [raw, raw % 2],
+            dtype=[
+                ("frame.scaled", np.dtype(np.uint8, metadata={"conversion": linear})),
+                ("frame.state", np.dtype(np.uint8, metadata={"conversion": text})),
+            ],
+        )
+        lookup = np.zeros(3, dtype=[("lookup", "<f4", (2,)), ("axis", "<f8", (2,))])
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(samples, timestamps=[0.0, 1.0, 2.0], name="frame")])
+            mdf.append([Signal(lookup, timestamps=[0.0, 1.0, 2.0], name="lookup")])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "structure.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            structure = mdf.get("frame").samples
+            selected = mdf.select(["frame"])[0].samples
+            df = mdf.to_dataframe()
+            chunk = next(mdf.iter_to_dataframe())
+            # an array channel is not a structure and keeps its axes
+            axes = mdf.select(["lookup"])[0].samples.dtype["lookup"].metadata["axes"]
+
+        self.assertEqual([axis["type"] for axis in axes], ["REF_AXIS"])
+
+        for way, scaled, state in (
+            ("get", structure["frame.scaled"], structure["frame.state"]),
+            ("select", selected["frame.scaled"], selected["frame.state"]),
+            ("to_dataframe", df["frame.frame.scaled"].to_numpy(), df["frame.frame.state"]),
+            ("iter_to_dataframe", chunk["frame.frame.scaled"].to_numpy(), chunk["frame.frame.state"]),
+        ):
+            with self.subTest(way=way):
+                np.testing.assert_array_equal(scaled, [1.0, 3.0, 5.0], strict=True)
+                self.assertEqual(list(state), [b"Off", b"On", b"Off"])
 
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:

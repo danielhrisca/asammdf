@@ -37,19 +37,25 @@ logger = logging.getLogger("asammdf")
 ORIGIN_UNKNOWN = (-1, -1)
 
 
-def convert(arr, ignore_value2text_conversions=False):
+def has_conversion(dtype: np.dtype[Any]) -> bool:
+    if dtype.fields:
+        return any(has_conversion(dt) for dt, *_ in dtype.fields.values())
+    return bool(dtype.base.metadata and dtype.base.metadata.get("conversion"))
+
+
+def convert(arr: NDArray[Any], ignore_value2text_conversions: bool = False) -> NDArray[Any]:
     fields = arr.dtype.fields
 
     if fields:
         arrays = []
         types = []
 
-        for name, (dt, offset) in arr.dtype.fields.items():
+        for name in fields:
             converted = convert(arr[name], ignore_value2text_conversions=ignore_value2text_conversions)
             arrays.append(converted)
             types.append((name, converted.dtype, converted.shape[1:]))
 
-        res = np.rec.fromarrays(arrays, dtype=types)
+        res: NDArray[Any] = np.rec.fromarrays(arrays, dtype=types)
         res = res.view(np.lib.format.drop_metadata(res.dtype))
 
     else:

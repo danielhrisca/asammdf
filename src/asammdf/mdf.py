@@ -105,7 +105,7 @@ from .blocks.v4_blocks import (
     FileIdentificationBlock,
     SourceInformation,
 )
-from .signal import InvalidationArray, Signal
+from .signal import convert, has_conversion, InvalidationArray, Signal
 
 try:
     import fsspec
@@ -4812,6 +4812,14 @@ class MDF:
 
         return signals
 
+    def _is_converted_structure(self, signal: Signal) -> bool:
+        # structure members keep their conversions in the field metadata, array
+        # channels have no structure dtype and are converted with their own conversion
+        return (
+            has_conversion(signal.samples.dtype)
+            and self._mdf.groups[signal.group_index].channels[signal.channel_index].dtype.names is not None
+        )
+
     def _select_fallback(
         self,
         channels: ChannelsType,
@@ -5021,6 +5029,10 @@ class MDF:
                         signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                     )
                     signal.samples = samples
+                elif self._is_converted_structure(signal):
+                    signal.samples = convert(
+                        signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                    )
 
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
@@ -5726,6 +5738,10 @@ class MDF:
                                     signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                                 )
                                 signal.samples = samples
+                            elif self._is_converted_structure(signal):
+                                signal.samples = convert(
+                                    signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                                )
 
                             signal.conversion = None
                             if signal.samples.dtype.kind == "S":
@@ -6189,6 +6205,10 @@ class MDF:
                             signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                         )
                         signal.samples = samples
+                    elif self._is_converted_structure(signal):
+                        signal.samples = convert(
+                            signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                        )
 
                     signal.conversion = None
                     if signal.samples.dtype.kind == "S":
