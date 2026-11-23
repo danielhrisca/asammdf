@@ -104,6 +104,35 @@ class TestMDF4(unittest.TestCase):
         self.assertEqual(rows[0][-1], 'sig,"a"')
         self.assertEqual([float(row[-1]) for row in rows[1:]], [7.0, 9.0])
 
+    def test_export_csv_text(self) -> None:
+        timestamps = np.arange(3, dtype=np.float64)
+        gear = {"val_0": 0, "text_0": "Park", "val_1": 1, "text_1": "Drive", "default_addr": "Fault"}
+        state = np.array([b"ok", b"", "Grün".encode("latin-1")])
+        labels = ["5 Ω", "温度", ""]
+        label = np.array([text.encode("utf-8") for text in labels])
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(np.array([0, 1, 5], dtype=np.uint8), timestamps, name="gear", conversion=gear),
+                    Signal(state, timestamps, name="state", encoding="latin-1"),
+                    Signal(label, timestamps, name="label", encoding="utf-8"),
+                ]
+            )
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"text_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    path = next(path.parent.glob(f"{path.stem}*.csv"))
+
+                    with open(path, newline="") as csv_file:
+                        rows = list(csv.DictReader(csv_file))
+                        encoding = csv_file.encoding
+                    self.assertEqual([row["gear"] for row in rows], ["Park", "Drive", "Fault"])
+                    # the CSV uses the system encoding and replaces what it cannot represent
+                    for name, texts in (("state", ["ok", "", "Grün"]), ("label", labels)):
+                        expected = [text.encode(encoding, "replace").decode(encoding) for text in texts]
+                        self.assertEqual([row[name] for row in rows], expected)
+
     def test_extend_canopen(self) -> None:
         dates = np.array(
             [

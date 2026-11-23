@@ -2703,6 +2703,15 @@ class MDF:
             if escapechar is not None:
                 escapechar = escapechar[0]
 
+            def decode_text(value: object) -> object:
+                # text columns of the DataFrame are object columns that hold bytes
+                if isinstance(value, bytes):
+                    try:
+                        return value.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return value.decode("latin-1")
+                return value
+
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -2739,7 +2748,7 @@ class MDF:
                     for name, s in dropped.items():
                         df[name] = s
 
-                with open(filename, "w", newline="") as csvfile:
+                with open(filename, "w", newline="", errors="replace") as csvfile:
                     writer = csv.writer(
                         csvfile,
                         delimiter=delimiter,
@@ -2758,18 +2767,8 @@ class MDF:
                         writer.writerow(units_row)
 
                     for col in df:
-                        if df[col].dtype.kind == "S":
-                            for encoding, errors in (
-                                ("utf-8", "strict"),
-                                ("latin-1", "strict"),
-                                ("utf-8", "replace"),
-                                ("latin-1", "replace"),
-                            ):
-                                try:
-                                    df[col] = df[col] = df[col].str.decode(encoding, errors)
-                                    break
-                                except:
-                                    continue
+                        if df[col].dtype == object:
+                            df[col] = df[col].map(decode_text)
 
                     vals: list[object]
                     if reduce_memory_usage:
@@ -2888,7 +2887,7 @@ class MDF:
                     else:
                         units["timestamps"] = "s"
 
-                    with open(group_csv_name, "w", newline="") as csvfile:
+                    with open(group_csv_name, "w", newline="", errors="replace") as csvfile:
                         writer = csv.writer(
                             csvfile,
                             delimiter=delimiter,
@@ -2922,6 +2921,10 @@ class MDF:
                         if add_units:
                             units_row = [units[name] for name in names_row]
                             writer.writerow(units_row)
+
+                        for col in df:
+                            if df[col].dtype == object:
+                                df[col] = df[col].map(decode_text)
 
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
