@@ -450,6 +450,38 @@ class TestMDF4(unittest.TestCase):
             self.assertEqual(conversion.unit, "km/h")
             self.assertEqual(mdf.get("speed").unit, "km/h")
 
+    def test_unit_only_in_conversion(self) -> None:
+        # a NIL unit link in the CNBLOCK means the unit of the conversion rule
+        # applies, a link to an empty text means the channel has no unit
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(
+                        np.arange(3, dtype=np.uint32),
+                        timestamps=[0.0, 1.0, 2.0],
+                        name=name,
+                        conversion={"a": 0.5, "b": 0.0, "unit": "V"},
+                    )
+                    for name in ("voltage", "unitless")
+                ]
+            )
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "cc_unit.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            link = mdf.groups[0].channels[2].address + 24 + 6 * 8
+
+        # point the unit link of the second channel at an empty TXBLOCK
+        data = bytearray(Path(outfile).read_bytes())
+        self.assertEqual(int.from_bytes(data[link : link + 8], "little"), 0)
+        data += bytes(-len(data) % 8)
+        data[link : link + 8] = len(data).to_bytes(8, "little")
+        data += bytes(TextBlock(text="", meta=False))
+        Path(outfile).write_bytes(data)
+
+        with MDF(outfile) as mdf:
+            self.assertEqual(mdf.get("voltage").unit, "V")
+            self.assertEqual(mdf.get("unitless").unit, "")
+
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:
         timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)

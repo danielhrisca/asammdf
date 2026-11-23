@@ -6976,11 +6976,14 @@ class MDF4(MDF_Common[Group]):
                 name = channel.name
 
             unit = (conversion and conversion.unit) or channel.unit
+            if not unit and not channel.unit_addr and channel.conversion:
+                # a NIL unit link means the unit of the conversion rule applies
+                unit = channel.conversion.unit
 
             samples = samples.view(
                 np.dtype(
                     samples.dtype,
-                    metadata={"conversion": conversion, "unit": (conversion and conversion.unit) or channel.unit},
+                    metadata={"conversion": conversion, "unit": unit},
                 )
             )
 
