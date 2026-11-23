@@ -480,7 +480,8 @@ class AttachmentBlock:
         )
 
         result = pack(fmt, *[self[key] for key in keys])
-        return result
+        # block_len read from a file can include padding after the data and to_blocks reserves all of it
+        return result.ljust(self.block_len, b"\0")
 
     def __repr__(self) -> str:
         return f"ATBLOCK(address={self.address:x}, file_name={self.file_name}, comment={self.comment})"
