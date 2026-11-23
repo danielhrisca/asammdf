@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import csv
 from pathlib import Path
+import struct
 import tempfile
 import tracemalloc
 import unittest
@@ -12,7 +13,7 @@ from asammdf import MDF, Signal
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4, MdfException
-from asammdf.blocks.v4_blocks import TextBlock
+from asammdf.blocks.v4_blocks import EventBlock, TextBlock
 
 CHANNEL_LEN = 100000
 
@@ -407,6 +408,33 @@ class TestMDF4(unittest.TestCase):
                 self.assertTrue(np.array_equal(ret_reference.samples, reference))
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
+
+    def test_event_with_nil_scope(self) -> None:
+        # ETAS mdfCombine writes events with a single NIL scope link
+        path = Path(self.tempdir.name) / "event_nil_scope.mf4"
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(np.arange(5.0), np.arange(5.0), name="x")])
+            mdf.events.append(EventBlock(scope_0_addr=0))
+            mdf.save(path, overwrite=True)
+
+        resaved = Path(self.tempdir.name) / "event_nil_scope_resaved.mf4"
+        with MDF(path) as mdf:
+            self.assertEqual(mdf.events[0].scopes, [])
+            self.assertTrue(np.array_equal(mdf.get("x").samples, np.arange(5.0)))
+            mdf.save(resaved, overwrite=True)
+
+        with MDF(resaved) as mdf:
+            self.assertEqual(len(mdf.events), 1)
+            self.assertEqual(mdf.events[0].scope_nr, 0)
+
+        # a NIL link before a valid one: the block keeps the valid link
+        event = EventBlock(scope_0_addr=0, scope_1_addr=0x100)
+        event.update_references({}, {0x100: 0})
+        self.assertEqual(event.scopes, [0])
+        self.assertEqual(event.scope_nr, 1)
+        block = bytes(event)
+        self.assertEqual(len(block), event.block_len)
+        self.assertEqual(struct.unpack_from("<Q", block, 24 + 5 * 8)[0], 0x100)
 
     def test_unit_in_md_block(self) -> None:
         # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
