@@ -3505,6 +3505,7 @@ class MDF:
 
         included_channel_names: list[list[str]] = []
         cg_map: dict[int, int] = {}
+        invalidation_signals: dict[int, dict[int, int]] = {}
 
         if add_samples_origin:
             dict_conversion: dict[str, object] = {}
@@ -3718,6 +3719,32 @@ class MDF:
                             first_timestamp = first_signal.timestamps[0]
                             original_first_timestamp = first_timestamp
 
+                        if isinstance(mdf._mdf, mdf_v4.MDF4):
+                            # the output record layout is fixed by the first append, so every channel
+                            # with the invalidation flag gets a bit, even if this fragment is valid
+                            channels = [
+                                (gp_index, mdf._mdf.groups[gp_index].channels[ch_index])
+                                for gp_index, ch_indexes in included_channels.items()
+                                for ch_index in ch_indexes
+                            ]
+                            source_bits: dict[tuple[int, int], int] = {}
+                            invalidation_signals[i] = {}
+                            for j, (gp_index, channel) in enumerate(channels):
+                                if channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT:
+                                    # channels sharing a source bit keep sharing one output bit
+                                    invalidation_signals[i][j] = source_bits.setdefault(
+                                        (gp_index, channel.pos_invalidation_bit), j
+                                    )
+                                elif signals[j].invalidation_bits is not None:
+                                    invalidation_signals[i][j] = j
+
+                            valid = np.zeros(len(first_signal), dtype=bool)
+                            for j, bit in invalidation_signals[i].items():
+                                bits = signals[j].invalidation_bits
+                                signals[j].invalidation_bits = InvalidationArray(
+                                    valid if bits is None else np.asarray(bits), (0, bit)
+                                )
+
                         if add_samples_origin:
                             signals.append(
                                 Signal(
@@ -3787,6 +3814,20 @@ class MDF:
                                 last_timestamp = master[-1]
 
                             signals_samples[0] = master, None
+
+                            if reserved := invalidation_signals.get(i):
+                                # extend packs one mask per reserved channel in their order and keeps the last
+                                # one of a shared bit, so that one combines the masks of all channels on the bit
+                                valid = np.zeros(len(master), dtype=bool)
+                                masks: dict[int, NDArray[np.bool]] = {}
+                                for j, (samples, inval) in enumerate(signals_samples[1:]):
+                                    if (pos := reserved.get(j)) is None:
+                                        inval = None
+                                    else:
+                                        mask = valid if inval is None else np.asarray(inval)
+                                        masks[pos] = mask if pos not in masks else masks[pos] | mask
+                                        inval = InvalidationArray(masks[pos], (0, pos))
+                                    signals_samples[j + 1] = samples, inval
 
                             if add_samples_origin:
                                 signals_samples.append(
