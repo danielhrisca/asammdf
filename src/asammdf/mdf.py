@@ -10,6 +10,7 @@ from functools import reduce
 import gzip
 from io import BufferedIOBase, BytesIO
 import logging
+import math
 import mmap
 import os
 from pathlib import Path
@@ -66,12 +67,12 @@ from .blocks.types import (
     StrPath,
 )
 from .blocks.utils import (
+    _csv_bytearray2hex,
     as_non_byte_sized_signed_int,
     astype,
     ChannelsDB,
     components,
     csv_bytearray2hex,
-    csv_int2hex,
     DataBlockInfo,
     downcast,
     FileLike,
@@ -2731,22 +2732,22 @@ class MDF:
                 else:
                     units["timestamps"] = "s"
 
-                if hasattr(self, "can_logging_db") and self.can_logging_db:
-                    dropped = {}
-
-                    for name_ in df.columns:
-                        if name_.endswith("CAN_DataFrame.ID"):
-                            dropped[name_] = pd.Series(
-                                csv_int2hex(df[name_].astype(np.dtype("<u4")) & 0x1FFFFFFF),
-                                index=df.index,
-                            )
-
-                        elif name_.endswith("CAN_DataFrame.DataBytes"):
-                            dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
-
-                    df = df.drop(columns=list(dropped))
-                    for name, s in dropped.items():
-                        df[name] = s
+                hex_formatters: dict[str, Callable[..., object]] = {}
+                for name_ in df.columns:
+                    # the channels of a second CAN bus get a "_<n>" suffix in the DataFrame
+                    bus_name = re.sub(r"_\d+$", "", name_)
+                    column = df[name_]
+                    # text columns with these names (for example read back from a CSV) stay as they are
+                    if bus_name.endswith("CAN_DataFrame.ID") and column.dtype.kind in "uif":
+                        hex_formatters[name_] = (
+                            lambda value: f"{int(value) & 0x1FFFFFFF:X}" if math.isfinite(value) else value
+                        )
+                    elif (
+                        bus_name.endswith("CAN_DataFrame.DataBytes")
+                        and len(column)
+                        and isinstance(column.iat[0], np.ndarray)
+                    ):
+                        hex_formatters[name_] = _csv_bytearray2hex
 
                 with open(filename, "w", newline="", errors="replace") as csvfile:
                     writer = csv.writer(
@@ -2767,10 +2768,10 @@ class MDF:
                         writer.writerow(units_row)
 
                     for col in df:
-                        if df[col].dtype == object:
+                        if df[col].dtype == object and col not in hex_formatters:
                             df[col] = df[col].map(decode_text)
 
-                    vals: list[object]
+                    vals: list[Iterable[object]]
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
@@ -2778,6 +2779,10 @@ class MDF:
                             df.index.to_list(),
                             *(df[name].to_list() for name in df),
                         ]
+                    # the hex text is built row by row, a whole column of it would need much more memory
+                    for position, name in enumerate(df.columns, 1):
+                        if name in hex_formatters:
+                            vals[position] = map(hex_formatters[name], vals[position])
                     count = len(df.index)
 
                     if progress is not None:
@@ -2898,22 +2903,19 @@ class MDF:
                             quoting=quoting,
                         )
 
-                        if hasattr(self, "can_logging_db") and self.can_logging_db:
-                            dropped = {}
-
-                            for name_ in df.columns:
-                                if name_.endswith("CAN_DataFrame.ID"):
-                                    dropped[name_] = pd.Series(
-                                        csv_int2hex(df[name_] & 0x1FFFFFFF),
-                                        index=df.index,
-                                    )
-
-                                elif name_.endswith("CAN_DataFrame.DataBytes"):
-                                    dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
-
-                            df = df.drop(columns=list(dropped))
-                            for name_, s in dropped.items():
-                                df[name_] = s
+                        hex_formatters = {}
+                        for name_ in df.columns:
+                            column = df[name_]
+                            if name_.endswith("CAN_DataFrame.ID") and column.dtype.kind in "uif":
+                                hex_formatters[name_] = (
+                                    lambda value: f"{int(value) & 0x1FFFFFFF:X}" if math.isfinite(value) else value
+                                )
+                            elif (
+                                name_.endswith("CAN_DataFrame.DataBytes")
+                                and len(column)
+                                and isinstance(column.iat[0], np.ndarray)
+                            ):
+                                hex_formatters[name_] = _csv_bytearray2hex
 
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
@@ -2923,7 +2925,7 @@ class MDF:
                             writer.writerow(units_row)
 
                         for col in df:
-                            if df[col].dtype == object:
+                            if df[col].dtype == object and col not in hex_formatters:
                                 df[col] = df[col].map(decode_text)
 
                         if reduce_memory_usage:
@@ -2933,6 +2935,9 @@ class MDF:
                                 df.index.to_list(),
                                 *(df[name].to_list() for name in df),
                             ]
+                        for position, name in enumerate(df.columns, 1):
+                            if name in hex_formatters:
+                                vals[position] = map(hex_formatters[name], vals[position])
 
                         for i, row in enumerate(zip(*vals, strict=False)):
                             writer.writerow(row)
