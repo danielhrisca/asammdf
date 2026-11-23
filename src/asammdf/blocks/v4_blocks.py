@@ -3236,6 +3236,8 @@ class ChannelConversion(_ChannelConversionBase):
                     self[f"input_{i}_addr"] = links[j]
                     self[f"output_{i}_addr"] = links[j + 1]
                 self.default_addr = links[-1]
+                # encoding of the channel text, set when the channel is read
+                self.input_encoding = "utf-8"
 
                 (
                     self.conversion_type,
@@ -3748,6 +3750,13 @@ class ChannelConversion(_ChannelConversionBase):
                             blocks.append(tx_block)
                             self[key] = address
                             address += tx_block.block_len
+
+                elif self.conversion_type == v4c.CONVERSION_TYPE_TRANS and self[key]:
+                    # an empty TX is not a NIL link here, NIL keeps the input text
+                    tx_block = TextBlock(text=b"")
+                    blocks.append(tx_block)
+                    self[key] = address
+                    address += tx_block.block_len
 
                 else:
                     self[key] = 0
@@ -4527,15 +4536,28 @@ class ChannelConversion(_ChannelConversionBase):
 
                 in_ = [self.referenced_blocks[f"input_{i}_addr"] for i in range(nr)]
 
-                out_ = [self.referenced_blocks[f"output_{i}_addr"] for i in range(nr)]
-                default_addr = self.referenced_blocks["default_addr"]
+                # a NIL output or default link keeps the input text (ASAM MDF 4.1 section 5.17.12)
+                out_ = [
+                    self.referenced_blocks[f"output_{i}_addr"] if self[f"output_{i}_addr"] else None for i in range(nr)
+                ]
+                default_addr = self.referenced_blocks["default_addr"] if self.default_addr else None
 
+                encoding = self.input_encoding
                 ret = []
                 for val in new_values:
                     try:
                         obj = out_[in_.index(val.strip(b"\0"))]
                     except ValueError:
                         obj = default_addr
+                    if obj is None:
+                        # the converted text is UTF-8
+                        if encoding == "utf-8" or (encoding == "latin-1" and val.isascii()):
+                            obj = val
+                        else:
+                            if encoding != "latin-1":
+                                # numpy drops the trailing zero byte of UTF-16 text
+                                val += b"\0" * (len(val) % 2)
+                            obj = val.decode(encoding, "replace").encode("utf-8")
                     ret.append(obj)
 
                 new_values = np.array(ret)

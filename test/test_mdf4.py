@@ -573,6 +573,41 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
+    def test_text_to_text_conversion_with_nil_links(self) -> None:
+        # In a text to text conversion (CC type 10) a NIL output or default link
+        # keeps the input text, a link to an empty TXBLOCK gives an empty text.
+        samples = np.array([text.encode("latin-1") for text in ("on", "off", "été")])
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(samples, [0.0, 1.0, 2.0], name="state", encoding="latin-1"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "cc_trans.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            # the conversion is the 5th link of a CNBLOCK
+            conversion_link = mdf.groups[0].channels[1].address + 24 + 4 * 8
+
+        data = bytearray(Path(outfile).read_bytes())
+        data += bytes(-len(data) % 8)
+        texts = {}
+        for text in (b"on", b"off", b""):
+            texts[text] = len(data)
+            data += bytes(TextBlock(text=text))
+        # "on" -> NIL, "off" -> empty TXBLOCK, default NIL
+        links = (0, 0, 0, 0, texts[b"on"], 0, texts[b"off"], texts[b""], 0)
+        cc_address = len(data)
+        data += struct.pack("<4sI11Q2B3H2d", b"##CC", 0, 120, 9, *links, v4c.CONVERSION_TYPE_TRANS, 0, 0, 5, 0, 0, 0)
+        data[conversion_link : conversion_link + 8] = cc_address.to_bytes(8, "little")
+        Path(outfile).write_bytes(data)
+
+        expected = ["on", "", "été"]
+        with MDF(outfile) as mdf:
+            signal = mdf.get("state")
+            self.assertEqual([text.decode(signal.encoding) for text in signal.samples.tolist()], expected)
+            saved = mdf.save(Path(TestMDF4.tempdir.name) / "cc_trans_saved.mf4", overwrite=True)
+
+        with MDF(saved) as mdf:
+            signal = mdf.get("state")
+            self.assertEqual([text.decode(signal.encoding) for text in signal.samples.tolist()], expected)
+
     def test_row_oriented_array_components(self) -> None:
         # regression test: element offsets of non-square row oriented arrays
         # used the wrong stride and could point outside of the record

@@ -3,7 +3,7 @@
 import bisect
 from collections import defaultdict, deque
 from collections.abc import Buffer, Callable, Collection, Iterable, Iterator, Sequence
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
@@ -827,6 +827,19 @@ class MDF4(MDF_Common[Group]):
                 ch_addr = channel.next_ch_addr
                 logger.warning(f"Channel address {ch_addr:X} has an invalid data type {channel.data_type}")
                 continue
+
+            conversion = channel.conversion
+            if conversion is not None and conversion.conversion_type == v4c.CONVERSION_TYPE_TRANS:
+                # a NIL output of a text to text conversion keeps the input text in this encoding
+                encoding = {
+                    v4c.DATA_TYPE_STRING_LATIN_1: "latin-1",
+                    v4c.DATA_TYPE_STRING_UTF_16_LE: "utf-16-le",
+                    v4c.DATA_TYPE_STRING_UTF_16_BE: "utf-16-be",
+                }.get(channel.data_type, "utf-8")
+                if encoding != conversion.input_encoding:
+                    # the block can be shared with channels of another encoding
+                    channel.conversion = conversion = copy(conversion)
+                    conversion.input_encoding = encoding
 
             if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                 channel.attachment = self._attachments_map.get(
