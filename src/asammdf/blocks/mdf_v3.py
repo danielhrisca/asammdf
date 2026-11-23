@@ -1282,7 +1282,7 @@ class MDF3(MDF_Common[Group]):
                 name = signal.name
                 display_names = signal.display_names
 
-                if signal.samples.dtype.kind == "u" and signal.bit_count <= 4:
+                if signal.samples.dtype.kind == "u" and 0 < signal.bit_count <= 4:
                     s_size_ = signal.bit_count
                 else:
                     s_size_ = s_size
