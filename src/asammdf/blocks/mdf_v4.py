@@ -8940,9 +8940,22 @@ class MDF4(MDF_Common[Group]):
             # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
             if frame.arbitration_id.pgn == 0:
                 try:
-                    ide = self.get("CAN_DataFrame.IDE", group=index, samples_only=True, data=data)[0]
+                    ide = self.get(
+                        "CAN_DataFrame.IDE",
+                        group=index,
+                        samples_only=True,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        data=data,
+                    )[0]
                     if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
-                        ide = self.get("CAN_DataFrame.IDE", group=index, samples_only=True, data=data, raw=True)[0]
+                        ide = self.get(
+                            "CAN_DataFrame.IDE",
+                            group=index,
+                            samples_only=True,
+                            ignore_invalidation_bits=ignore_invalidation_bits,
+                            data=data,
+                            raw=True,
+                        )[0]
                     indexes = indexes[ide[indexes] == 1]
                 except MdfException:
                     pass
