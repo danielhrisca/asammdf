@@ -14,7 +14,7 @@ from zipfile import ZipFile
 import numexpr
 import numpy as np
 import numpy.typing as npt
-from pandas import DataFrame
+from pandas import concat, DataFrame
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException
@@ -829,6 +829,18 @@ class TestMDF(unittest.TestCase):
         df = DataFrame(target)
 
         self.assertTrue(df.equals(mdf.to_dataframe()))
+        mdf.close()
+
+    def test_iter_to_dataframe(self) -> None:
+        mdf = MDF()
+        mdf.append(Signal(samples=np.arange(10, dtype="f8"), timestamps=np.arange(10, 20, dtype="f8"), name="Signal"))
+
+        # the chunk size is estimated with 8 bytes per channel and master, so 64 bytes give 4 rows
+        for time_as_date in (False, True):
+            chunks = list(mdf.iter_to_dataframe(time_as_date=time_as_date, chunk_ram_size=64))
+            self.assertEqual(len(chunks), 3)
+            self.assertTrue(mdf.to_dataframe(time_as_date=time_as_date).equals(concat(chunks)))
+
         mdf.close()
 
     def test_search(self) -> None:
