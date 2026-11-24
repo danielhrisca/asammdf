@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+import csv
 from pathlib import Path
+import struct
 import tempfile
 import tracemalloc
 import unittest
@@ -8,10 +10,11 @@ from unittest.mock import patch
 import numpy as np
 
 from asammdf import MDF, Signal
+from asammdf.blocks import v4_blocks as v4b
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4, MdfException
-from asammdf.blocks.v4_blocks import TextBlock
+from asammdf.blocks.v4_blocks import EventBlock, TextBlock
 
 CHANNEL_LEN = 100000
 
@@ -89,6 +92,17 @@ class TestMDF4(unittest.TestCase):
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)
+
+    def test_export_csv_defaults(self) -> None:
+        path = Path(self.tempdir.name) / "export.csv"
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(np.array([7.0, 9.0]), [0.0, 1.0], name='sig,"a"'))
+            mdf.export("csv", filename=path, single_time_base=True)
+
+        with open(path, newline="") as csv_file:
+            rows = list(csv.reader(csv_file))
+        self.assertEqual(rows[0][-1], 'sig,"a"')
+        self.assertEqual([float(row[-1]) for row in rows[1:]], [7.0, 9.0])
 
     def test_extend_canopen(self) -> None:
         dates = np.array(
@@ -285,6 +299,88 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
+    def test_read_unsorted_vlsd_channel_group(self) -> None:
+        # bus loggers such as mdflib store the frame bytes as VLSD records of a
+        # second channel group in the same unsorted data group. All frames must
+        # be read from the DTBLOCK, also a single long frame or empty frames.
+        for payloads in ([bytes(range(64))], [b""] * 50):
+            with self.subTest(frames=len(payloads)):
+                cycles = len(payloads)
+                timestamps = np.arange(cycles) * 0.1
+                records = b""
+                offset = 0
+                for payload, timestamp in zip(payloads, timestamps, strict=True):
+                    records += b"\x02" + len(payload).to_bytes(4, "little") + payload
+                    records += b"\x01" + timestamp.tobytes() + offset.to_bytes(8, "little")
+                    offset += 4 + len(payload)
+
+                hd = v4b.HeaderBlock()
+                dg = v4b.DataGroup(record_id_len=1)
+                cg = v4b.ChannelGroup(record_id=1, cycles_nr=cycles, samples_byte_nr=16)
+                # cg_data_bytes of a VLSD channel group is the total payload size
+                vlsd_cg = v4b.ChannelGroup(
+                    record_id=2, cycles_nr=cycles, flags=v4c.FLAG_CG_VLSD, samples_byte_nr=len(b"".join(payloads))
+                )
+                time_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_MASTER,
+                    sync_type=v4c.SYNC_TYPE_TIME,
+                    data_type=v4c.DATA_TYPE_REAL_INTEL,
+                    bit_count=64,
+                )
+                data_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_VLSD,
+                    data_type=v4c.DATA_TYPE_BYTEARRAY,
+                    byte_offset=8,
+                    bit_count=64,
+                )
+                time_name = v4b.TextBlock(text="t")
+                data_name = v4b.TextBlock(text="DataBytes")
+                dt = v4b.DataBlock(data=records)
+
+                blocks = [hd, dg, cg, vlsd_cg, time_ch, data_ch, time_name, data_name, dt]
+                address = 64
+                for block in blocks:
+                    block.address = address
+                    address += len(bytes(block))
+                hd.first_dg_addr = dg.address
+                dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+                cg.next_cg_addr, cg.first_ch_addr = vlsd_cg.address, time_ch.address
+                time_ch.next_ch_addr, time_ch.name_addr = data_ch.address, time_name.address
+                data_ch.data_block_addr, data_ch.name_addr = vlsd_cg.address, data_name.address
+
+                outfile = Path(TestMDF4.tempdir.name) / f"unsorted_vlsd_{cycles}.mf4"
+                outfile.write_bytes(
+                    bytes(v4b.FileIdentificationBlock(version="4.10")) + b"".join(bytes(block) for block in blocks)
+                )
+
+                with MDF(outfile) as mdf:
+                    signal = mdf.get("DataBytes")
+
+                self.assertEqual([bytes(frame) for frame in signal.samples], payloads)
+                np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
+
+    def test_attachment_blocks_with_padded_block_len(self) -> None:
+        original_data = [f"attachment {i}".encode() for i in range(3)]
+        with MDF() as mdf:
+            for i, data in enumerate(original_data):
+                mdf.attach(data, file_name=f"file{i}.txt", compression=False)
+            source = mdf.save(Path(TestMDF4.tempdir.name) / "padded_attachments.mf4", overwrite=True)
+
+        # some writers round the AT block_len up to the 8 byte alignment that follows each block
+        with MDF(source) as mdf:
+            blocks = [(at.address, at.block_len) for at in mdf.attachments]
+        with open(source, "r+b") as file:
+            for address, block_len in blocks:
+                self.assertNotEqual(block_len % 8, 0)
+                file.seek(address + 8)
+                file.write(struct.pack("<Q", block_len + (-block_len) % 8))
+
+        with MDF(source) as mdf:
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "padded_attachments_copy.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            self.assertEqual([mdf.extract_attachment(index=i)[0] for i in range(len(mdf.attachments))], original_data)
+
     def test_attachment_blocks_wo_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
         mdf = MDF()
@@ -396,6 +492,33 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
 
+    def test_event_with_nil_scope(self) -> None:
+        # ETAS mdfCombine writes events with a single NIL scope link
+        path = Path(self.tempdir.name) / "event_nil_scope.mf4"
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(np.arange(5.0), np.arange(5.0), name="x")])
+            mdf.events.append(EventBlock(scope_0_addr=0))
+            mdf.save(path, overwrite=True)
+
+        resaved = Path(self.tempdir.name) / "event_nil_scope_resaved.mf4"
+        with MDF(path) as mdf:
+            self.assertEqual(mdf.events[0].scopes, [])
+            self.assertTrue(np.array_equal(mdf.get("x").samples, np.arange(5.0)))
+            mdf.save(resaved, overwrite=True)
+
+        with MDF(resaved) as mdf:
+            self.assertEqual(len(mdf.events), 1)
+            self.assertEqual(mdf.events[0].scope_nr, 0)
+
+        # a NIL link before a valid one: the block keeps the valid link
+        event = EventBlock(scope_0_addr=0, scope_1_addr=0x100)
+        event.update_references({}, {0x100: 0})
+        self.assertEqual(event.scopes, [0])
+        self.assertEqual(event.scope_nr, 1)
+        block = bytes(event)
+        self.assertEqual(len(block), event.block_len)
+        self.assertEqual(struct.unpack_from("<Q", block, 24 + 5 * 8)[0], 0x100)
+
     def test_unit_in_md_block(self) -> None:
         # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
         # with CNunit or CCunit XML instead of a TXBLOCK (unreleased mdflib wrote
@@ -437,6 +560,38 @@ class TestMDF4(unittest.TestCase):
             self.assertEqual(channel.unit, "km/h")
             self.assertEqual(conversion.unit, "km/h")
             self.assertEqual(mdf.get("speed").unit, "km/h")
+
+    def test_unit_only_in_conversion(self) -> None:
+        # a NIL unit link in the CNBLOCK means the unit of the conversion rule
+        # applies, a link to an empty text means the channel has no unit
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(
+                        np.arange(3, dtype=np.uint32),
+                        timestamps=[0.0, 1.0, 2.0],
+                        name=name,
+                        conversion={"a": 0.5, "b": 0.0, "unit": "V"},
+                    )
+                    for name in ("voltage", "unitless")
+                ]
+            )
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "cc_unit.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            link = mdf.groups[0].channels[2].address + 24 + 6 * 8
+
+        # point the unit link of the second channel at an empty TXBLOCK
+        data = bytearray(Path(outfile).read_bytes())
+        self.assertEqual(int.from_bytes(data[link : link + 8], "little"), 0)
+        data += bytes(-len(data) % 8)
+        data[link : link + 8] = len(data).to_bytes(8, "little")
+        data += bytes(TextBlock(text="", meta=False))
+        Path(outfile).write_bytes(data)
+
+        with MDF(outfile) as mdf:
+            self.assertEqual(mdf.get("voltage").unit, "V")
+            self.assertEqual(mdf.get("unitless").unit, "")
 
     @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:

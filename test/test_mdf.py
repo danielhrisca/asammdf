@@ -14,7 +14,7 @@ from zipfile import ZipFile
 import numexpr
 import numpy as np
 import numpy.typing as npt
-from pandas import DataFrame
+from pandas import concat, DataFrame
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException
@@ -737,6 +737,25 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(scrambled)
                 Path(scrambled).unlink()
 
+    def test_save_to_open_file(self) -> None:
+        t = np.arange(5, dtype="f8")
+        for version in ("3.30", "4.10"):
+            with self.subTest(version=version):
+                with MDF(version=version) as mdf:
+                    mdf.append(Signal(t, t, name="s0"))
+                    path = mdf.save(Path(TestMDF.tempdir.name) / "save_to_open_file", overwrite=True)
+
+                with MDF(path) as mdf:
+                    for i in (1, 2, 3):
+                        mdf.append(Signal(t * i, t, name=f"s{i}"))
+                        mdf.save(path, overwrite=True)
+
+                with MDF(path) as mdf:
+                    self.assertEqual(len(mdf.groups), 4)
+                    np.testing.assert_array_equal(mdf.get("s3").samples, t * 3, strict=True)
+
+                path.unlink()
+
     def test_iter_groups(self) -> None:
         dfs = [
             DataFrame(
@@ -829,6 +848,18 @@ class TestMDF(unittest.TestCase):
         df = DataFrame(target)
 
         self.assertTrue(df.equals(mdf.to_dataframe()))
+        mdf.close()
+
+    def test_iter_to_dataframe(self) -> None:
+        mdf = MDF()
+        mdf.append(Signal(samples=np.arange(10, dtype="f8"), timestamps=np.arange(10, 20, dtype="f8"), name="Signal"))
+
+        # the chunk size is estimated with 8 bytes per channel and master, so 64 bytes give 4 rows
+        for time_as_date in (False, True):
+            chunks = list(mdf.iter_to_dataframe(time_as_date=time_as_date, chunk_ram_size=64))
+            self.assertEqual(len(chunks), 3)
+            self.assertTrue(mdf.to_dataframe(time_as_date=time_as_date).equals(concat(chunks)))
+
         mdf.close()
 
     def test_search(self) -> None:

@@ -558,7 +558,8 @@ class AttachmentBlock:
         )
 
         result = pack(fmt, *[self[key] for key in keys])
-        return result
+        # block_len read from a file can include padding after the data and to_blocks reserves all of it
+        return result.ljust(self.block_len, b"\0")
 
     def __repr__(self) -> str:
         return f"ATBLOCK(address={self.address:x}, file_name={self.file_name}, comment={self.comment})"
@@ -6017,8 +6018,12 @@ class EventBlock(_EventBlockBase):
 
     def update_references(self, ch_map: dict[int, tuple[int, int]], cg_map: dict[int, int]) -> None:
         self.scopes.clear()
+        addrs = []
         for i in range(self.scope_nr):
             addr = typing.cast(int, self[f"scope_{i}_addr"])
+            if not addr:  # NIL link, ETAS mdfCombine writes them
+                logger.warning("NULL address not allowed in the event scope")
+                continue
             if addr in ch_map:
                 self.scopes.append(ch_map[addr])
             elif addr in cg_map:
@@ -6028,6 +6033,16 @@ class EventBlock(_EventBlockBase):
                 message = message.format(hex(addr))
                 logger.exception(message)
                 raise MdfException(message)
+            addrs.append(addr)
+
+        # the block keeps only the remaining scope links, in their order
+        dropped = self.scope_nr - len(addrs)
+        if dropped:
+            for i, addr in enumerate(addrs):
+                self[f"scope_{i}_addr"] = addr
+            self.scope_nr -= dropped
+            self.links_nr -= dropped
+            self.block_len -= 8 * dropped
 
     def __bytes__(self) -> bytes:
         fmt = v4c.FMT_EVENT.format(self.links_nr)

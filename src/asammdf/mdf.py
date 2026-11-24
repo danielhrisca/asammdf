@@ -2334,8 +2334,9 @@ class MDF:
 
             .. versionadded:: 6.2.0
 
-        escapechar : str, default '"'
+        escapechar : str | None, default '"'
             Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
+            The default is None on Python 3.13 and newer when quotechar is '"'.
 
             .. versionadded:: 6.2.0
 
@@ -2690,7 +2691,9 @@ class MDF:
             quoting_name = kwargs.get("quoting", "MINIMAL").upper()
             quoting: Literal[0, 1, 2, 3] = getattr(csv, f"QUOTE_{quoting_name}")
 
-            escapechar = kwargs.get("escapechar", '"')
+            # Python 3.13 rejects the same character as quotechar and escapechar
+            default_escapechar = None if quotechar == '"' and sys.version_info >= (3, 13) else '"'
+            escapechar = kwargs.get("escapechar", default_escapechar)
             if escapechar is not None:
                 escapechar = escapechar[0]
 
@@ -4960,15 +4963,18 @@ class MDF:
                             sig.invalidation_bits = InvalidationArray(inval_array)
 
                 else:
-                    sigs = typing.cast(list[tuple[NDArray[Any], None]], sigs)
+                    sigs = typing.cast(list[tuple[NDArray[Any], NDArray[np.bool] | None]], sigs)
                     samples, _ = sigs[0]
                     next_pos = current_pos + len(samples)
                     master[current_pos:next_pos] = samples
 
                     for signal, (samples, inval) in zip(signals, sigs[1:], strict=False):
                         signal.samples[current_pos:next_pos] = samples
+                        if signal.invalidation_bits is None and inval is not None:
+                            signal.invalidation_bits = InvalidationArray(np.zeros(cycles, dtype=inval.dtype))
+
                         if signal.invalidation_bits is not None:
-                            signal.invalidation_bits[current_pos:next_pos] = inval
+                            signal.invalidation_bits[current_pos:next_pos] = False if inval is None else inval
 
                 current_pos = next_pos
 
@@ -5632,8 +5638,6 @@ class MDF:
                     master = np.array([], dtype="<f4")
 
             master_ = master
-            if time_from_zero and len(master_):
-                master_ -= master_[0]
             channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
             # approximation with all float64 dtype
             itemsize = channel_count * 8
@@ -5881,6 +5885,9 @@ class MDF:
 
                     new_index = self.header.start_time + delta
                     df.set_index(new_index, inplace=True)
+
+                elif time_from_zero and len(master_) and master_[0] != 0:
+                    df.set_index(df.index - master_[0], inplace=True)
 
                 yield df
 

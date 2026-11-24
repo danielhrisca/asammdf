@@ -629,6 +629,14 @@ class MDF4(MDF_Common[Group]):
                     total_size += channel_group.samples_byte_nr * channel_group.cycles_nr
                     inval_total_size += channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     record_size = channel_group.samples_byte_nr
+                elif channel_group.flags & v4c.FLAG_CG_VLSD:
+                    # a VLSD CG stores the total payload size in cg_data_bytes and cg_inval_bytes,
+                    # each of its records adds the record ID and a 4 byte length
+                    total_size += (
+                        channel_group.samples_byte_nr
+                        + (channel_group.invalidation_bytes_nr << 32)
+                        + (record_id_nr + 4) * channel_group.cycles_nr
+                    )
                 else:
                     total_size += (
                         channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr + record_id_nr
@@ -636,7 +644,9 @@ class MDF4(MDF_Common[Group]):
 
                     record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
-            if self.identification.unfinalized_standard_flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+            if self.identification.unfinalized_standard_flags & (
+                v4c.FLAG_UNFIN_UPDATE_CG_COUNTER | v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+            ):
                 total_size = 10**12
                 inval_total_size = 10**12
 
@@ -6540,11 +6550,14 @@ class MDF4(MDF_Common[Group]):
                 name = channel.name
 
             unit = (conversion and conversion.unit) or channel.unit
+            if not unit and not channel.unit_addr and channel.conversion:
+                # a NIL unit link means the unit of the conversion rule applies
+                unit = channel.conversion.unit
 
             samples = samples.view(
                 np.dtype(
                     samples.dtype,
-                    metadata={"conversion": conversion, "unit": (conversion and conversion.unit) or channel.unit},
+                    metadata={"conversion": conversion, "unit": unit},
                 )
             )
 
@@ -10556,6 +10569,7 @@ class MDF4(MDF_Common[Group]):
 
             self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
+            self._closed = False
             self._read(self._file)
 
         return dst
