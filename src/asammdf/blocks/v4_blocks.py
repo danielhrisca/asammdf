@@ -1153,6 +1153,35 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 CN = b"##CN"
 
 
+class ChannelKwargs(BlockKwargs, total=False):
+    at_map: dict[int, int]
+    parsed_strings: tuple[str, dict[str, str], str] | None
+    use_display_names: bool
+    cc_map: dict[bytes | int, "ChannelConversion"]
+    si_map: dict[Union[bytes, int, "Source"], "SourceInformation"]
+    channel_type: int
+    sync_type: int
+    data_type: int
+    bit_offset: int
+    byte_offset: int
+    bit_count: int
+    flags: int
+    pos_invalidation_bit: int
+    precision: int
+    min_raw_value: float
+    max_raw_value: float
+    lower_limit: float
+    upper_limit: float
+    lower_ext_limit: float
+    upper_ext_limit: float
+    attachment_addr: int
+    file_limit: int | float
+    dtype: np.dtype[Any] | None
+    index: int
+    group: int
+    composition: list['Channel' | ChannelArrayBlock] | None
+
+
 class Channel:
     """If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
@@ -2312,35 +2341,6 @@ unit: {self.unit}
                 start_offset,
                 bit_offset,
             )
-
-
-class ChannelKwargs(BlockKwargs, total=False):
-    at_map: dict[int, int]
-    parsed_strings: tuple[str, dict[str, str], str] | None
-    use_display_names: bool
-    cc_map: dict[bytes | int, "ChannelConversion"]
-    si_map: dict[Union[bytes, int, "Source"], "SourceInformation"]
-    channel_type: int
-    sync_type: int
-    data_type: int
-    bit_offset: int
-    byte_offset: int
-    bit_count: int
-    flags: int
-    pos_invalidation_bit: int
-    precision: int
-    min_raw_value: float
-    max_raw_value: float
-    lower_limit: float
-    upper_limit: float
-    lower_ext_limit: float
-    upper_ext_limit: float
-    attachment_addr: int
-    file_limit: int | float
-    dtype: np.dtype[Any] | None
-    index: int
-    group: int
-    composition: list[Channel | ChannelArrayBlock] | None
 
 
 class ChannelGroupKwargs(BlockKwargs, total=False):
