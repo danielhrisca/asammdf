@@ -21,7 +21,7 @@ import dateutil.tz
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, List
 
 from .. import tool
 from . import v4_constants as v4c
@@ -1179,7 +1179,7 @@ class ChannelKwargs(BlockKwargs, total=False):
     dtype: np.dtype[Any] | None
     index: int
     group: int
-    composition: list['Channel' | ChannelArrayBlock] | None
+    composition: List['Channel' | ChannelArrayBlock] | None
 
 
 class Channel:
