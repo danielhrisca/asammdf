@@ -11887,9 +11887,10 @@ class MDF4(MDF_Common[Group]):
 
         if all(isinstance(dep, Channel) for dep in composition):
             for dep in composition:
-                dep.byte_offset += offset
-                entry = group.channels.add(dep, primary=False)
-                self.channels_db.add(dep.name, entry)
+                if offset:
+                    dep.byte_offset += offset
+                    entry = group.channels.add(dep, primary=False)
+                    self.channels_db.add(dep.name, entry)
                 self.create_component_channels(group, dep, offset)
         
         else:
