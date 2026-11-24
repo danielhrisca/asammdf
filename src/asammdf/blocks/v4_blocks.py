@@ -2278,10 +2278,10 @@ unit: {self.unit}
     @composition.setter
     def composition(self, value):
         self._composition = value
+        self.dtype = np.dtype(np.void)
     
         if self._composition:
             self.dtype = dtype_with_composition(self)
-        self.dtype = np.dtype(np.void)
 
         self.prepare_record_info()
 
