@@ -683,6 +683,59 @@ class TestMDF4(unittest.TestCase):
         self.assertEqual(len(block), event.block_len)
         self.assertEqual(struct.unpack_from("<Q", block, 24 + 5 * 8)[0], 0x100)
 
+    def test_save_event_with_attachment(self) -> None:
+        path = Path(self.tempdir.name) / "event_attachment.mf4"
+        with MDF(version="4.20") as mdf:
+            mdf.append([Signal(np.arange(5.0), np.arange(5.0), name="x")])
+            mdf.attach(b"note", file_name="note.txt", compression=False)
+            mdf.save(path, overwrite=True)
+
+        # link an event to the attachment, leave a NIL attachment link and give it a
+        # group name, as other writers do
+        with MDF(path) as mdf:
+            event = EventBlock(range_type=v4c.EVENT_RANGE_TYPE_BEGINNING)
+            event.attachment_nr = 2
+            event["attachment_0_addr"] = mdf.attachments[0].address
+            event["attachment_1_addr"] = 0
+            event.flags |= v4c.FLAG_EV_GROUP_NAME
+            event.group_name = "group"
+            event.links_nr += 3
+            event.block_len += 24
+            mdf.events.append(event)
+            # the end of a range links the event that starts it
+            range_end = EventBlock(range_type=v4c.EVENT_RANGE_TYPE_END)
+            range_end.range_start = 0
+            mdf.events.append(range_end)
+            # a channel hierarchy link of the source, the CHBLOCKs are not written
+            assert isinstance(mdf.header, v4b.HeaderBlock)
+            mdf.header.channel_tree_addr = mdf.attachments[0].address
+            mdf.attach(b"other", file_name="other.txt", compression=False)
+            resaved = mdf.save(path.with_name("event_attachment_resaved.mf4"), overwrite=True)
+
+        # save over the open file, the event must still point to valid blocks
+        with MDF(resaved) as mdf:
+            mdf.save(resaved, overwrite=True)
+
+        with MDF(resaved) as mdf:
+            self.assertEqual(mdf.events[0].attachment_nr, 2)
+            self.assertEqual(mdf.events[0]["attachment_0_addr"], mdf.attachments[0].address)
+            self.assertEqual(mdf.events[0]["attachment_1_addr"], 0)
+            self.assertEqual(mdf.extract_attachment(index=0)[0], b"note")
+            self.assertEqual(mdf.events[0].group_name, "group")
+            self.assertEqual(mdf.events[1].range_start, 0)
+            self.assertEqual(mdf.events[1].range_start_ev_addr, mdf.events[0].address)
+            assert isinstance(mdf.header, v4b.HeaderBlock)
+            self.assertEqual(mdf.header.channel_tree_addr, 0)
+
+            # cut and resample do not copy event attachments, their events keep no link
+            for name, out in (("cut", mdf.cut(start=1.0)), ("resample", mdf.resample(0.5))):
+                with out:
+                    out_path = out.save(path.with_name(f"event_attachment_{name}.mf4"), overwrite=True)
+                with MDF(out_path) as copy:
+                    self.assertEqual(len(copy.events), 2)
+                    self.assertEqual(copy.events[0].attachment_nr, 0)
+            self.assertEqual(mdf.events[0]["attachment_0_addr"], mdf.attachments[0].address)
+
     def test_unit_in_md_block(self) -> None:
         # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
         # with CNunit or CCunit XML instead of a TXBLOCK (unreleased mdflib wrote

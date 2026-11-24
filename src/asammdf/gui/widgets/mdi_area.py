@@ -3085,8 +3085,9 @@ class WithMDIArea:
                         elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
                             events.append([event_info])
                         else:
-                            if event.parent is not None:
-                                parent = events[event.parent]
+                            start = event.range_start if event.range_start is not None else event.parent
+                            if start is not None:
+                                parent = events[start]
                                 parent.append(event_info)
                             events.append(None)
                     events = [ev for ev in events if ev is not None]
@@ -4105,8 +4106,10 @@ class WithMDIArea:
                     elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
                         events.append([event_info])
                     else:
-                        parent = events[event.parent]
-                        parent.append(event_info)
+                        start = event.range_start if event.range_start is not None else event.parent
+                        if start is not None:
+                            parent = events[start]
+                            parent.append(event_info)
                         events.append(None)
                 events = [ev for ev in events if ev is not None]
             else:

@@ -539,10 +539,10 @@ class MDF:
                                 self.groups[dg_cntr]
                             except:
                                 event_valid = False
-                    # ignore attachments for now
-                    for i in range(new_event.attachment_nr):
-                        key = f"attachment_{i}_addr"
-                        event[key] = 0
+                    # ignore attachments for now, event attachments are not copied to the output
+                    new_event.links_nr -= new_event.attachment_nr
+                    new_event.block_len -= 8 * new_event.attachment_nr
+                    new_event.attachment_nr = 0
                     if event_valid:
                         self._mdf.events.append(new_event)
                 else:
