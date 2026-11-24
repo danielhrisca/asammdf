@@ -228,7 +228,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 units = None
 
                             df = pd.read_csv(csv, header=None, names=names)
-                            df.set_index(df[names[0]], inplace=True)
+                            df.index = df[names[0]]
                             self.mdf = cls()
                             self.mdf.append(df, units=units)
                             self.mdf.uuid = self.uuid

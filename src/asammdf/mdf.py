@@ -5897,10 +5897,10 @@ class MDF:
                     delta = pd.to_timedelta(df.index, unit="s")
 
                     new_index = self.header.start_time + delta
-                    df.set_index(new_index, inplace=True)
+                    df.index = new_index
 
                 elif time_from_zero and len(master_) and master_[0] != 0:
-                    df.set_index(df.index - master_[0], inplace=True)
+                    df.index = df.index - master_[0]
 
                 yield df
 
@@ -6411,10 +6411,10 @@ class MDF:
                 delta = pd.to_timedelta(df.index, unit="s")
 
                 new_index = self.header.start_time + delta
-                df.set_index(new_index, inplace=True)
+                df.index = new_index
 
             elif time_from_zero and len(master):
-                df.set_index(df.index - df.index[0], inplace=True)
+                df.index = df.index - df.index[0]
 
             return df
 
@@ -7084,7 +7084,7 @@ class MDF:
             signals = pd.concat(dfs).sort_index()
 
             index = pd.Index(range(len(signals)))
-            signals.set_index(index, inplace=True)
+            signals.index = index
         else:
             signals = pd.DataFrame()
 

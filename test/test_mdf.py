@@ -9,6 +9,7 @@ from typing import Any
 import unittest
 import urllib
 import urllib.request
+import warnings
 from zipfile import ZipFile
 
 import numexpr
@@ -860,6 +861,22 @@ class TestMDF(unittest.TestCase):
             self.assertEqual(len(chunks), 3)
             self.assertTrue(mdf.to_dataframe(time_as_date=time_as_date).equals(concat(chunks)))
 
+        mdf.close()
+
+    def test_to_dataframe_index_without_inplace(self) -> None:
+        mdf = MDF()
+        mdf.append(Signal(samples=np.arange(10, dtype="f8"), timestamps=np.arange(10, 20, dtype="f8"), name="Signal"))
+
+        # pandas 3.1 deprecates inplace=True (PDEP-8) and pandas 4 removes it
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message="The inplace keyword")
+            for time_as_date in (False, True):
+                df = mdf.to_dataframe(time_as_date=time_as_date)
+                chunks = list(mdf.iter_to_dataframe(time_as_date=time_as_date))
+                self.assertTrue(df.equals(concat(chunks)))
+                self.assertEqual(df.index.name, "timestamps")
+
+        self.assertEqual(mdf.to_dataframe().index.tolist(), np.arange(10, dtype="f8").tolist())
         mdf.close()
 
     def test_search(self) -> None:
