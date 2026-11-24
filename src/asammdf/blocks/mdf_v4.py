@@ -9398,6 +9398,7 @@ class MDF4(MDF_Common[Group]):
                                     unknown_ids[(msg_id, is_extended)].append(False)
                                     continue
                                 done_j1939.add(j1939_key)
+                                unknown_ids[(msg_id, is_extended)].append(False)
                                 msg_id = j1939_ids.setdefault((bus, *j1939_key), msg_id)
                                 key = (pgn_number, source_address, True)
                                 found_ids[dbc_name].add((key, message.name))
