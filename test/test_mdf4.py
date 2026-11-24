@@ -359,6 +359,28 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual([bytes(frame) for frame in signal.samples], payloads)
                 np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
 
+    def test_attachment_blocks_with_padded_block_len(self) -> None:
+        original_data = [f"attachment {i}".encode() for i in range(3)]
+        with MDF() as mdf:
+            for i, data in enumerate(original_data):
+                mdf.attach(data, file_name=f"file{i}.txt", compression=False)
+            source = mdf.save(Path(TestMDF4.tempdir.name) / "padded_attachments.mf4", overwrite=True)
+
+        # some writers round the AT block_len up to the 8 byte alignment that follows each block
+        with MDF(source) as mdf:
+            blocks = [(at.address, at.block_len) for at in mdf.attachments]
+        with open(source, "r+b") as file:
+            for address, block_len in blocks:
+                self.assertNotEqual(block_len % 8, 0)
+                file.seek(address + 8)
+                file.write(struct.pack("<Q", block_len + (-block_len) % 8))
+
+        with MDF(source) as mdf:
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "padded_attachments_copy.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            self.assertEqual([mdf.extract_attachment(index=i)[0] for i in range(len(mdf.attachments))], original_data)
+
     def test_attachment_blocks_wo_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
         mdf = MDF()
