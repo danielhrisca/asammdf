@@ -30,6 +30,7 @@ from ...blocks.v4_constants import (
 )
 from ...mdf import MDF
 from .. import serde
+from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -152,6 +153,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+        if utils.GROUP_ICON is None:
+            utils.GROUP_ICON = QtGui.QIcon(":/list.png")
+            utils.ARRAY_ICON = QtGui.QIcon(":/array.png")
+            utils.STRUCTURE_ICON = QtGui.QIcon(":/structure.png")
+
         file_name = Path(file_name)
         suffix = file_name.suffix.lower()
         cls, cls_kwargs = FILE_CLASSES[suffix]
@@ -654,7 +660,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 items.extend(
                     add_children(
                         None,
-                        group.channels.all(),
+                        group.channels,
                         signals,
                         origin_uuid=self.uuid,
                         version=self.mdf.version,
@@ -720,6 +726,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         name = base_name
 
                 channel_group.setText(0, name)
+                channel_group.setIcon(0, utils.GROUP_ICON)
                 channel_group.setFlags(
                     channel_group.flags()
                     | QtCore.Qt.ItemFlag.ItemIsAutoTristate
@@ -732,7 +739,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 add_children(
                     channel_group,
-                    group.channels.all(),
+                    group.channels,
                     signals,
                     origin_uuid=self.uuid,
                     version=self.mdf.version,

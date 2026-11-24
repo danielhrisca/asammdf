@@ -598,6 +598,10 @@ class MDF4(MDF_Common[Group]):
                 # starting from the first channel
                 self._read_channels(ch_addr, grp, stream, mapped=mapped)
 
+                for channel in list(grp.channels):
+                    if channel.composition:
+                        self.create_component_channels(grp, channel)
+
                 cg_addr = channel_group.next_cg_addr
 
                 dg_cntr += 1
@@ -923,9 +927,6 @@ class MDF4(MDF_Common[Group]):
                     logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
                     break
 
-                if primary:
-                    self.create_component_channels(grp, channel)
-
             else:
                 channel.dtype = np.dtype(
                     get_fmt_v4(
@@ -938,6 +939,9 @@ class MDF4(MDF_Common[Group]):
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
 
+        if composition is not None:
+            composition.sort(key = lambda x: (x.byte_offset, x.bit_count))
+                             
         return composition
 
     def _load_signal_data(
@@ -11841,16 +11845,50 @@ class MDF4(MDF_Common[Group]):
             raise RuntimeError("self._file is None")
         self.header = HeaderBlock(address=0x40, stream=self._file)
 
-    def create_component_channels(self, group, channel):
+    def create_component_channels(self, group, channel, offset=0):
+
+        def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+            """Convert 1D index to CA's nD coordinates."""
+            coords = [0] * len(factors)
+            for i, factor in enumerate(factors):
+                coords[i] = index // factor
+                index %= factor
+            return coords
+
+        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+            coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+            m = re.match(ch_parent_name, ch_name)
+            n = re.search(r"\[\d+\]", ch_name)
+            if m:
+                name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+            elif n:
+                name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+            else:
+                name = ch_name + coords
+            return name, coords
+        
         composition = channel.composition
-        if all(isinstance(dep, ChannelArrayBlock) for dep in composition):
+        if not composition:
+            return
+
+        if all(isinstance(dep, Channel) for dep in composition):
+            for dep in composition:
+                dep.byte_offset += offset
+                entry = group.channels.add(dep, primary=False)
+                self.channels_db.add(dep.name, entry)
+                self.create_component_channels(group, dep, offset)
+        
+        else:
+
+            ca_blocks = [dep for dep in composition if isinstance(dep, ChannelArrayBlock)]
+            cn_blocks = [dep for dep in composition if isinstance(dep, Channel)]
 
             byte_offset_factors: list[int] = []
             bit_pos_inval_factors: list[int] = []
             dimensions: list[int] = []
             total_elem = 1
 
-            for ca_blck in composition:
+            for ca_blck in ca_blocks:
                 # 1D array with dimensions
                 for i in range(ca_blck.dims):
                     dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
@@ -11865,30 +11903,12 @@ class MDF4(MDF_Common[Group]):
             for i in range(len(dimensions) - 2, -1, -1):
                 multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
 
-            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                """Convert 1D index to CA's nD coordinates."""
-                coords = [0] * len(factors)
-                for i, factor in enumerate(factors):
-                    coords[i] = index // factor
-                    index %= factor
-                return coords
-
-            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                m = re.match(ch_parent_name, ch_name)
-                n = re.search(r"\[\d+\]", ch_name)
-                if m:
-                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                elif n:
-                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-                else:
-                    name = ch_name + coords
-                return name, coords
+            new_channels = []
+            components = []
 
             for elem_id in range(total_elem):
                 nd_coords = _get_nd_coords(elem_id, multipliers)
 
-                # copy composition block
                 new_block = deepcopy(channel)
 
                 # update byte offset & position of invalidation bit
@@ -11900,8 +11920,6 @@ class MDF4(MDF_Common[Group]):
                     bit_offset += coord * bit_factor
                 new_block.byte_offset += byte_offset
                 new_block.pos_invalidation_bit += bit_offset
-                new_block.component_addr = 0
-                new_block.composition = None
 
                 # update channel name
                 new_block.name, coords = _get_name_with_indices(new_block.name, channel.name, nd_coords)
@@ -11910,6 +11928,25 @@ class MDF4(MDF_Common[Group]):
                 # append to channel list
                 entry = group.channels.add(new_block, primary=False)
                 self.channels_db.add(new_block.name, entry)
+                
+                if cn_blocks:
+                    new_composition = deepcopy(cn_blocks)
+                    for cn_block in new_composition:
+                        cn_block.byte_offset += byte_offset
+                        group.channels.add(cn_block, primary=False)
+                    new_block.composition = new_composition
+                    new_channels.append((new_block, byte_offset))
+
+                else:
+                    new_block.component_addr = 0
+                    new_block.composition = None
+
+                components.append(new_block)
+
+            channel.components = components
+
+            for new_channel, new_offset in new_channels:
+                self.create_component_channels(group, new_channel, new_offset)
 
 
 def debug_channel(

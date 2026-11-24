@@ -86,34 +86,66 @@ def add_children(
         child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
 
         if version >= "4.00":
-            if ch.composition and all(isinstance(dep, Channel) for dep in ch.composition):
+            if ch.composition:
+                if all(isinstance(dep, Channel) for dep in ch.composition):
+                    child.setIcon(0, utils.STRUCTURE_ICON)
 
-                if widget is None:
+                    if widget is None:
 
-                    grand_children = add_children(
-                        None,
-                        ch.composition,
-                        signals,
-                        origin_uuid=origin_uuid,
-                        bus=bus,
-                        pattern=pattern,
-                        seen=seen,
-                    )
+                        grand_children = add_children(
+                            None,
+                            ch.composition,
+                            signals,
+                            origin_uuid=origin_uuid,
+                            bus=bus,
+                            pattern=pattern,
+                            seen=seen,
+                        )
 
-                    children.extend(grand_children)
+                        children.extend(grand_children)
+
+                    else:
+                        child.setFlags(
+                            child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                        )
+                        
+                        add_children(
+                            child,
+                            ch.composition,
+                            signals,
+                            origin_uuid=origin_uuid,
+                            seen=seen,
+                        )
 
                 else:
-                    child.setFlags(
-                        child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
-                    )
-                    
-                    add_children(
-                        child,
-                        ch.composition,
-                        signals,
-                        origin_uuid=origin_uuid,
-                        seen=seen,
-                    )
+                    child.setIcon(0, utils.ARRAY_ICON)
+                    if ch.components:
+                        if widget is None:
+                            grand_children = add_children(
+                                None,
+                                ch.components,
+                                signals,
+                                origin_uuid=origin_uuid,
+                                bus=bus,
+                                pattern=pattern,
+                                seen=seen,
+                            )
+    
+                            children.extend(grand_children)
+    
+                        else:
+                            child.setFlags(
+                                child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                            )
+                            
+                            add_children(
+                                child,
+                                ch.components,
+                                signals,
+                                origin_uuid=origin_uuid,
+                                seen=seen,
+                            )
+
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.CheckState.Checked)

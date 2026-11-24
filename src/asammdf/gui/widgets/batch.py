@@ -1139,7 +1139,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         items.extend(
                             add_children(
                                 None,
-                                group.channels.all(),
+                                group.channels,
                                 signals,
                                 origin_uuid=uuid,
                                 version=mdf.version,
@@ -1207,7 +1207,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         add_children(
                             channel_group,
-                            group.channels.all(),
+                            group.channels,
                             signals,
                             origin_uuid=uuid,
                             version=mdf.version,

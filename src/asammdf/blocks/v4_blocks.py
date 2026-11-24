@@ -1282,6 +1282,7 @@ class Channel:
         "comment",
         "comment_addr",
         "_composition",
+        "components",
         "component_addr",
         "conversion",
         "conversion_addr",
@@ -1330,6 +1331,7 @@ class Channel:
         self.record_info = NoRecordInfo
         self.index = self.group = 0
         self._composition : list[Channel | ChannelArrayBlock] | None = None
+        self.components : list[Channel] | None = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
