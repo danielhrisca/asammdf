@@ -152,8 +152,6 @@ def dtype_with_composition(channel):
             formats = []
             offsets = []
 
-            computed_itemsize = 0
-
             for comp_channel in cn_blocks:
                 comp_dtype = dtype_with_composition(comp_channel)
                 if comp_channel.conversion:
@@ -2254,6 +2252,7 @@ unit: {self.unit}
     
         if self._composition:
             self.dtype = dtype_with_composition(self)
+        self.dtype = np.dtype(np.void)
 
         self.prepare_record_info()
 

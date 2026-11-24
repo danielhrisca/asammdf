@@ -1023,21 +1023,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                    dg_cntr = -1
-                    ch_cntr = 0
 
                     while item := iterator.value():
+                        iterator += 1
+
                         if item.parent() is None:
-                            iterator += 1
-                            dg_cntr += 1
-                            ch_cntr = 0
                             continue
 
-                        if (dg_cntr, ch_cntr) in result:
+                        if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-
-                        iterator += 1
-                        ch_cntr += 1
 
                 elif view.currentText() == "Selected channels only":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -1145,7 +1139,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         items.extend(
                             add_children(
                                 None,
-                                group.channels,
+                                group.channels.all(),
                                 signals,
                                 origin_uuid=uuid,
                                 version=mdf.version,
@@ -1213,7 +1207,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         add_children(
                             channel_group,
-                            group.channels,
+                            group.channels.all(),
                             signals,
                             origin_uuid=uuid,
                             version=mdf.version,

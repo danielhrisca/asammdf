@@ -64,13 +64,21 @@ def add_children(
     version="4.11",
     bus=None,
     pattern=None,
+    seen=None,
 ):
     children = []
+    if seen is None:
+        seen = set()
 
     for ch in channels:
 
+        if ch.index in seen:
+            continue
+
         if pattern and not pattern.search(ch.name):
             continue
+
+        seen.add(ch.index)
 
         entry = ch.group, ch.index
 
@@ -88,7 +96,8 @@ def add_children(
                         signals,
                         origin_uuid=origin_uuid,
                         bus=bus,
-                        pattern=pattern
+                        pattern=pattern,
+                        seen=seen,
                     )
 
                     children.extend(grand_children)
@@ -103,6 +112,7 @@ def add_children(
                         ch.composition,
                         signals,
                         origin_uuid=origin_uuid,
+                        seen=seen,
                     )
 
         if entry in signals:

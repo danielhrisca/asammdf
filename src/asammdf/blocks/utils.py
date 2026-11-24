@@ -1,6 +1,6 @@
 """asammdf utility functions and classes"""
 
-from collections import namedtuple
+from collections import namedtuple, ChainMap
 from collections.abc import Buffer, Callable, Iterator
 from functools import lru_cache
 import importlib
@@ -1085,7 +1085,7 @@ class ChannelsStore:
         self._group : int = group
         self._last = None
 
-    def add(self, channel, primary: bool = True) -> tuple[int, int]:
+    def add(self, channel, primary: bool = True, component=False) -> tuple[int, int]:
         index = self.index
         group = self.group
 
@@ -1097,6 +1097,10 @@ class ChannelsStore:
         self.index += 1
 
         return group, index
+
+    def all(self):
+        for channel, primary in self._channels.values():
+            yield channel 
 
     def clear(self):
         self._channels.clear()

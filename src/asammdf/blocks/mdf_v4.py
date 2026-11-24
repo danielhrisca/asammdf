@@ -777,8 +777,6 @@ class MDF4(MDF_Common[Group]):
 
         channels = grp.channels
 
-        unique_names = UniqueDB()
-
         if parent_channel:
             composition: list[Channel | ChannelArrayBlock] | None = []
             primary = False
@@ -924,6 +922,9 @@ class MDF4(MDF_Common[Group]):
                 else:
                     logger.warning(f"expected b'##CA' or b'##CN' header but found {blk_id}")
                     break
+
+                if primary:
+                    self.create_component_channels(grp, channel)
 
             else:
                 channel.dtype = np.dtype(
@@ -11839,6 +11840,76 @@ class MDF4(MDF_Common[Group]):
         if not self._file:
             raise RuntimeError("self._file is None")
         self.header = HeaderBlock(address=0x40, stream=self._file)
+
+    def create_component_channels(self, group, channel):
+        composition = channel.composition
+        if all(isinstance(dep, ChannelArrayBlock) for dep in composition):
+
+            byte_offset_factors: list[int] = []
+            bit_pos_inval_factors: list[int] = []
+            dimensions: list[int] = []
+            total_elem = 1
+
+            for ca_blck in composition:
+                # 1D array with dimensions
+                for i in range(ca_blck.dims):
+                    dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
+                    dimensions.append(dim_size)
+                    total_elem *= dim_size
+
+                # 1D arrays for byte offset and invalidation bit pos calculations
+                byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
+                bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+
+            multipliers = [1] * len(dimensions)
+            for i in range(len(dimensions) - 2, -1, -1):
+                multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+
+            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+                """Convert 1D index to CA's nD coordinates."""
+                coords = [0] * len(factors)
+                for i, factor in enumerate(factors):
+                    coords[i] = index // factor
+                    index %= factor
+                return coords
+
+            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                m = re.match(ch_parent_name, ch_name)
+                n = re.search(r"\[\d+\]", ch_name)
+                if m:
+                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                elif n:
+                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                else:
+                    name = ch_name + coords
+                return name, coords
+
+            for elem_id in range(total_elem):
+                nd_coords = _get_nd_coords(elem_id, multipliers)
+
+                # copy composition block
+                new_block = deepcopy(channel)
+
+                # update byte offset & position of invalidation bit
+                byte_offset = bit_offset = 0
+                for coord, byte_factor, bit_factor in zip(
+                    nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
+                ):
+                    byte_offset += coord * byte_factor
+                    bit_offset += coord * bit_factor
+                new_block.byte_offset += byte_offset
+                new_block.pos_invalidation_bit += bit_offset
+                new_block.component_addr = 0
+                new_block.composition = None
+
+                # update channel name
+                new_block.name, coords = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+                new_block.comment = f'component {coords} of {channel.name}\n{channel.comment}'
+
+                # append to channel list
+                entry = group.channels.add(new_block, primary=False)
+                self.channels_db.add(new_block.name, entry)
 
 
 def debug_channel(

@@ -654,7 +654,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 items.extend(
                     add_children(
                         None,
-                        group.channels,
+                        group.channels.all(),
                         signals,
                         origin_uuid=self.uuid,
                         version=self.mdf.version,
@@ -732,7 +732,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 add_children(
                     channel_group,
-                    group.channels,
+                    group.channels.all(),
                     signals,
                     origin_uuid=self.uuid,
                     version=self.mdf.version,
@@ -901,28 +901,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
             else:
-                names = set()
+                names = {(_name, *entry) for entry, _name in result.items()}
+
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                    dg_cntr = -1
-                    ch_cntr = 0
-
                     while item := iterator.value():
+                        iterator += 1
+
                         if item.parent() is None:
-                            iterator += 1
-                            dg_cntr += 1
-                            ch_cntr = 0
                             continue
 
-                        entry = (dg_cntr, ch_cntr)
+                        entry = item.entry
 
                         if entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            names.add((result[entry], dg_cntr, ch_cntr))
-
-                        iterator += 1
-                        ch_cntr += 1
 
                 elif view.currentText() == "Selected channels only":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -933,8 +926,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             signals.add((item.text(0), *item.entry))
 
                         iterator += 1
-
-                    names = {(_name, *entry) for entry, _name in result.items()}
 
                     signals = signals | names
 
@@ -959,7 +950,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     while item := iterator.value():
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            names.add((result[item.entry], *item.entry))
 
                         iterator += 1
 
