@@ -1173,7 +1173,7 @@ class ChannelKwargs(BlockKwargs, total=False):
     lower_limit: float
     upper_limit: float
     lower_ext_limit: float
-    upper_ext_limit: floats
+    upper_ext_limit: float
     attachment_addr: int
     file_limit: int | float
     dtype: np.dtype[Any] | None
