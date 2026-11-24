@@ -21,7 +21,7 @@ import dateutil.tz
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import TypedDict, List
+from typing_extensions import TypedDict, List, Union
 
 from .. import tool
 from . import v4_constants as v4c
@@ -1173,13 +1173,13 @@ class ChannelKwargs(BlockKwargs, total=False):
     lower_limit: float
     upper_limit: float
     lower_ext_limit: float
-    upper_ext_limit: float
+    upper_ext_limit: floats
     attachment_addr: int
     file_limit: int | float
     dtype: np.dtype[Any] | None
     index: int
     group: int
-    composition: List['Channel' | ChannelArrayBlock] | None
+    composition: Union[List[Union["Channel", ChannelArrayBlock]], None]
 
 
 class Channel:
