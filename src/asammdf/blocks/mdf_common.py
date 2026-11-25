@@ -17,6 +17,7 @@ from .utils import (
     DataBlockInfo,
     MdfException,
     SignalDataBlockInfo,
+    ChannelsStore,
 )
 
 logger = logging.getLogger("asammdf")
@@ -50,7 +51,7 @@ _ST = TypeVar("_ST", list[int], list[int] | list[tuple[int, int]] | np.dtype[Any
 class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
         "_data_blocks",
-        "channel_dependencies",
+        "_channel_dependencies",
         "channel_group",
         "channels",
         "data_group",
@@ -66,13 +67,14 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         "trigger",
         "uses_ld",
         "uuid",
+        "_version",
     )
 
-    def __init__(self, data_group: _DG) -> None:
+    def __init__(self, data_group: _DG, index: int = 0, version=4) -> None:
         self.data_group: _DG = data_group
         self.channel_group: _CG
-        self.channels: list[_CN] = []
-        self.channel_dependencies: list[_CD | None] = []
+        self.channels: ChannelsStore = ChannelsStore(index)
+        self._channel_dependencies = []
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
         self.trigger: v3b.TriggerBlock | None = None
@@ -85,7 +87,8 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.read_split_count = 0
         self.uuid = ""
         self.data_location: int
-        self.index = 0
+        self.index = index
+        self._version = version
 
     @property
     def data_blocks(self):
@@ -104,6 +107,20 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     def data_blocks(self, info: list[DataBlockInfo] | Iterator[DataBlockInfo] | tuple[DataBlockInfo]) -> None:
         self._data_blocks = info
 
+    @property
+    def channel_dependencies(self):
+        if self._version< 4:
+            return self._channel_dependencies
+        else:
+            raise Exception("Group.channel_dependencies is not available for MDF >= 4.0")
+
+    @channel_dependencies.setter
+    def channel_dependencies(self, vals):
+        if self._version< 4:
+            self._channel_dependencies = vals
+        else:
+            raise Exception("Group.channel_dependencies is not available for MDF >= 4.0")
+
     def __contains__(self, item: str) -> bool:
         return hasattr(self, item)
 
@@ -113,7 +130,6 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         else:
             self._data_blocks = []
         self.channels.clear()
-        self.channel_dependencies.clear()
 
     def get_data_blocks(self) -> Iterator[DataBlockInfo]:
         yield from self.data_blocks

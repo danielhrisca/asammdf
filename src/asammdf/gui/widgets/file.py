@@ -30,6 +30,7 @@ from ...blocks.v4_constants import (
 )
 from ...mdf import MDF
 from .. import serde
+from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -51,6 +52,7 @@ from ..utils import (
     HelperChannel,
     run_thread_with_progress,
     setup_progress,
+    StaticIcons,
 )
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
@@ -152,6 +154,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+
         file_name = Path(file_name)
         suffix = file_name.suffix.lower()
         cls, cls_kwargs = FILE_CLASSES[suffix]
@@ -201,9 +204,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle("Opening measurement")
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.setWindowIcon(icon)
+            progress.setWindowIcon(StaticIcons.icon("open"))
             progress.setMinimumWidth(600)
             progress.show()
         else:
@@ -640,35 +641,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             items = []
             for i, group in enumerate(self.mdf.groups):
-                for j, ch in enumerate(group.channels):
-                    entry = i, j
+                if source := group.channel_group.acq_source:
+                    bus = source.path or "None"
+                else:
+                    bus = "None"
 
-                    if search_name.pattern and not search_name.pattern.search(ch.name):
-                        continue
+                if search_bus.pattern and not search_bus.pattern.search(bus):
+                    continue
+                    
+                if use_old:
+                    bus = None
 
-                    if source := group.channel_group.acq_source:
-                        bus = source.path or "None"
-                    else:
-                        bus = "None"
-
-                    if search_bus.pattern and not search_bus.pattern.search(bus):
-                        continue
-
-                    channel = MinimalTreeItem(
-                        entry,
-                        ch.name,
-                        strings=[ch.name if use_old else f"{ch.name} —— {bus:<10}"],
+                items.extend(
+                    add_children(
+                        None,
+                        group.channels,
+                        signals,
                         origin_uuid=self.uuid,
-                        original_name=ch.name
+                        version=self.mdf.version,
+                        info=bus,
+                        pattern=search_name.pattern,
                     )
-                    channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-
-                    if entry in signals:
-                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                    else:
-                        channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-                    items.append(channel)
+                )
 
             if len(items) < 30000:
                 items = natsorted(items, key=lambda x: x.name)
@@ -702,11 +696,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         ico = None
 
-                    if ico is not None:
-                        icon = QtGui.QIcon()
-                        icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-                        channel_group.setIcon(0, icon)
+                    channel_group.setIcon(0, StaticIcons.icon(ico))
 
                 if self.display_cg_name:
                     acq_name = getattr(group.channel_group, "acq_name", "")
@@ -727,6 +717,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         name = base_name
 
                 channel_group.setText(0, name)
+                channel_group.setText(1, f'{group.channel_group.cycles_nr} samples')
+                channel_group.setIcon(0, utils.StaticIcons.icon("group"))
                 channel_group.setFlags(
                     channel_group.flags()
                     | QtCore.Qt.ItemFlag.ItemIsAutoTristate
@@ -735,16 +727,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if group.channel_group.cycles_nr:
                     channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
+                    channel_group.setForeground(1, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
-
-                channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
 
                 add_children(
                     channel_group,
-                    channels,
-                    group.channel_dependencies,
+                    group.channels,
                     signals,
-                    entries=None,
                     origin_uuid=self.uuid,
                     version=self.mdf.version,
                 )
@@ -760,8 +749,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for entry in signals:
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
-                channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
-                channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
+                channel = MinimalTreeItem(entry, ch.name, origin_uuid=self.uuid)
+                child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 
@@ -912,28 +901,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
             else:
-                names = set()
+                names = {(_name, *entry) for entry, _name in result.items()}
+
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                    dg_cntr = -1
-                    ch_cntr = 0
-
                     while item := iterator.value():
+                        iterator += 1
+
                         if item.parent() is None:
-                            iterator += 1
-                            dg_cntr += 1
-                            ch_cntr = 0
                             continue
 
-                        entry = (dg_cntr, ch_cntr)
+                        entry = item.entry
 
                         if entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            names.add((result[entry], dg_cntr, ch_cntr))
-
-                        iterator += 1
-                        ch_cntr += 1
 
                 elif view.currentText() == "Selected channels only":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -945,8 +927,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    names = {(_name, *entry) for entry, _name in result.items()}
-
                     signals = signals | names
 
                     widget.clear()
@@ -955,7 +935,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for name, gp_index, ch_index in signals:
                         entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
@@ -970,7 +950,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     while item := iterator.value():
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            names.add((result[item.entry], *item.entry))
 
                         iterator += 1
 
@@ -1556,13 +1535,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         continue
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.original_name)
+                        signals.append(item.name)
             else:
                 while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.original_name)
+                        signals.append(item.name)
 
             suffix = file_name.suffix.lower()
             if suffix == ".lab":
@@ -2630,10 +2609,7 @@ MultiRasterSeparator;&
                         else:
                             ico = None
 
-                        if ico is not None:
-                            icon = QtGui.QIcon()
-                            icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                            channel_group_item.setIcon(0, icon)
+                        channel_group_item.setIcon(0, StaticIcons.icon(ico))
 
                 item = QtWidgets.QTreeWidgetItem()
                 item.setText(0, "Channels")
@@ -3219,7 +3195,7 @@ MultiRasterSeparator;&
 
             items = []
             for entry, name in self._selected_filter.items():
-                channel = MinimalTreeItem(entry, name, strings=[name], origin_uuid=self.uuid)
+                channel = MinimalTreeItem(entry, name, origin_uuid=self.uuid)
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 

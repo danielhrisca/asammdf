@@ -59,4 +59,5 @@ def main(measurements=None):
 
 
 if __name__ == "__main__":
+    print(os.getpid())
     main()

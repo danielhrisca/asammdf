@@ -21,7 +21,7 @@ from .blocks.types import (
     IntInterpolationModeType,
     SourceType,
 )
-from .blocks.utils import extract_xml_comment, MdfException, SignalFlags
+from .blocks.utils import extract_xml_comment, MdfException, replace_metadata, SignalFlags
 from .version import __version__
 
 if TYPE_CHECKING:
@@ -66,32 +66,6 @@ def convert(arr, ignore_value2text_conversions=False):
         res = res.view(np.lib.format.drop_metadata(res.dtype))
 
     return res
-
-
-def replace_metadata(dtype, name, attribute, value, current_name=""):
-    if dtype.fields:
-        new_dt = {
-            "names": [],
-            "formats": [],
-            "offsets": [],
-        }
-        for fname, (dt, offset, *_) in dtype.fields.items():
-            new_dt["names"].append(fname)
-            new_dt["offsets"].append(offset)
-            new_dt["formats"].append(replace_metadata(dt, name, attribute, value, fname))
-
-        if old_metadata := (dtype.metadata or dtype.base.metadata):
-            return np.dtype(new_dt, metadata=dict(old_metadata))
-        else:
-            return np.dtype(new_dt)
-
-    else:
-        if current_name and current_name != name:
-            return dtype
-        else:
-            metadata = dict(dtype.metadata or dtype.base.metadata or {})
-            metadata[attribute] = value
-            return np.dtype(np.lib.format.drop_metadata(dtype), metadata=metadata)
 
 
 class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
@@ -176,7 +150,7 @@ class Signal:  # noqa: PLW1641
         **kwargs,
     ) -> None:
         if "raw" in kwargs:
-            warnings.warn("the 'raw' argument for the Signal class has been removed", stacklevel=2)
+            raise Exception("the 'raw' argument for the Signal class has been removed")
         if not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '

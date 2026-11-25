@@ -8,22 +8,25 @@ from ..utils import get_colors_using_ranges
 class MinimalTreeItem(QtWidgets.QTreeWidgetItem):
     def __init__(
         self,
-        entry,
+        entry=None,
         name="",
         parent=None,
-        strings=None,
         origin_uuid=None,
-        original_name="",
+        info="",
+        strings=(),
     ):
+        strings = strings or [name, info]
         super().__init__(parent, strings)
         self.entry = entry
         self.name = name
         self.origin_uuid = origin_uuid
-        self.original_name = original_name or name
+        self.info = info
 
     def setText(self, column, text):
         if column == 0:
             self.name = text
+        elif column == 1:
+            self.info = text
 
         super().setText(column, text)
 

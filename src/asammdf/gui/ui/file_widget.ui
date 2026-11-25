@@ -133,9 +133,23 @@
              <property name="toolTip">
               <string>Double click channel to see extended information</string>
              </property>
+             <property name="columnCount">
+              <number>2</number>
+             </property>
+             <attribute name="headerDefaultSectionSize">
+              <number>300</number>
+             </attribute>
+             <attribute name="headerStretchLastSection">
+              <bool>true</bool>
+             </attribute>
              <column>
               <property name="text">
                <string>Channels</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Info</string>
               </property>
              </column>
             </widget>
@@ -383,9 +397,20 @@
            <property name="toolTip">
             <string>Double click channel to see extended information</string>
            </property>
+           <property name="columnCount">
+            <number>2</number>
+           </property>
+           <attribute name="headerDefaultSectionSize">
+            <number>300</number>
+           </attribute>
            <column>
             <property name="text">
              <string>Channels</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Info</string>
             </property>
            </column>
           </widget>
@@ -514,8 +539,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>331</width>
-            <height>609</height>
+            <width>317</width>
+            <height>652</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -1389,8 +1414,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>999</width>
-            <height>609</height>
+            <width>466</width>
+            <height>515</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">

@@ -140,18 +140,12 @@ class DataFrameStorage:
     def __init__(self, df, tabular):
         super().__init__()
 
+        self._df = df
+        self._df_columns = {}
         self.df = df
         self.df_unfiltered = df
         self.tabular = tabular
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="Pandas doesn't allow columns to be created via a new attribute name.*",
-                category=UserWarning,
-            )
-            # code that triggers the warning
-            self.df.cached_size = df.shape
 
         self.sorted_column_name = None
         self.sorted_index_level = None
@@ -164,6 +158,35 @@ class DataFrameStorage:
 
         self.data_changed()
 
+    @property
+    def df(self):
+        return self._df
+
+    @df.setter
+    def df(self, dataframe):
+        self._df = dataframe
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="Pandas doesn't allow columns to be created via a new attribute name.*",
+                category=UserWarning,
+            )
+        self._df.cached_size = dataframe.shape
+        self._df.cached_names = list(dataframe.columns)
+
+        self._df_columns = {
+            name: self._df[name].to_numpy()
+            for name in self._df.cached_names
+        }
+
+    def cell_and_column_name(self, row, column):
+
+        name = self._df.cached_names[column]
+
+        cell = self._df_columns[name][row]      
+
+        return cell, name 
+        
     @property
     def sorted_column_ix(self):
         try:
@@ -305,9 +328,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
         row = index.row()
         col = index.column()
 
-        cell = self.pgdf.df.iloc[row, col]
-
-        name = self.pgdf.df_unfiltered.columns[col]
+        cell, name = self.pgdf.cell_and_column_name(row, col)
 
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             # Need to check type since a cell might contain a list or Series, then .isna returns a Series not a bool
@@ -1367,13 +1388,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     new_df.drop(columns=to_drop, inplace=True)
                 self.query.setText(" ".join(filters))
                 new_df.rename(columns=original_names, inplace=True)
-                new_df.cached_size = new_df.shape
                 self.tree.pgdf.df = new_df
                 self.tree.pgdf.data_changed()
         else:
             self.query.setText("")
             df.rename(columns=original_names, inplace=True)
-            df.cached_size = df.shape
             self.tree.pgdf.df = df
             self.tree.pgdf.data_changed()
 
@@ -1453,7 +1472,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         signals = signals[names]
 
         df = pd.concat([self.tree.pgdf.df_unfiltered, signals], axis=1)
-        df.cached_size = df.shape
 
         self.tree.pgdf.df_unfiltered = self.tree.pgdf.df = df
         self.ranges = ranges

@@ -3,6 +3,8 @@
 from PySide6 import QtGui
 from PySide6.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 
+from ..utils import StaticIcons
+
 
 class ViewTree(QTreeWidget):
     def __init__(self, value, parent=None):
@@ -37,7 +39,5 @@ class ComputedChannelInfoWindow(QMainWindow):
         self.setCentralWidget(ViewTree(signal.computation, self))
         self.setWindowTitle(f"Computed channel {signal.name}")
         self.setMinimumSize(600, 400)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        self.setWindowIcon(icon)
+        self.setWindowIcon(StaticIcons.icon("info"))

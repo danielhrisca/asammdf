@@ -3,6 +3,7 @@
 	<file alias="attach.png">images/attach.png</file>
 	
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
+    <file alias="array.png">images/array.png</file>
     <file alias="arrow_next_higher.png">images/arrow_next_higher.png</file>
     <file alias="arrow_next_lower.png">images/arrow_next_lower.png</file>
     <file alias="arrow_previous_higher.png">images/arrow_previous_higher.png</file>

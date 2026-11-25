@@ -10,6 +10,7 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ...blocks.v4_blocks import Channel
 from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
 from ...signal import Signal
 from .. import utils
@@ -25,6 +26,7 @@ from ..utils import (
     SCROLLBAR_STYLE,
     unique_ranges,
     value_as_str,
+    StaticIcons,
 )
 from .tree_item import MinimalTreeItem
 
@@ -58,51 +60,107 @@ def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
 def add_children(
     widget,
     channels,
-    channel_dependencies,
     signals,
-    entries=None,
     origin_uuid=None,
     version="4.11",
+    info=None,
+    pattern=None,
+    seen=None,
 ):
     children = []
-    if entries is not None:
-        channels_ = [channels[i] for _, i in entries]
-    else:
-        channels_ = channels
+    if seen is None:
+        seen = set()
 
-    for ch in channels_:
-        if ch.added:
+    info = info or ""
+
+    for ch in channels:
+
+        if ch.index in seen:
             continue
 
-        entry = ch.entry
+        if pattern and not pattern.search(ch.name):
+            continue
 
-        child = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=origin_uuid)
+        seen.add(ch.index)
 
-        dep = channel_dependencies[entry[1]]
+        entry = ch.group, ch.index
+
+        child = MinimalTreeItem(entry, ch.name, info=info, origin_uuid=origin_uuid)
+        child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
+
         if version >= "4.00":
-            if dep and isinstance(dep[0], tuple):
-                child.setFlags(
-                    child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
-                )
+            if ch.composition:
+                if all(isinstance(dep, Channel) for dep in ch.composition):
+                    child.setIcon(0, utils.StaticIcons.icon("structure"))
 
-                add_children(
-                    child,
-                    channels,
-                    channel_dependencies,
-                    signals,
-                    dep,
-                    origin_uuid=origin_uuid,
-                )
+                    if widget is None:
+
+                        grand_children = add_children(
+                            None,
+                            ch.composition,
+                            signals,
+                            origin_uuid=origin_uuid,
+                            info=info,
+                            pattern=pattern,
+                            seen=seen,
+                        )
+
+                        children.extend(grand_children)
+
+                    else:
+                        child.setFlags(
+                            child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                        )
+                        
+                        add_children(
+                            child,
+                            ch.composition,
+                            signals,
+                            origin_uuid=origin_uuid,
+                            seen=seen,
+                        )
+
+                else:
+                    child.setIcon(0, utils.StaticIcons.icon("array"))
+                    if ch.components:
+                        if widget is None:
+                            grand_children = add_children(
+                                None,
+                                ch.components,
+                                signals,
+                                origin_uuid=origin_uuid,
+                                info=info,
+                                pattern=pattern,
+                                seen=seen,
+                            )
+    
+                            children.extend(grand_children)
+    
+                        else:
+                            child.setFlags(
+                                child.flags() | QtCore.Qt.ItemFlag.ItemIsAutoTristate | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                            )
+                            
+                            add_children(
+                                child,
+                                ch.components,
+                                signals,
+                                origin_uuid=origin_uuid,
+                                seen=seen,
+                            )
+
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.CheckState.Checked)
         else:
             child.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
-        ch.added = True
         children.append(child)
 
-    widget.addChildren(children)
+    if widget and children:
+        widget.addChildren(children)
+
+    return children
 
 
 def add_new_items(tree, root, items, pos):
@@ -299,6 +357,8 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
                 for i in range(count):
                     child = item.child(i)
+                    if child.entry is None:
+                        continue
 
                     if child.childCount():
                         working_data.extend(get_data(child, retain_structure=retain_structure))
@@ -319,7 +379,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                             )
 
             else:
-                if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
+                if item.entry is not None and item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
                         {
                             "name": item.name,
@@ -2001,27 +2061,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         background_color=None,
         expanded=False,
     ):
-        if utils.RANGE_INDICATOR_ICON is None:
-            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-            utils.RANGE_INDICATOR_ICON.addPixmap(
-                QtGui.QPixmap(":/paint.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.NO_ICON = QtGui.QIcon()
-            utils.NO_ERROR_ICON = QtGui.QIcon()
-
-            utils.COMPUTED_ICON = QtGui.QIcon()
-            utils.COMPUTED_ICON.addPixmap(
-                QtGui.QPixmap(":/computation.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.USER_EDITED_ICON = QtGui.QIcon()
-            utils.USER_EDITED_ICON.addPixmap(
-                QtGui.QPixmap(":/edit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.ERROR_ICON = QtGui.QIcon()
-            utils.ERROR_ICON.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         super().__init__(parent, type)
         self.exists = True
@@ -2556,9 +2595,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     disabled = self._previous_state
 
             if disabled:
-                self.setIcon(self.NameColumn, QtGui.QIcon(":/erase.png"))
+                self.setIcon(self.NameColumn, StaticIcons.icon("erase"))
             elif not self.parent() or (self.parent() and not self.parent().isDisabled()):
-                self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
+                self.setIcon(self.NameColumn, StaticIcons.icon("open"))
 
             self.setDisabled(disabled)
 
@@ -2584,23 +2623,23 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def _set_icon(self):
         if self.type() == self.Channel:
             if not self.exists:
-                icon = utils.ERROR_ICON
+                icon = utils.StaticIcons.icon("error")
             elif self.signal.flags & Signal.Flags.computed:
-                icon = utils.COMPUTED_ICON
+                icon = utils.StaticIcons.icon("computed")
             elif self.signal.flags & Signal.Flags.user_defined_conversion:
-                icon = utils.USER_EDITED_ICON
+                icon = utils.StaticIcons.icon("user_edited")
             else:
-                icon = utils.NO_ICON
+                icon = utils.StaticIcons.icon("no_icon")
 
             self.setIcon(self.NameColumn, icon)
 
     def set_pattern(self, pattern):
         if pattern:
-            self.setIcon(self.NameColumn, QtGui.QIcon(":/filter.png"))
+            self.setIcon(self.NameColumn, StaticIcons.icon("filter"))
             self.pattern = dict(pattern)
             self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
         else:
-            self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
+            self.setIcon(self.NameColumn, StaticIcons.icon("open"))
             self.pattern = None
 
     def set_prefix(self, text=""):
@@ -2610,7 +2649,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.get_color_using_ranges.cache_clear()
 
         if ranges:
-            self.setIcon(self.ValueColumn, utils.RANGE_INDICATOR_ICON)
+            self.setIcon(self.ValueColumn, utils.StaticIcons.icon("range_indicator"))
             self.setToolTip(self.ValueColumn, f"{self.name}\nhas color ranges defined")
         else:
             self.setToolTip(self.ValueColumn, "")
@@ -2881,10 +2920,7 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
 
         # self.setStyleSheet('font: 8pt "Consolas";}')
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        self.setWindowIcon(icon)
+        self.setWindowIcon(StaticIcons.icon("info"))
         self.setMinimumWidth(500)
         self.adjustSize()
 

@@ -23,6 +23,7 @@ from types import TracebackType
 import typing
 from typing import Any, Literal, LiteralString, Never, Optional, overload, Union, Unpack
 import xml.etree.ElementTree as ET
+import warnings
 import zipfile
 
 from canmatrix import CanMatrix
@@ -240,6 +241,9 @@ class MDF:
 
         .. versionchanged:: 6.3.0 Make the default None.
 
+        .. versionremoved:: 9.0.0
+
+
     use_display_names : bool, default True
         For MDF v4 files, parse the XML channel comment to search for the
         display name; XML parsing is quite expensive so setting this to False
@@ -282,9 +286,11 @@ class MDF:
         self,
         name: StrPath | FileLike | zipfile.ZipFile | None = None,
         version: str | Version = "4.10",
-        channels: list[str] | None = None,
         **kwargs: Unpack[MdfKwargs],
     ) -> None:
+        if "raw" in kwargs:
+            warnings.warn("the 'channels' argument for the MDF class has been removed", warning.DeprecationWarning, stacklevel=2)
+        
         if "callback" in kwargs:
             kwargs["progress"] = kwargs["callback"]
             del kwargs["callback"]
@@ -393,11 +399,11 @@ class MDF:
             common_kwargs = MdfCommonKwargs({**kwargs, "original_name": original_name, "__internal__": True})
 
             if version in MDF3_VERSIONS:
-                self._mdf = mdf_v3.MDF3(name, channels=channels, **common_kwargs)
+                self._mdf = mdf_v3.MDF3(name, **common_kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = mdf_v4.MDF4(name, channels=channels, **common_kwargs)
+                self._mdf = mdf_v4.MDF4(name, **common_kwargs)
             elif version in MDF2_VERSIONS:
-                self._mdf = mdf_v2.MDF2(name, channels=channels, **common_kwargs)
+                self._mdf = mdf_v2.MDF2(name, **common_kwargs)
             else:
                 message = f'"{name}" is not a supported MDF file; "{version}" file version was found'
                 raise MdfException(message)
@@ -1984,6 +1990,7 @@ class MDF:
 
                     if not signal_blocks:
                         continue
+
                     for info in signal_blocks:
                         seek(info.address)
                         info.address = tell()
@@ -3221,7 +3228,7 @@ class MDF:
         self._mdf._raise_on_multiple_occurrences = _raise_on_multiple_occurrences
 
         # group channels by group index
-        gps = self.included_channels(channels=channels)
+        gps = self.included_channels(channels=channels, minimal=False)
 
         mdf = MDF(
             version=version,
@@ -4592,7 +4599,7 @@ class MDF:
                 if (
                     (info := channel.record_info) is NoRecordInfo
                     or channel.signal_data
-                    or grp.channel_dependencies[ch_index]
+                    or channel.composition
                 ):
                     return self._select_fallback(
                         channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate

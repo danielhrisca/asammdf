@@ -23,7 +23,7 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.messagebox import MessageBox
 from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
+from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress, StaticIcons
 from .database_item import DatabaseItem
 from .file import FILE_CLASSES
 from .tree import add_children
@@ -1023,21 +1023,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                    dg_cntr = -1
-                    ch_cntr = 0
 
                     while item := iterator.value():
+                        iterator += 1
+
                         if item.parent() is None:
-                            iterator += 1
-                            dg_cntr += 1
-                            ch_cntr = 0
                             continue
 
-                        if (dg_cntr, ch_cntr) in result:
+                        if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-
-                        iterator += 1
-                        ch_cntr += 1
 
                 elif view.currentText() == "Selected channels only":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -1060,7 +1054,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
                         self._selected_filter.add(ch.name)
@@ -1141,18 +1135,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if widget.mode == "Natural sort":
                     items = []
                     for i, group in enumerate(mdf.groups):
-                        for j, ch in enumerate(group.channels):
-                            entry = i, j
 
-                            channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
-                            channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-
-                            if entry in signals:
-                                channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                            else:
-                                channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-                            items.append(channel)
+                        items.extend(
+                            add_children(
+                                None,
+                                group.channels,
+                                signals,
+                                origin_uuid=uuid,
+                                version=mdf.version,
+                            )
+                        )
 
                     if len(items) < 30000:
                         items = natsorted(items, key=lambda x: x.name)
@@ -1184,11 +1176,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             else:
                                 ico = None
 
-                            if ico is not None:
-                                icon = QtGui.QIcon()
-                                icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-                                channel_group.setIcon(0, icon)
+                            channel_group.setIcon(0, StaticIcons.icon(ico))
 
                         acq_name = getattr(group.channel_group, "acq_name", "")
                         if acq_name:
@@ -1215,10 +1203,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         add_children(
                             channel_group,
-                            channels,
-                            group.channel_dependencies,
+                            group.channels,
                             signals,
-                            entries=None,
                             origin_uuid=uuid,
                             version=mdf.version,
                         )
@@ -1230,7 +1216,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
@@ -1718,8 +1704,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.clear()
         self.files_list.addItems(source_files)
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon = StaticIcons.icon("file")
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 
@@ -1758,8 +1743,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.clear()
         self.files_list.addItems([item[1] for item in start_times])
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon = StaticIcons.icon("file")
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 

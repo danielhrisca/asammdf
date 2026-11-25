@@ -185,7 +185,6 @@ class MDF3(MDF_Common[Group]):
         self,
         name: StrPath | FileLike | None = None,
         version: Version2 | Version = "3.30",
-        channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
     ) -> None:
         if not kwargs.get("__internal__", False):
@@ -197,12 +196,6 @@ class MDF3(MDF_Common[Group]):
         self._kwargs = kwargs
         self._password = kwargs.get("password", None)
         self.original_name = kwargs["original_name"]
-        if channels is None:
-            self.load_filter = set()
-            self.use_load_filter = False
-        else:
-            self.load_filter = set(channels)
-            self.use_load_filter = True
 
         self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
 
@@ -612,7 +605,6 @@ class MDF3(MDF_Common[Group]):
         mapped: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
     ) -> None:
-        filter_channels = self.use_load_filter
         
         cg_count, _ = count_channel_groups(stream)
         if progress is not None:
@@ -672,7 +664,7 @@ class MDF3(MDF_Common[Group]):
                 kargs["record_id_len"] = record_id_nr
                 kargs["address"] = data_group.address
 
-                new_groups.append(Group(DataGroup(**kargs)))
+                new_groups.append(Group(DataGroup(**kargs), version=3))
                 grp = new_groups[-1]
                 grp.channels = []
                 grp.trigger = trigger
@@ -699,88 +691,16 @@ class MDF3(MDF_Common[Group]):
                         logger.warning(f"Channel address {ch_addr:X} is outside the file size {self.file_limit}")
                         break
 
-                    if filter_channels:
-                        display_names = {}
-                        if mapped:
-                            (
-                                id_,
-                                block_len,
-                                next_ch_addr,
-                                channel_type,
-                                name_bytes,
-                            ) = v23c.CHANNEL_FILTER_uf(stream, ch_addr)
-                            name = name_bytes.decode("latin-1").strip(" \t\n\r\0")
-                            if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
-                                tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_SHORT_BLOCK_SIZE)[0]
-                                if tx_address:
-                                    name = get_text_v3(tx_address, stream, mapped=mapped)
-                                if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-                                    tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)[0]
-                                    if tx_address:
-                                        display_names = {
-                                            get_text_v3(tx_address, stream, mapped=mapped): "display_name",
-                                        }
-
-                        else:
-                            stream.seek(ch_addr)
-                            (
-                                id_,
-                                block_len,
-                                next_ch_addr,
-                                channel_type,
-                                name_bytes,
-                            ) = v23c.CHANNEL_FILTER_u(stream.read(v23c.CHANNEL_FILTER_SIZE))
-                            name = name_bytes.decode("latin-1").strip(" \t\n\r\0")
-
-                            if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
-                                stream.seek(ch_addr + v23c.CN_SHORT_BLOCK_SIZE)
-                                tx_address = v23c.UINT32_u(stream.read(4))[0]
-                                if tx_address:
-                                    name = get_text_v3(tx_address, stream, mapped=mapped)
-                                if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-                                    stream.seek(ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)
-                                    tx_address = v23c.UINT32_u(stream.read(4))[0]
-                                    if tx_address:
-                                        display_names = {
-                                            get_text_v3(tx_address, stream, mapped=mapped): "display_name",
-                                        }
-
-                        if id_ != b"CN":
-                            message = f'Expected "CN" block @{hex(ch_addr)} but found "{id_!r}"'
-                            raise MdfException(message)
-
-                        if self._remove_source_from_channel_names:
-                            name = name.split("\\", 1)[0]
-                            display_names = {_name.split("\\", 1)[0]: val for _name, val in display_names.items()}
-
-                        if (
-                            channel_type == v23c.CHANNEL_TYPE_MASTER
-                            or name in self.load_filter
-                            or (any(_name in self.load_filter for _name in display_names))
-                        ):
-                            new_ch = Channel(
-                                address=ch_addr,
-                                stream=stream,
-                                mapped=mapped,
-                                si_map=self._si_map,
-                                cc_map=self._cc_map,
-                                parsed_strings=(name, display_names),
-                                byte_order=byte_order,
-                            )
-                        else:
-                            ch_addr = next_ch_addr
-                            continue
-                    else:
-                        # read channel block and create channel object
-                        new_ch = Channel(
-                            address=ch_addr,
-                            stream=stream,
-                            mapped=mapped,
-                            si_map=self._si_map,
-                            cc_map=self._cc_map,
-                            parsed_strings=None,
-                            byte_order=byte_order,
-                        )
+                    # read channel block and create channel object
+                    new_ch = Channel(
+                        address=ch_addr,
+                        stream=stream,
+                        mapped=mapped,
+                        si_map=self._si_map,
+                        cc_map=self._cc_map,
+                        parsed_strings=None,
+                        byte_order=byte_order,
+                    )
 
                     if new_ch.data_type not in v23c.VALID_DATA_TYPES:
                         ch_addr = new_ch.next_ch_addr
@@ -802,6 +722,8 @@ class MDF3(MDF_Common[Group]):
                     # update channel map
                     entry = dg_cntr, ch_cntr
                     ch_map[ch_addr] = entry
+                    new_ch.group = dg_cntr
+                    new_ch.index = ch_cntr
 
                     for name in (new_ch.name, *tuple(new_ch.display_names)):
                         if name:
@@ -1146,7 +1068,7 @@ class MDF3(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
+        gp = Group(DataGroup(), version=3)
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
@@ -1197,6 +1119,8 @@ class MDF3(MDF_Common[Group]):
                 "dtype": timestamps.dtype,
             }
             channel = Channel(**cn_kargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name = time_name
             channel.conversion = cc_block
             channel.source = new_source
@@ -1306,6 +1230,8 @@ class MDF3(MDF_Common[Group]):
                 s_size = max(s_size, 8)
 
                 channel = Channel(**cn_kargs)
+                channel.group = dg_cntr
+                channel.index = ch_cntr
                 channel.name = signal.name
                 channel.comment = signal.comment
                 channel.source = new_source
@@ -1342,7 +1268,7 @@ class MDF3(MDF_Common[Group]):
                 v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION,
             ):
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(DataGroup())
+                new_gp = Group(DataGroup(), version=3)
                 new_gp_channels = new_gp.channels = []
                 new_gp_dep = new_gp.channel_dependencies = []
                 new_gp_sig_types = new_gp.signal_types = []
@@ -1381,6 +1307,8 @@ class MDF3(MDF_Common[Group]):
                     "byte_order": byte_order, 
                 }
                 channel = Channel(**cn_kargs)
+                channel.group = new_dg_cntr
+                channel.index = new_ch_cntr
                 channel.name = name = time_name
                 channel.source = new_source
                 channel.conversion = cc_block
@@ -1475,6 +1403,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.source = new_source
                     channel.conversion = cc_block
@@ -1560,7 +1490,7 @@ class MDF3(MDF_Common[Group]):
 
             else:
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(DataGroup())
+                new_gp = Group(DataGroup(), version=3)
                 new_gp_channels = new_gp.channels = []
                 new_gp_dep = new_gp.channel_dependencies = []
                 new_gp_sig_types = new_gp.signal_types = []
@@ -1647,6 +1577,8 @@ class MDF3(MDF_Common[Group]):
                 s_size = max(s_size, 8)
 
                 channel = Channel(**cn_kargs)
+                channel.group = new_dg_cntr
+                channel.index = new_ch_cntr
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
 
@@ -1711,6 +1643,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.source = new_source
                     new_gp_channels.append(channel)
@@ -1802,6 +1736,8 @@ class MDF3(MDF_Common[Group]):
                     s_size = max(s_size, 8)
 
                     channel = Channel(**cn_kargs)
+                    channel.group = new_dg_cntr
+                    channel.index = new_ch_cntr
                     channel.name = name
                     channel.comment = signal.comment
                     channel.source = new_source
@@ -1867,6 +1803,8 @@ class MDF3(MDF_Common[Group]):
                         s_size = max(s_size, 8)
 
                         channel = Channel(**cn_kargs)
+                        channel.group = new_dg_cntr
+                        channel.index = new_ch_cntr
                         channel.name = name
                         channel.source = new_source
                         new_gp_channels.append(channel)
@@ -2033,7 +1971,7 @@ class MDF3(MDF_Common[Group]):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(DataGroup())
+        gp = Group(DataGroup(), version=3)
         gp_channels = gp.channels = []
         gp_dep = gp.channel_dependencies = []
         gp_sig_types = gp.signal_types = []
@@ -2075,6 +2013,8 @@ class MDF3(MDF_Common[Group]):
                 "byte_order": byte_order,
             }
             channel = Channel(**cn_kargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name = time_name
             channel.conversion = conversion
             channel.source = source
@@ -2131,6 +2071,8 @@ class MDF3(MDF_Common[Group]):
             s_size = max(s_size, 8)
 
             channel = Channel(**cn_kwargs)
+            channel.group = dg_cntr
+            channel.index = ch_cntr
             channel.name = name
             channel.source = new_source
 

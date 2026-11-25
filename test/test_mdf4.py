@@ -204,7 +204,7 @@ class TestMDF4(unittest.TestCase):
         for version in ("4.00", "4.10", "4.20"):
             with self.subTest(version=version), MDF(version=version) as mdf:
                 group = mdf.append(Signal(initial, timestamps[:2], name="value"))
-                with self.assertRaisesRegex(ValueError, "too small"):
+                with self.assertRaisesRegex(ValueError, "data block size.+does not match"):
                     mdf.extend(group, [(timestamps[2:], None), (backing[:1], None)])
                 np.testing.assert_array_equal(mdf.get("value").samples, initial)
                 mdf.extend(group, [(timestamps[2:], None), (backing, None)])
@@ -425,8 +425,8 @@ class TestMDF4(unittest.TestCase):
                     file.seek(link)
                     file.write(struct.pack(fmt, data_channel))
 
-                with MDF(path, channels=["a"]) as mdf:
-                    self.assertEqual(len(mdf.groups[1].channels), 0)
+                with MDF(path) as mdf:
+                    self.assertEqual(len(mdf.groups[1].channels), 1)
                     index = mdf.to_dataframe(time_from_zero=False).index.tolist()
                     chunks = [t for df in mdf.iter_to_dataframe(time_from_zero=False) for t in df.index]
 

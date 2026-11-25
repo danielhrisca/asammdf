@@ -14,6 +14,7 @@ from ..utils import (
     generate_python_function,
     generate_python_function_globals,
     generate_python_variables,
+    StaticIcons,
 )
 from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
@@ -225,8 +226,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             func, _trace = generate_python_function(self._functions[name])
 
         if func is not None:
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon = StaticIcons.icon("search")
 
             self.signature = inspect.signature(func)
 
@@ -323,9 +323,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 p.setColor(active, QtGui.QPalette.ColorRole.Text, QtGui.QColor("#ffffff"))
             info.setPalette(p)
 
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            info.setWindowIcon(icon)
+            info.setWindowIcon(StaticIcons.icon("info"))
 
             info.show()
             rect = info.geometry()

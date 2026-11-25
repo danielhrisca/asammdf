@@ -103,6 +103,8 @@ class ChannelKwargs(BlockKwargs, total=False):
     additional_byte_offset: int
     byte_order: int
     dtype: np.dtype[Any] | None
+    index: int
+    group: int
 
 
 class Channel:
@@ -196,6 +198,8 @@ class Channel:
         "display_names",
         "dtype",
         "id",
+        "index",
+        "group",
         "long_name_addr",
         "max_raw_value",
         "min_raw_value",
@@ -219,6 +223,7 @@ class Channel:
         self.conversion = self.source = None
         self.dtype: np.dtype[Any] | None = kwargs.get("dtype", None)
         self.record_info = NoRecordInfo
+        self.index = self.group = 0
 
         try:
             stream = kwargs["stream"]

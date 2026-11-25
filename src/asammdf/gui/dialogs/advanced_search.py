@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_xml_comment
 from ..ui.search_dialog import Ui_SearchDialog
+from ..utils import StaticIcons
 from .messagebox import MessageBox
 from .range_editor import RangeEditor
 
@@ -241,9 +242,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.selection_model = Model()
         self.selection.setModel(self.selection_model)
 
-        icon = QtGui.QIcon()
-        icon.addFile(":/search.png", QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self.setWindowIcon(icon)
+        self.setWindowIcon(StaticIcons.icon("search"))
 
         # self.selection.can_delete_items = True
 

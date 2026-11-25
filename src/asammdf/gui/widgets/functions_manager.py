@@ -13,6 +13,7 @@ from ..utils import (
     generate_python_function,
     generate_python_function_globals,
     generate_python_variables,
+    StaticIcons,
 )
 from .python_highlighter import PythonHighlighter
 
@@ -126,7 +127,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
     def add_definition(self):
         if previous := self.functions_list.currentItem():
             name = previous.text()
-            previous.setIcon(QtGui.QIcon())
+            previous.setIcon(StaticIcons.icon("no_icon"))
             info = self.definitions[name]
             info["current_definition"] = self.function_definition.toPlainText().replace("\t", "    ")
 
@@ -209,7 +210,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
     def definition_selection_changed(self, current, previous):
         if previous:
             name = previous.text()
-            previous.setIcon(QtGui.QIcon())
+            previous.setIcon(StaticIcons.icon("no_icon"))
             info = self.definitions[name]
             info["current_definition"] = self.function_definition.toPlainText().replace("\t", "    ")
 

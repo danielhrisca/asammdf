@@ -7,6 +7,7 @@ from PySide6 import QtGui, QtWidgets
 from ...blocks.utils import extract_encryption_information
 from ...blocks.v4_constants import FLAG_AT_TO_STRING
 from ..ui.attachment import Ui_Attachment
+from ..utils import StaticIcons
 
 try:
     import sounddevice as sd
@@ -97,13 +98,8 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
                 layout = QtWidgets.QHBoxLayout()
                 widget.setLayout(layout)
 
-                icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                if icon.isNull():
-                    play_audio_comment_btn = QtWidgets.QPushButton("Play comment")
-                else:
-                    play_audio_comment_btn = QtWidgets.QPushButton(widget)
-                    play_audio_comment_btn.setIcon(icon)
+                play_audio_comment_btn = QtWidgets.QPushButton(widget)
+                play_audio_comment_btn.setIcon(StaticIcons.icon("play"))
 
                 play_audio_comment_btn.clicked.connect(self.play_audio_comment)
                 layout.addWidget(play_audio_comment_btn)

@@ -1,6 +1,6 @@
 """asammdf utility functions and classes"""
 
-from collections import namedtuple
+from collections import namedtuple, ChainMap
 from collections.abc import Buffer, Callable, Iterator
 from functools import lru_cache
 import importlib
@@ -1077,6 +1077,86 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
                     self[channel_name] += (entry,)
 
 
+class ChannelsStore:
+
+    def __init__(self, group: int = 0):
+        self._channels = {}
+        self.index : int = 0
+        self._group : int = group
+        self._last = None
+
+    def add(self, channel, primary: bool = True, component=False) -> tuple[int, int]:
+        index = self.index
+        group = self.group
+
+        self._channels[index] = channel, primary
+        channel.index = index
+        channel.group = group
+        if primary:
+            self._last = channel
+        self.index += 1
+
+        return group, index
+
+    def all(self):
+        for channel, primary in self._channels.values():
+            yield channel 
+
+    def clear(self):
+        self._channels.clear()
+        self._last = None
+        self.index = 0
+
+    def contains(self, name):
+        for channel, primary in self._channels.values():
+            if channel.name == name:
+                return True
+            elif channel.display_names and name in channel.display_names:
+                return True
+
+        return False
+
+    @property
+    def group(self):
+        return self._group
+
+    @group.setter
+    def group(self, value: int):
+        self._group = value
+        for ch in self._channels.values():
+            ch.group = value
+
+    def primary_channels(self):
+        return [
+            index
+            for index, (channel, primary) in self._channels.items()
+            if primary
+        ]
+
+    def __bool__(self):
+        return bool(self._channels)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return list(self)[key]
+        elif key == -1:
+            if self._last is not None:
+                return self._last
+            else:
+                # does not exist and will raise exception
+                return self._channels[key]
+        else:
+            return self._channels[key][0]
+
+    def __iter__(self):
+        for channel, primary in self._channels.values():
+            if primary:
+                yield channel
+
+    def __len__(self):
+        return len(self._channels)
+
+
 def randomized_string(size: int) -> bytes:
     """Get a null-terminated string of length `size`.
 
@@ -2074,5 +2154,33 @@ def astype(arr, dtype):
         sig.samples = vals
         return sig
 
+
 RecordInfo = namedtuple('RecordInfo', ['dtype', 'byte_size', 'byte_offset', 'bit_offset'])
 NoRecordInfo = RecordInfo(None, 0, 0, 0)
+
+
+def replace_metadata(dtype, name, attribute, value, current_name=""):
+    if dtype.fields:
+        new_dt = {
+            "names": [],
+            "formats": [],
+            "offsets": [],
+        }
+        for fname, (dt, offset, *_) in dtype.fields.items():
+            new_dt["names"].append(fname)
+            new_dt["offsets"].append(offset)
+            new_dt["formats"].append(replace_metadata(dt, name, attribute, value, fname))
+
+        if old_metadata := (dtype.metadata or dtype.base.metadata):
+            return np.dtype(new_dt, metadata=dict(old_metadata))
+        else:
+            return np.dtype(new_dt)
+
+    else:
+        if current_name and current_name != name:
+            return dtype
+        else:
+            metadata = dict(dtype.metadata or dtype.base.metadata or {})
+            metadata[attribute] = value
+            return np.dtype(np.lib.format.drop_metadata(dtype), metadata=metadata)
+

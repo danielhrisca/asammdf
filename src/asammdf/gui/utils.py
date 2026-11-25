@@ -1,3 +1,4 @@
+import ast
 import bisect
 import builtins
 import collections
@@ -10,6 +11,7 @@ from io import StringIO
 import itertools
 import math
 import os
+from pathlib import Path
 import random
 import re
 import struct
@@ -20,6 +22,7 @@ import time
 from time import sleep
 import traceback
 from traceback import format_exc
+import xml.etree.ElementTree as ET
 
 import numpy as np
 import pandas as pd
@@ -34,15 +37,55 @@ from .dialogs.messagebox import MessageBox
 from .function_library import FunctionLibrary
 
 _BUILTINS = vars(builtins).copy()
-for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
+for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
     _BUILTINS.pop(key, None)
 
-ERROR_ICON = None
-RANGE_INDICATOR_ICON = None
-NO_ERROR_ICON = None
-NO_ICON = None
-COMPUTED_ICON = None
-USER_EDITED_ICON = None
+
+class StaticIcons:
+    _icons = {}
+    _initialized = False
+
+    @staticmethod
+    def _initialize():
+        try:
+            here = Path(__file__).resolve().parent
+            qrc_path = here / "ui" / "resource.qrc"
+            rcc = ET.fromstring(qrc_path.read_text())
+            for tag in rcc.find("qresource"):
+                name = tag.get("alias")
+                icon = QtGui.QIcon(f":{name}")
+                StaticIcons._icons[name] = icon
+                StaticIcons._icons[name.removesuffix(".png")] = icon
+
+            no_icon = QtGui.QIcon()
+            StaticIcons._icons["none"] = no_icon
+            StaticIcons._icons[None] = no_icon
+            StaticIcons._icons["no_icon"] = no_icon
+            StaticIcons._icons["no_error"] = no_icon
+
+            StaticIcons._icons["range_indicator"] = StaticIcons._icons["paint"]
+            StaticIcons._icons["computed"] = StaticIcons._icons["computation"]
+            StaticIcons._icons["user_edited"] = StaticIcons._icons["edit"]
+            StaticIcons._icons["group"] = StaticIcons._icons["list"]
+            
+        except:
+            print(format_exc())
+
+        StaticIcons._initialized = True
+
+    @staticmethod
+    def available(key):
+        return sorted(StaticIcons._icons)
+
+    @staticmethod
+    def icon(key):
+        if not StaticIcons._initialized:
+            StaticIcons._initialize()
+        if key in StaticIcons._icons:
+            return StaticIcons._icons[key]
+        else:
+            return StaticIcons._icons["none"]
+
 
 COMPUTED_FUNCTION_ERROR_VALUE = float("nan")
 
@@ -141,8 +184,8 @@ VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 FUNC_NAME = re.compile(r"def\s+(?P<name>\S+)\s*\(")
-IMPORT = re.compile(r"^\s*import\s+")
-IMPORT_INNER = re.compile(r";\s*import\s+")
+IMPORT = re.compile(r"^\s*(__)?import(__)?\s+")
+IMPORT_INNER = re.compile(r";\s*(__)?import(__)?\s+")
 FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
 FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
 
@@ -1234,6 +1277,15 @@ def contains_imports(string):
     for line in string.splitlines():
         if IMPORT.match(line) or FROM_IMPORT.match(line) or IMPORT_INNER.search(line) or FROM_INNER_IMPORT.search(line):
             return True
+
+    tree = ast.parse(string)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return True
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "__import__":
+                return True
 
     return False
 
