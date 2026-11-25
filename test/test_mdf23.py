@@ -195,6 +195,46 @@ class TestMDF23(unittest.TestCase):
                         points = [saved[f"raw_{i}"] for i in range(saved.ref_param_nr)]
                         self.assertTrue(np.all(np.diff(points) > 0))
 
+    def test_convert_unsorted_value_to_text_conversions(self) -> None:
+        value_to_text = {
+            "val_0": 0,
+            "text_0": b"zero",
+            "val_1": 1,
+            "text_1": b"one",
+            "val_2": -5,
+            "text_2": b"minus five",
+            "default_addr": b"other",
+        }
+        range_to_text = {
+            "lower_0": 10,
+            "upper_0": 19,
+            "text_0": b"ten",
+            "lower_1": 0,
+            "upper_1": 9,
+            "text_1": b"zero",
+            "default_addr": b"other",
+        }
+        raw = np.array([0, 1, -5, 15, 25], dtype="<i4")
+        timestamps = np.arange(len(raw), dtype="f8")
+        sigs = [
+            Signal(raw, timestamps, name="Value Text Channel", conversion=value_to_text),
+            Signal(raw, timestamps, name="Range Text Channel", conversion=range_to_text),
+        ]
+
+        for version in ("3.20", "3.30"):
+            with self.subTest(version=version):
+                with MDF(version="4.10") as mdf:
+                    mdf.append(sigs)
+                    with mdf.convert(version) as converted:
+                        outfile = converted.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    value_text = mdf.get(sigs[0].name).samples
+                    range_text = mdf.get(sigs[1].name).samples
+
+                self.assertEqual(value_text.tolist(), [b"zero", b"one", b"minus five", b"other", b"other"])
+                self.assertEqual(range_text.tolist(), [b"zero", b"zero", b"other", b"ten", b"other"])
+
 
 if __name__ == "__main__":
     unittest.main()

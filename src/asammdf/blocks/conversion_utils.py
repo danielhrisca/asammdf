@@ -152,10 +152,12 @@ def conversion_transfer(
                             "unit": unit,
                             "conversion_type": v3c.CONVERSION_TYPE_RTABX,
                         }
-                        for i in range(nr):
-                            v3_kwargs[f"lower_{i}"] = conversion[f"val_{i}"]  # type: ignore[literal-required]
-                            v3_kwargs[f"upper_{i}"] = conversion[f"val_{i}"]  # type: ignore[literal-required]
-                            block = conversion.referenced_blocks[f"text_{i}"]
+                        # MDF 3 readers expect the ranges in ascending order
+                        keys = [typing.cast(float, conversion[f"val_{i}"]) for i in range(nr)]
+                        for i, j in enumerate(sorted(range(nr), key=keys.__getitem__)):
+                            v3_kwargs[f"lower_{i}"] = conversion[f"val_{j}"]  # type: ignore[literal-required]
+                            v3_kwargs[f"upper_{i}"] = conversion[f"val_{j}"]  # type: ignore[literal-required]
+                            block = conversion.referenced_blocks[f"text_{j}"]
                             if isinstance(block, v4b.ChannelConversion):
                                 v3_kwargs[f"text_{i}"] = block.name.encode("latin-1")  # type: ignore[literal-required]
                             else:
@@ -180,10 +182,11 @@ def conversion_transfer(
                             "unit": unit,
                             "conversion_type": v3c.CONVERSION_TYPE_RTABX,
                         }
-                        for i in range(nr):
-                            v3_kwargs[f"lower_{i}"] = conversion[f"lower_{i}"]  # type: ignore[literal-required]
-                            v3_kwargs[f"upper_{i}"] = conversion[f"upper_{i}"]  # type: ignore[literal-required]
-                            block = conversion.referenced_blocks[f"text_{i}"]
+                        lowers = [typing.cast(float, conversion[f"lower_{i}"]) for i in range(nr)]
+                        for i, j in enumerate(sorted(range(nr), key=lowers.__getitem__)):
+                            v3_kwargs[f"lower_{i}"] = conversion[f"lower_{j}"]  # type: ignore[literal-required]
+                            v3_kwargs[f"upper_{i}"] = conversion[f"upper_{j}"]  # type: ignore[literal-required]
+                            block = conversion.referenced_blocks[f"text_{j}"]
                             if isinstance(block, v4b.ChannelConversion):
                                 v3_kwargs[f"text_{i}"] = block.name.encode("latin-1")  # type: ignore[literal-required]
                             else:
