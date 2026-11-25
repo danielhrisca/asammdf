@@ -662,6 +662,26 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
+    def test_concatenate_keeps_groups_aligned(self) -> None:
+        def make() -> MDF:
+            # two groups with different rasters that start and end together
+            mdf = MDF()
+            mdf.append(Signal(np.arange(3, dtype="f8"), np.linspace(0, 1, 3), name="slow"))
+            mdf.append(Signal(np.arange(6, dtype="f8"), np.linspace(0, 1, 6), name="fast"))
+            return mdf
+
+        for direct_timestamp_continuation in (False, True):
+            with self.subTest(direct_timestamp_continuation=direct_timestamp_continuation):
+                with make() as first, make() as second:
+                    merged = MDF.concatenate(
+                        [first, second], sync=False, direct_timestamp_continuation=direct_timestamp_continuation
+                    )
+                    with merged:
+                        slow, fast = merged.select(["slow", "fast"])
+
+                np.testing.assert_allclose(slow.timestamps[3:], [1.2, 1.7, 2.2])
+                np.testing.assert_allclose(fast.timestamps[6:], np.linspace(1.2, 2.2, 6))
+
     @unittest.skipIf(sys.platform != "win32", "skip for unix for now")
     def test_filter(self) -> None:
         print("MDF read tests")
