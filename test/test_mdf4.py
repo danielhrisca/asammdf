@@ -337,7 +337,7 @@ class TestMDF4(unittest.TestCase):
         for payloads in ([bytes(range(64))], [b""] * 50):
             with self.subTest(frames=len(payloads)):
                 cycles = len(payloads)
-                timestamps = np.arange(cycles) * 0.1
+                timestamps = 1 + np.arange(cycles) * 0.1
                 records = b""
                 offset = 0
                 for payload, timestamp in zip(payloads, timestamps, strict=True):
@@ -386,9 +386,52 @@ class TestMDF4(unittest.TestCase):
 
                 with MDF(outfile) as mdf:
                     signal = mdf.get("DataBytes")
+                    # the record numbers of the VLSD channel group are no time base
+                    index = mdf.to_dataframe(time_from_zero=False).index
+                    chunks = [df.index for df in mdf.iter_to_dataframe(time_from_zero=False)]
+                    raster = mdf.master_using_raster(0.1)
+                    # whence=1 counts from the first timestamp, not from record 0
+                    with mdf.cut(start=0, stop=0.25, whence=1) as cut:
+                        relative_cut = cut.get("DataBytes").timestamps
+                    with mdf.cut(start=timestamps[0], stop=timestamps[0] + 0.25) as cut:
+                        absolute_cut = cut.get("DataBytes").timestamps
 
                 self.assertEqual([bytes(frame) for frame in signal.samples], payloads)
                 np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
+                np.testing.assert_array_equal(index, timestamps)
+                np.testing.assert_array_equal(np.concatenate(chunks), timestamps)
+                self.assertEqual(raster[0], timestamps[0])
+                np.testing.assert_array_equal(relative_cut, absolute_cut, strict=True)
+
+    def test_to_dataframe_group_without_time_channel(self) -> None:
+        # a group without a time channel keeps its record numbers as master,
+        # also when its channels are not loaded
+        for version in ("3.30", "4.10"):
+            with self.subTest(version=version):
+                with MDF(version=version) as mdf:
+                    mdf.append([Signal(np.arange(3.0), 10 + np.arange(3.0), name="a")])
+                    mdf.append([Signal(np.arange(2.0), np.arange(2.0), name="b")])
+                    path = mdf.save(Path(self.tempdir.name) / f"no_time_channel.{version}.mf4", overwrite=True)
+
+                with MDF(path) as mdf:
+                    group = mdf.groups[1]
+                    # first channel link of the CGBLOCK
+                    offset, fmt = (8, "<I") if version < "4" else (32, "<Q")
+                    link = group.channel_group.address + offset
+                    data_channel = group.channels[1].address
+
+                # let the channel group start at the data channel, skipping the time channel
+                with open(path, "r+b") as file:
+                    file.seek(link)
+                    file.write(struct.pack(fmt, data_channel))
+
+                with MDF(path, channels=["a"]) as mdf:
+                    self.assertEqual(len(mdf.groups[1].channels), 0)
+                    index = mdf.to_dataframe(time_from_zero=False).index.tolist()
+                    chunks = [t for df in mdf.iter_to_dataframe(time_from_zero=False) for t in df.index]
+
+                self.assertEqual(index, [0.0, 1.0, 10.0, 11.0, 12.0])
+                self.assertEqual(chunks, index)
 
     def test_attachment_blocks_with_padded_block_len(self) -> None:
         original_data = [f"attachment {i}".encode() for i in range(3)]
