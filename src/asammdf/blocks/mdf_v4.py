@@ -4448,7 +4448,7 @@ class MDF4(MDF_Common[Group]):
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        composition = ch.composition = []
+        composition: list[Channel] = []
 
         # then we add the fields
         for name in names:
@@ -4809,6 +4809,9 @@ class MDF4(MDF_Common[Group]):
                 )
                 composition.append(sub_structure)
                 fields.extend(new_fields)
+
+        # the setter builds the structure dtype from the members added above
+        struct_self.composition = composition
 
         return offset, struct_self, fields
 

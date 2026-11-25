@@ -682,6 +682,23 @@ class TestMDF4(unittest.TestCase):
                 np.testing.assert_array_equal(samples["frame.count"], [1, 2, 3])
                 np.testing.assert_array_equal(samples["frame.index"], [0, 1, 2])
 
+    def test_appended_structure(self) -> None:
+        # filter and to_dataframe(channels=...) append the structure to a new file in memory
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.a", "<u2"), ("frame.b", "u1")])
+        record["frame.a"] = [10, 20, 30]
+        record["frame.b"] = [1, 2, 3]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            np.testing.assert_array_equal(mdf.get("frame").samples, record)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "structure.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            df = mdf.to_dataframe(channels=["frame"])
+            self.assertEqual(list(df.columns), ["frame.frame.a", "frame.frame.b"])
+            self.assertEqual(df["frame.frame.a"].tolist(), [10, 20, 30])
+
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
         # its raw value is the record index. Copying it to a new file stores
