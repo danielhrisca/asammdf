@@ -55,6 +55,7 @@ from .utils import (
     UINT8_uf,
     UINT64_u,
     UINT64_uf,
+    UniqueDB
 )
 
 COMPRESSION_LEVEL = 1
@@ -110,6 +111,8 @@ def dtype_with_composition(channel):
     # else:
     #     dtype = np.dtype('V0')
 
+    db = UniqueDB(sep="$")
+
     dtype = np.dtype(get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type))
 
     name = channel.name
@@ -158,7 +161,7 @@ def dtype_with_composition(channel):
                     comp_dtype = replace_metadata(comp_dtype, "", "conversion", comp_channel.conversion)
                 comp_offset = max(comp_channel.byte_offset - offset, 0)
 
-                names.append(comp_channel.name)
+                names.append(db.get_unique_name(comp_channel.name))
                 formats.append(comp_dtype)
                 offsets.append(comp_offset)
 

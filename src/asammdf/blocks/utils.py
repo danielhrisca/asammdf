@@ -1205,8 +1205,9 @@ def is_file_like(obj: object) -> TypeIs[FileLike]:
 
 
 class UniqueDB:
-    def __init__(self) -> None:
+    def __init__(self, sep='_') -> None:
         self._db: dict[str, int] = {}
+        self.sep = str(sep)
 
     def get_unique_name(self, name: str) -> str:
         """Return an available unique name.
@@ -1228,7 +1229,7 @@ class UniqueDB:
         else:
             index = self._db[name]
             self._db[name] = index + 1
-            return f"{name}_{index}"
+            return f"{name}{self.sep}{index}"
 
 
 def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes:

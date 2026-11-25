@@ -53,7 +53,7 @@ class StaticIcons:
             rcc = ET.fromstring(qrc_path.read_text())
             for tag in rcc.find("qresource"):
                 name = tag.get("alias")
-                icon = QtGui.QIcon(f":{name}")
+                icon = QtGui.QIcon(f":/{name}")
                 StaticIcons._icons[name] = icon
                 StaticIcons._icons[name.removesuffix(".png")] = icon
 
@@ -72,6 +72,17 @@ class StaticIcons:
             print(format_exc())
 
         StaticIcons._initialized = True
+
+    @staticmethod
+    def add(key):
+        if not key.endswith(".png"):
+            key = f"{key}.png"
+        try:
+            icon = QtGui.QIcon(f":/{key}")
+            StaticIcons._icons[key] = icon
+            StaticIcons._icons[key.removesuffix(".png")] = icon
+        except:
+            print(format_exc())
 
     @staticmethod
     def available(key):
