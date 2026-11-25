@@ -418,7 +418,7 @@ class MDF4(MDF_Common[Group]):
                         self._file.close()
                     if self._mapped_file:
                         self._mapped_file.close()
-                    del self._file
+                    self._file = None
                     self._mapped_file = None
                     raise
 
@@ -8817,6 +8817,8 @@ class MDF4(MDF_Common[Group]):
         while True:
             try:
                 fragments = [next(stream) for stream in data_streams]
+            except MdfException:
+                raise
             except Exception:
                 break
 
@@ -11541,7 +11543,7 @@ class MDF4(MDF_Common[Group]):
             try:
                 data_block = next(group.get_data_blocks())
                 common[data_block.address].append((i, group.channel_group.record_id))
-            except:
+            except StopIteration:
                 continue
 
         read = stream.read

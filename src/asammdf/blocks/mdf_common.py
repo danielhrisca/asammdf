@@ -78,7 +78,7 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.trigger: v3b.TriggerBlock | None = None
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
-        self._data_blocks: list[DataBlockInfo] | Iterator[DataBlockInfo] | tuple[DataBlockInfo]= []
+        self._data_blocks: list[DataBlockInfo] | Iterator[DataBlockInfo] | tuple[DataBlockInfo] | Exception = []
         self.signal_types: _ST
         self.single_channel_dtype: DTypeLike | None = None
         self.uses_ld = False
@@ -90,7 +90,14 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     @property
     def data_blocks(self):
         if not isinstance(self._data_blocks, list):
-            self._data_blocks = list(self._data_blocks)
+            if isinstance(self._data_blocks, Exception):
+                raise self._data_blocks.with_traceback(None)
+            try:
+                self._data_blocks = list(self._data_blocks)
+            except Exception as exc:
+                # the generator is exhausted now, so keep the error for the next access
+                self._data_blocks = exc
+                raise
         return self._data_blocks
 
     @data_blocks.setter

@@ -359,6 +359,53 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual([bytes(frame) for frame in signal.samples], payloads)
                 np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
 
+    def test_truncated_data_block_raises(self) -> None:
+        # a finalized file whose last DTBLOCK is cut off, for example by an aborted
+        # copy, must raise with the default raise_on_incomplete_blocks, not read as empty
+        for record_id_len in (0, 1):
+            with self.subTest(record_id_len=record_id_len):
+                record_id = b"\x01" * record_id_len
+                records = b"".join(record_id + t.tobytes() for t in np.arange(100, dtype="<f8"))
+
+                hd = v4b.HeaderBlock()
+                dg = v4b.DataGroup(record_id_len=record_id_len)
+                cg = v4b.ChannelGroup(record_id=1, cycles_nr=100, samples_byte_nr=8)
+                time_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_MASTER,
+                    sync_type=v4c.SYNC_TYPE_TIME,
+                    data_type=v4c.DATA_TYPE_REAL_INTEL,
+                    bit_count=64,
+                )
+                time_name = v4b.TextBlock(text="t")
+                dt = v4b.DataBlock(data=records)
+
+                blocks = [hd, dg, cg, time_ch, time_name, dt]
+                address = 64
+                for block in blocks:
+                    block.address = address
+                    address += len(bytes(block))
+                hd.first_dg_addr = dg.address
+                dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+                cg.first_ch_addr, time_ch.name_addr = time_ch.address, time_name.address
+
+                outfile = Path(TestMDF4.tempdir.name) / f"truncated_{record_id_len}.mf4"
+                data = bytes(v4b.FileIdentificationBlock(version="4.10")) + b"".join(bytes(block) for block in blocks)
+                # keep the first 50 records of the DTBLOCK
+                outfile.write_bytes(data[: len(data) - len(records) // 2])
+
+                if record_id_len:
+                    # unsorted data is sorted when the file is opened
+                    with self.assertRaises(MdfException):
+                        MDF(outfile)
+                else:
+                    with MDF(outfile) as mdf:
+                        for _ in range(2):
+                            with self.assertRaises(MdfException):
+                                mdf.get("t")
+                    # filter, cut and convert read through _yield_selected_signals
+                    with MDF(outfile) as mdf, self.assertRaises(MdfException):
+                        mdf.filter(["t"])
+
     def test_attachment_blocks_with_padded_block_len(self) -> None:
         original_data = [f"attachment {i}".encode() for i in range(3)]
         with MDF() as mdf:
