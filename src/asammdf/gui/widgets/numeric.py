@@ -1,4 +1,5 @@
 import bisect
+from datetime import datetime, tzinfo
 from functools import partial
 import json
 import os
@@ -13,6 +14,7 @@ from numpy import searchsorted
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from asammdf.blocks import v4_constants as v4c
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
@@ -600,6 +602,24 @@ class TableModel(QtCore.QAbstractTableModel):
                     return cell
                 elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
                     return str(cell[0])
+                elif isinstance(cell, (np.void)):
+                    if set(cell.dtype.names) == set(v4c.CANOPEN_DATE_FIELDS):
+                        date = datetime(
+                            year=2000 + int(cell['year']),
+                            month=cell['month'],
+                            day=cell['day'],
+                            hour=cell['hour'],
+                            minute=cell['min'],
+                            second=int(cell['ms'])//1000,
+                            microsecond=(int(cell['ms']) % 1000) * 1000,
+                        )
+                        summer = "Summer time" if cell['summer_time'] else "Standard time"
+                        return f'{date} - {summer}'
+                    elif set(cell.dtype.names) == set(v4c.CANOPEN_TIME_FIELDS):
+                        return f"{cell['days']} days {cell['ms']} ms since 1984-01-01"
+                    else:
+                        return str(cell)
+
                 else:
                     if np.isnan(cell):
                         return "NaN"

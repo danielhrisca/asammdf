@@ -2716,7 +2716,7 @@ class MDF4(MDF_Common[Group]):
                         if field == "hour":
                             arrays.append(signal.samples[field] + (signal.samples["summer_time"] << 7))
                         elif field == "day":
-                            arrays.append(signal.samples[field] + (signal.samples["day_of_week"] << 4))
+                            arrays.append(signal.samples[field] + (signal.samples["day_of_week"] << 5))
                         else:
                             arrays.append(signal.samples[field])
                     vals = np.rec.fromarrays(arrays)
@@ -3658,7 +3658,7 @@ class MDF4(MDF_Common[Group]):
                         if field == "hour":
                             vals.append(signal.samples[field] + (signal.samples["summer_time"] << 7))
                         elif field == "day":
-                            vals.append(signal.samples[field] + (signal.samples["day_of_week"] << 4))
+                            vals.append(signal.samples[field] + (signal.samples["day_of_week"] << 5))
                         else:
                             vals.append(signal.samples[field])
                     samples = np.rec.fromarrays(vals)
@@ -5313,7 +5313,7 @@ class MDF4(MDF_Common[Group]):
                             if field == "hour":
                                 arrays.append(signal[field] + (signal["summer_time"] << 7))
                             elif field == "day":
-                                arrays.append(signal[field] + (signal["day_of_week"] << 4))
+                                arrays.append(signal[field] + (signal["day_of_week"] << 5))
                             else:
                                 arrays.append(signal[field])
                         signal = np.rec.fromarrays(arrays)
@@ -5628,7 +5628,7 @@ class MDF4(MDF_Common[Group]):
                             if field == "hour":
                                 vals.append(signal[field] + (signal["summer_time"] << 7))
                             elif field == "day":
-                                vals.append(signal[field] + (signal["day_of_week"] << 4))
+                                vals.append(signal[field] + (signal["day_of_week"] << 5))
                             else:
                                 vals.append(signal[field])
                         samples = np.rec.fromarrays(vals)
@@ -7960,12 +7960,12 @@ class MDF4(MDF_Common[Group]):
                 arrays = [
                     vals["ms"],
                     vals["min"] & 0x3F,  # bit 6 and 7 of minutes are reserved
-                    vals["hour"] & 0xF,  # only first 4 bits of hour are used
-                    vals["day"] & 0xF,  # the first 4 bits are the day number
+                    vals["hour"] & 0x1F,  # bits 0 to 4 are the hour
+                    vals["day"] & 0x1F,  # bits 0 to 4 are the day number
                     vals["month"] & 0x3F,  # bit 6 and 7 of month are reserved
                     vals["year"] & 0x7F,  # bit 7 of year is reserved
                     (vals["hour"] & 0x80) >> 7,  # add summer or standard time information for hour
-                    (vals["day"] & 0xF0) >> 4,  # add day of week information
+                    (vals["day"] & 0xE0) >> 5,  # bits 5 to 7 are the day of week
                 ]
 
                 names = [

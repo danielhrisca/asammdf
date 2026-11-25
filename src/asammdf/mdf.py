@@ -1304,6 +1304,8 @@ class MDF:
         if whence == 1:
             timestamps: list[float] = []
             for group in self.virtual_groups:
+                if self._is_vlsd_group(group):
+                    continue
                 master = self._mdf.get_master(group, record_offset=0, record_count=1)
                 if master.size:
                     timestamps.append(master[0])
@@ -1547,6 +1549,8 @@ class MDF:
         if whence == 1:
             timestamps: list[float] = []
             for group in self.virtual_groups:
+                if self._is_vlsd_group(group):
+                    continue
                 master = self._mdf.get_master(group, record_offset=0, record_count=1)
                 if master.size:
                     timestamps.append(master[0])
@@ -1775,6 +1779,8 @@ class MDF:
         if whence == 1:
             timestamps: list[float] = []
             for group in self.virtual_groups:
+                if self._is_vlsd_group(group):
+                    continue
                 master = self._mdf.get_master(group, record_offset=0, record_count=1)
                 if master.size:
                     timestamps.append(master[0])
@@ -4168,6 +4174,11 @@ class MDF:
                 only_basenames=only_basenames,
             )
 
+    def _is_vlsd_group(self, group_index: int) -> bool:
+        # a VLSD channel group only holds signal data, its master is the record number
+        group = self.groups[group_index].channel_group
+        return isinstance(group, v4b.ChannelGroup) and bool(group.flags & v4c.FLAG_CG_VLSD)
+
     def master_using_raster(self, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
         """Get single master based on the raster.
 
@@ -4191,7 +4202,7 @@ class MDF:
             for group_index in self.virtual_groups:
                 group = self.groups[group_index]
                 cycles_nr = group.channel_group.cycles_nr
-                if cycles_nr:
+                if cycles_nr and not self._is_vlsd_group(group_index):
                     master_min = self.get_master(group_index, record_offset=0, record_count=1)
                     if len(master_min):
                         t_min_list.append(master_min[0])
@@ -5617,7 +5628,9 @@ class MDF:
 
             self._mdf._set_temporary_master(None)
 
-            masters = {index: self._mdf.get_master(index) for index in self.virtual_groups}
+            masters = {
+                index: self._mdf.get_master(index) for index in self.virtual_groups if not self._is_vlsd_group(index)
+            }
 
             if raster is not None:
                 if isinstance(raster, (int, float)):
@@ -5670,7 +5683,7 @@ class MDF:
 
                 for group_index, virtual_group in self.virtual_groups.items():
                     group_cycles = virtual_group.cycles_nr
-                    if group_cycles == 0 and empty_channels == "skip":
+                    if (group_cycles == 0 and empty_channels == "skip") or group_index not in masters:
                         continue
 
                     record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
@@ -6110,7 +6123,9 @@ class MDF:
             master = raster
 
         else:
-            masters = {index: self._mdf.get_master(index) for index in self.virtual_groups}
+            masters = {
+                index: self._mdf.get_master(index) for index in self.virtual_groups if not self._is_vlsd_group(index)
+            }
 
             if masters:
                 master = reduce(np.union1d, masters.values())
