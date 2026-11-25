@@ -3314,7 +3314,7 @@ class WithMDIArea:
                 signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
             if name not in ranges:
                 ranges[name] = []
-
+                
         tabular = Tabular(signals, start=start, parent=self, ranges=ranges, owner=self)
 
         sub = MdiSubWindow(parent=self)

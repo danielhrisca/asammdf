@@ -3228,7 +3228,7 @@ class MDF:
         self._mdf._raise_on_multiple_occurrences = _raise_on_multiple_occurrences
 
         # group channels by group index
-        gps = self.included_channels(channels=channels)
+        gps = self.included_channels(channels=channels, minimal=False)
 
         mdf = MDF(
             version=version,
