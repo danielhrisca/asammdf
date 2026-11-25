@@ -4589,11 +4589,18 @@ class MDF4(MDF_Common[Group]):
                 # compute additional byte offset for large records size
                 if sig.dtype.kind == "O":
                     # to_numpy(dtype=str) cuts pyarrow backed text with missing values to one character
-                    array = encode(sig.to_numpy().astype(str), "utf-8")
+                    try:
+                        array = encode(sig.to_numpy().astype(str), "utf-8")
+                    except UnicodeDecodeError:
+                        # bytes columns are documented as utf-8, other bytes still raise UnicodeDecodeError
+                        array = encode(decode(sig.to_numpy().astype(bytes), "utf-8"), "utf-8")
                 else:
                     array = sig.to_numpy()
 
                 s_type, s_size = fmt_to_datatype_v4(array.dtype, array.shape)
+                if sig.dtype.kind == "O":
+                    # fmt_to_datatype_v4 maps "S" to latin-1, but these bytes are utf-8
+                    s_type = v4c.DATA_TYPE_STRING_UTF_8
 
                 byte_size = s_size // 8 or 1
 
