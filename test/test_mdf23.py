@@ -147,6 +147,54 @@ class TestMDF23(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
+    def test_convert_value_range_conversion(self) -> None:
+        conversion: dict[str, object] = {
+            "lower_0": 0.0,
+            "upper_0": 10.0,
+            "phys_0": 1.0,
+            "lower_1": 10.0,
+            "upper_1": 20.0,
+            "phys_1": 2.0,
+            "default": -1.0,
+        }
+        integer_conversion: dict[str, object] = {
+            "lower_0": 0,
+            "upper_0": 9,
+            "phys_0": 1.0,
+            "lower_1": 10,
+            "upper_1": 19,
+            "phys_1": 2.0,
+            "lower_2": 20,
+            "upper_2": 20,
+            "phys_2": 3.0,
+            "default": -1.0,
+        }
+        raw = np.array([0.0, 2.5, 7.5, 10.0, 12.5, 17.5])
+        integer_raw = np.array([0, 5, 9, 10, 15, 19], dtype="<i2")
+        timestamps = np.arange(len(raw), dtype="f8")
+        sigs = [
+            Signal(raw, timestamps, name="Range Channel", conversion=conversion),
+            Signal(integer_raw, timestamps, name="Integer Range Channel", conversion=integer_conversion),
+        ]
+
+        for version in ("3.20", "3.30"):
+            with self.subTest(version=version):
+                with MDF(version="4.10") as mdf:
+                    mdf.append(sigs)
+                    with mdf.convert(version) as converted:
+                        outfile = converted.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    for sig in sigs:
+                        samples = mdf.get(sig.name).samples
+                        np.testing.assert_array_equal(samples, [1.0, 1.0, 1.0, 2.0, 2.0, 2.0], strict=True)
+
+                        # MDF 3 requires strictly increasing raw values, also where two ranges share a bound
+                        saved = mdf.get(sig.name, raw=True).conversion
+                        assert saved is not None
+                        points = [saved[f"raw_{i}"] for i in range(saved.ref_param_nr)]
+                        self.assertTrue(np.all(np.diff(points) > 0))
+
 
 if __name__ == "__main__":
     unittest.main()
