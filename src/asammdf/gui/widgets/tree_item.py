@@ -8,7 +8,7 @@ from ..utils import get_colors_using_ranges
 class MinimalTreeItem(QtWidgets.QTreeWidgetItem):
     def __init__(
         self,
-        entry,
+        entry=None,
         name="",
         parent=None,
         strings=None,

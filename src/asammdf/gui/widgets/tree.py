@@ -88,7 +88,7 @@ def add_children(
         if version >= "4.00":
             if ch.composition:
                 if all(isinstance(dep, Channel) for dep in ch.composition):
-                    child.setIcon(0, utils.STRUCTURE_ICON)
+                    child.setIcon(0, utils.StaticIcons.icon("structure"))
 
                     if widget is None:
 
@@ -118,7 +118,7 @@ def add_children(
                         )
 
                 else:
-                    child.setIcon(0, utils.ARRAY_ICON)
+                    child.setIcon(0, utils.StaticIcons.icon("array"))
                     if ch.components:
                         if widget is None:
                             grand_children = add_children(
@@ -354,6 +354,8 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
                 for i in range(count):
                     child = item.child(i)
+                    if child.entry is None:
+                        continue
 
                     if child.childCount():
                         working_data.extend(get_data(child, retain_structure=retain_structure))
@@ -374,7 +376,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                             )
 
             else:
-                if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
+                if item.entry is not None and item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
                         {
                             "name": item.name,
@@ -2056,27 +2058,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         background_color=None,
         expanded=False,
     ):
-        if utils.RANGE_INDICATOR_ICON is None:
-            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-            utils.RANGE_INDICATOR_ICON.addPixmap(
-                QtGui.QPixmap(":/paint.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.NO_ICON = QtGui.QIcon()
-            utils.NO_ERROR_ICON = QtGui.QIcon()
-
-            utils.COMPUTED_ICON = QtGui.QIcon()
-            utils.COMPUTED_ICON.addPixmap(
-                QtGui.QPixmap(":/computation.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.USER_EDITED_ICON = QtGui.QIcon()
-            utils.USER_EDITED_ICON.addPixmap(
-                QtGui.QPixmap(":/edit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
-
-            utils.ERROR_ICON = QtGui.QIcon()
-            utils.ERROR_ICON.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         super().__init__(parent, type)
         self.exists = True
@@ -2639,13 +2620,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def _set_icon(self):
         if self.type() == self.Channel:
             if not self.exists:
-                icon = utils.ERROR_ICON
+                icon = utils.StaticIcons.icon("error")
             elif self.signal.flags & Signal.Flags.computed:
-                icon = utils.COMPUTED_ICON
+                icon = utils.StaticIcons.icon("computed")
             elif self.signal.flags & Signal.Flags.user_defined_conversion:
-                icon = utils.USER_EDITED_ICON
+                icon = utils.StaticIcons.icon("user_edited")
             else:
-                icon = utils.NO_ICON
+                icon = utils.StaticIcons.icon("no_icon")
 
             self.setIcon(self.NameColumn, icon)
 
@@ -2665,7 +2646,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.get_color_using_ranges.cache_clear()
 
         if ranges:
-            self.setIcon(self.ValueColumn, utils.RANGE_INDICATOR_ICON)
+            self.setIcon(self.ValueColumn, utils.StaticIcons.icon("range_indicator"))
             self.setToolTip(self.ValueColumn, f"{self.name}\nhas color ranges defined")
         else:
             self.setToolTip(self.ValueColumn, "")

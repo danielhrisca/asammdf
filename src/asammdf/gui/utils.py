@@ -10,6 +10,7 @@ from io import StringIO
 import itertools
 import math
 import os
+from pathlib import Path
 import random
 import re
 import struct
@@ -20,6 +21,7 @@ import time
 from time import sleep
 import traceback
 from traceback import format_exc
+import xml.etree.ElementTree as ET
 
 import numpy as np
 import pandas as pd
@@ -37,15 +39,51 @@ _BUILTINS = vars(builtins).copy()
 for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
     _BUILTINS.pop(key, None)
 
-ERROR_ICON = None
-RANGE_INDICATOR_ICON = None
-NO_ERROR_ICON = None
-NO_ICON = None
-COMPUTED_ICON = None
-USER_EDITED_ICON = None
-STRUCTURE_ICON = None
-GROUP_ICON = None
-ARRAY_ICON = None
+
+class StaticIcons:
+    _icons = {}
+    _initialized = False
+
+    @staticmethod
+    def _initialize():
+        try:
+            here = Path(__file__).resolve().parent
+            qrc_path = here / "ui" / "resource.qrc"
+            rcc = ET.fromstring(qrc_path.read_text())
+            for tag in rcc.find("qresource"):
+                name = tag.get("alias")
+                icon = QtGui.QIcon(f":{name}")
+                StaticIcons._icons[name] = icon
+                StaticIcons._icons[name.removesuffix(".png")] = icon
+
+            no_icon = QtGui.QIcon()
+            StaticIcons._icons["none"] = no_icon
+            StaticIcons._icons["no_icon"] = no_icon
+            StaticIcons._icons["no_error"] = no_icon
+
+            StaticIcons._icons["range_indicator"] = StaticIcons._icons["paint"]
+            StaticIcons._icons["computed"] = StaticIcons._icons["computation"]
+            StaticIcons._icons["user_edited"] = StaticIcons._icons["edit"]
+            StaticIcons._icons["group"] = StaticIcons._icons["list"]
+            
+        except:
+            print(format_exc())
+
+        StaticIcons._initialized = True
+
+    @staticmethod
+    def available(key):
+        return sorted(StaticIcons._icons)
+
+    @staticmethod
+    def icon(key):
+        if not StaticIcons._initialized:
+            StaticIcons._initialize()
+        if key in StaticIcons._icons:
+            return StaticIcons._icons[key]
+        else:
+            return StaticIcons._icons["none"]
+
 
 COMPUTED_FUNCTION_ERROR_VALUE = float("nan")
 
