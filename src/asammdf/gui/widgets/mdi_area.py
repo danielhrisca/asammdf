@@ -1984,7 +1984,7 @@ class WithMDIArea:
             signals = pd.concat(dfs).sort_index()
 
             index = pd.Index(range(len(signals)))
-            signals.set_index(index, inplace=True)
+            signals.index = index
 
         del dfs
 
@@ -2539,7 +2539,7 @@ class WithMDIArea:
         else:
             signals = pd.concat(dfs).sort_index()
             index = pd.Index(range(len(signals)))
-            signals.set_index(index, inplace=True)
+            signals.index = index
 
         del dfs
 
