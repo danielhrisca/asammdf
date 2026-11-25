@@ -165,6 +165,37 @@ class TestMDF4(unittest.TestCase):
                     for values, original in zip(arrays, originals, strict=True):
                         np.testing.assert_array_equal(values, original, strict=True)
 
+    def test_canopen_date_bit_fields(self) -> None:
+        # CANopen DATE keeps hour and day of month in bits 0 to 4, summer time in
+        # bit 7 of the hour byte and the day of week in bits 5 to 7 of the day byte
+        index = np.arange(31 * 24)
+        dates = np.zeros(
+            len(index), dtype=[(name, "<u2" if name == "ms" else "u1") for name in v4c.CANOPEN_DATE_FIELDS]
+        )
+        dates["ms"] = 59999
+        dates["min"] = 59
+        dates["hour"] = index % 24
+        dates["day"] = index // 24 + 1
+        dates["month"] = 12
+        dates["year"] = 99
+        dates["summer_time"] = index % 2
+        dates["day_of_week"] = index % 7 + 1
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(dates, index.astype(np.float64), name="date"))
+            data = b"".join(bytes(fragment.data) for fragment in mdf._mdf._load_data(mdf.groups[0]))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "canopen_date.mf4", overwrite=True)
+
+        # last record: 31st, 23:59:59.999, summer time, day of week 2
+        self.assertEqual(data[-7:], bytes([0x5F, 0xEA, 59, 0x80 | 23, 2 << 5 | 31, 12, 99]))
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("date").samples, dates, strict=True)
+            np.testing.assert_array_equal(mdf.select(["date"])[0].samples, dates, strict=True)
+            df = mdf.to_dataframe()
+            for name in ("hour", "day", "summer_time", "day_of_week"):
+                np.testing.assert_array_equal(df[f"date.{name}"].to_numpy(), dates[name], strict=True)
+
     def test_extend_rejects_short_samples(self) -> None:
         initial = np.array([1.0, 2.0])
         timestamps = np.array([0.0, 1.0, 2.0, 3.0])
