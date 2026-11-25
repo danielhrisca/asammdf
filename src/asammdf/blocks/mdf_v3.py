@@ -3263,19 +3263,15 @@ class MDF3(MDF_Common[Group]):
                 logger.warning(message)
                 dst = name
 
-        if not self.header.comment:
-            self.header.comment = f"""<FHcomment>
-<TX>created</TX>
-<tool_id>{tool.__tool__}</tool_id>
-<tool_vendor>{tool.__vendor__}</tool_vendor>
-<tool_version>{tool.__version__}</tool_version>
-</FHcomment>"""
+        # header.comment is the generated HDcomment XML, so only its TX text gets the history
+        if not self.header.description:
+            self.header.description = f"created by {tool.__tool__} {tool.__version__}"
         else:
-            old_history = self.header.comment
+            old_history = self.header.description
             timestamp = time.asctime()
 
             text = f"{old_history}\n{timestamp}: updated by {tool.__tool__} {tool.__version__}"
-            self.header.comment = text
+            self.header.description = text
 
         defined_texts: dict[bytes | str, int] = {}
         cc_map: dict[bytes, int] = {}

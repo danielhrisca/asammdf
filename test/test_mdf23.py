@@ -235,6 +235,31 @@ class TestMDF23(unittest.TestCase):
                 self.assertEqual(value_text.tolist(), [b"zero", b"one", b"minus five", b"other", b"other"])
                 self.assertEqual(range_text.tolist(), [b"zero", b"zero", b"other", b"ten", b"other"])
 
+    def test_save_keeps_header_comment_text(self) -> None:
+        for version in ("3.20", "3.30"):
+            with self.subTest(version=version):
+                with MDF(version=version) as mdf:
+                    mdf.append(Signal(np.arange(5), np.arange(5, dtype="f8"), name="Channel"))
+                    mdf.header.comment = "measurement comment"
+                    outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp_0", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp_1", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    lines = mdf.header.description.splitlines()
+
+                self.assertEqual(lines[0], "measurement comment")
+                self.assertEqual(len(lines), 3)
+                self.assertTrue(all(": updated by asammdf " in line for line in lines[1:]))
+
+                with MDF(version=version) as mdf:
+                    mdf.append(Signal(np.arange(5), np.arange(5, dtype="f8"), name="Channel"))
+                    outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp_2", overwrite=True)
+
+                with MDF(outfile) as mdf:
+                    self.assertTrue(mdf.header.description.startswith("created by asammdf "))
+
 
 if __name__ == "__main__":
     unittest.main()
