@@ -2890,7 +2890,7 @@ class MDF4(MDF_Common[Group]):
 
                     gp_sig_types.append((sig_type, byte_size))
 
-                    if sig_dtype.kind == "u" and signal.bit_count <= 4:
+                    if sig_dtype.kind == "u" and 0 < signal.bit_count <= 4:
                         s_size = signal.bit_count
 
                     if signal.flags & signal.Flags.stream_sync:
@@ -3947,7 +3947,7 @@ class MDF4(MDF_Common[Group]):
 
                 byte_size = s_size // 8 or 1
 
-                if sig_dtype.kind == "u" and signal.bit_count <= 4:
+                if sig_dtype.kind == "u" and 0 < signal.bit_count <= 4:
                     s_size = signal.bit_count
 
                 if signal.flags & signal.Flags.stream_sync:

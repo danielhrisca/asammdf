@@ -613,6 +613,49 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
 
+    def test_virtual_channel_keeps_values(self) -> None:
+        # a virtual data channel has no bits in the record (cn_bit_count 0) and
+        # its raw value is the record index. Copying it to a new file stores
+        # these values in a normal channel, which needs a real bit count.
+        timestamps = np.arange(5) * 0.5
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(np.zeros(5, "<u4"), timestamps, name="down", conversion={"a": -1.0, "b": 100.0})])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "virtual.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            address = mdf.groups[0].channels[1].address
+
+        # change cn_type to virtual and cn_bit_count to 0
+        with open(outfile, "r+b") as stream:
+            stream.seek(address + 16)
+            links_nr = int.from_bytes(stream.read(8), "little")
+            stream.seek(address + 24 + 8 * links_nr)
+            stream.write(bytes([v4c.CHANNEL_TYPE_VIRTUAL]))
+            stream.seek(7, 1)
+            stream.write(bytes(4))
+
+        expected = 100.0 - np.arange(5)
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("down").samples, expected, strict=True)
+            np.testing.assert_array_equal(mdf.cut(start=1.0).get("down").samples, expected[2:], strict=True)
+
+            for version in ("4.10", "3.30"):
+                with self.subTest(version=version):
+                    converted = mdf.convert(version)
+                    np.testing.assert_array_equal(converted.get("down").samples, expected, strict=True)
+                    copy = converted.save(Path(TestMDF4.tempdir.name) / "virtual_copy", overwrite=True)
+                    with MDF(copy) as copy_mdf:
+                        np.testing.assert_array_equal(copy_mdf.get("down").samples, expected, strict=True)
+
+            raw = mdf.get("down", raw=True)
+
+        # 4.20 files opened with column_storage=True append column oriented groups
+        with MDF(version="4.20") as mdf:
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "virtual_column", overwrite=True)
+        with MDF(outfile, column_storage=True) as mdf:
+            mdf.append([raw])
+            np.testing.assert_array_equal(mdf.get("down").samples, expected, strict=True)
+
     def test_event_with_nil_scope(self) -> None:
         # ETAS mdfCombine writes events with a single NIL scope link
         path = Path(self.tempdir.name) / "event_nil_scope.mf4"
