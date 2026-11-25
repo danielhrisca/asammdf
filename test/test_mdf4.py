@@ -425,8 +425,8 @@ class TestMDF4(unittest.TestCase):
                     file.seek(link)
                     file.write(struct.pack(fmt, data_channel))
 
-                with MDF(path, channels=["a"]) as mdf:
-                    self.assertEqual(len(mdf.groups[1].channels), 0)
+                with MDF(path) as mdf:
+                    self.assertEqual(len(mdf.groups[1].channels), 1)
                     index = mdf.to_dataframe(time_from_zero=False).index.tolist()
                     chunks = [t for df in mdf.iter_to_dataframe(time_from_zero=False) for t in df.index]
 
