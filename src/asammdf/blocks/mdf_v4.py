@@ -6541,7 +6541,13 @@ class MDF4(MDF_Common[Group]):
                     samples = conversion.convert(samples)
                     conversion = None
 
-            if samples.dtype.kind == "S":
+            # converted text is UTF-8, raw text keeps the encoding of the channel,
+            # except fixed-length Latin-1 channels: append(DataFrame) writes UTF-8 into them
+            if samples.dtype.kind == "S" and (
+                encoding is None
+                or (not raw and channel.conversion is not None)
+                or (encoding == "latin-1" and channel.channel_type == v4c.CHANNEL_TYPE_VALUE)
+            ):
                 encoding = "utf-8"
 
             channel_type = channel.channel_type

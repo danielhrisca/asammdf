@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+from pandas import DataFrame
 
 from asammdf import MDF, Signal
 from asammdf.blocks import v4_blocks as v4b
@@ -224,6 +225,34 @@ class TestMDF4(unittest.TestCase):
             with self.assertRaisesRegex(MdfException, "canopen signal has 9 B/record, expected 7"):
                 mdf.extend(group, [(np.array([2.0, 3.0]), None), (malformed, None)])
             np.testing.assert_array_equal(mdf.get("date").samples, samples, strict=True)
+
+    def test_cut_keeps_text_encoding(self) -> None:
+        for encoding in ("latin-1", "utf-16-le", "utf-16-be"):
+            samples = np.array([word.encode(encoding) for word in ("Café", "été")])
+            source = Path(self.tempdir.name) / f"text_{encoding}.mf4"
+            with MDF(version="4.10") as mdf:
+                mdf.append(Signal(samples, [1.0, 2.0], name="text", encoding=encoding))
+                mdf.save(source, overwrite=True)
+
+            with MDF(source) as mdf, mdf.cut(start=0) as cut:
+                saved = cut.save(Path(self.tempdir.name) / f"cut_{encoding}.mf4", overwrite=True)
+            with MDF(saved) as mdf:
+                signal = mdf.get("text")
+                self.assertEqual(signal.encoding, encoding)
+                self.assertEqual(signal.samples.tolist(), samples.tolist(), encoding)
+                self.assertEqual(mdf.select(["text"])[0].encoding, encoding)
+
+    def test_dataframe_text_stays_utf8(self) -> None:
+        df = DataFrame({"city": ["M\u00fcnchen", "Z\u00fcrich"]}, index=[1.0, 2.0])
+        with MDF(version="4.10") as mdf:
+            mdf.append(df)
+            source = mdf.save(Path(self.tempdir.name) / "df_text.mf4", overwrite=True)
+        with MDF(source) as mdf:
+            signal = mdf.get("city")
+            self.assertEqual(signal.encoding, "utf-8")
+            self.assertEqual(
+                [value.decode(signal.encoding) for value in signal.samples], ["M\u00fcnchen", "Z\u00fcrich"]
+            )
 
     def test_read_mdf4_00(self) -> None:
         seed = np.random.randint(0, 2**31)
