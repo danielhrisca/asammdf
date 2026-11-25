@@ -699,6 +699,20 @@ class TestMDF4(unittest.TestCase):
             self.assertEqual(list(df.columns), ["frame.frame.a", "frame.frame.b"])
             self.assertEqual(df["frame.frame.a"].tolist(), [10, 20, 30])
 
+    def test_nested_structure_save(self) -> None:
+        t = np.arange(3, dtype="<f8")
+        raw = np.array([0, 1, 2], dtype=np.uint8)
+        inner = np.rec.fromarrays([raw], dtype=[("outer.inner.x", "u1")])
+        nested = np.rec.fromarrays([inner, raw * 2], dtype=[("outer.inner", inner.dtype), ("outer.plain", "u1")])
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(nested, t, name="outer"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "nested.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("outer.plain").samples, [0, 2, 4])
+            self.assertEqual(len(mdf.select(["outer"])[0].samples), 3)
+
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
         # its raw value is the record index. Copying it to a new file stores

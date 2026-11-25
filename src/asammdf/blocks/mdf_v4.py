@@ -4332,6 +4332,7 @@ class MDF4(MDF_Common[Group]):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
+        primary: bool = True,
     ) -> tuple[int, Channel, list[tuple[NDArray[Any], int]]]:
 
         si_map = self._si_map
@@ -4442,7 +4443,7 @@ class MDF4(MDF_Common[Group]):
 
                 ch.source = new_source
 
-        entry = gp_channels.add(ch)
+        entry = gp_channels.add(ch, primary=primary)
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
@@ -4806,6 +4807,7 @@ class MDF4(MDF_Common[Group]):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
+                    primary=False,
                 )
                 composition.append(sub_structure)
                 fields.extend(new_fields)
