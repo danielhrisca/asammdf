@@ -889,6 +889,9 @@ class MDF4(MDF_Common[Group]):
                     )
                     # channel.dtype is set inside the composition @property
                     channel.composition = ret_composition
+                    # 8.8 and earlier count the padding of a structure even past the end of the record
+                    if channel.byte_offset + channel.bit_count // 8 > grp.channel_group.samples_byte_nr:
+                        channel.bit_count = min(channel.bit_count, np.dtype(channel.dtype).itemsize * 8)
 
                 elif blk_id == b"##CA":
                     sub_composition : list[Channel | ChannelArrayBlock] = []
@@ -4812,6 +4815,8 @@ class MDF4(MDF_Common[Group]):
                 composition.append(sub_structure)
                 fields.extend(new_fields)
 
+        # the members are written back to back, without the padding of the samples dtype
+        struct_self.bit_count = (offset - struct_self.byte_offset) * 8
         # the setter builds the structure dtype from the members added above
         struct_self.composition = composition
 
@@ -6740,7 +6745,8 @@ class MDF4(MDF_Common[Group]):
 
         _dtype = np.dtype(channel.dtype)
         conditions = [
-            _dtype.itemsize == channel.bit_count // 8,
+            # padding after the last member stays in the record and is skipped
+            _dtype.itemsize <= channel.bit_count // 8,
             plain(dependency_list),
         ]
         channel_values: list[NDArray[Any]] | list[list[NDArray[Any]]]

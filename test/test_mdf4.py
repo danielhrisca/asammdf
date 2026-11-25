@@ -713,6 +713,36 @@ class TestMDF4(unittest.TestCase):
             np.testing.assert_array_equal(mdf.get("outer.plain").samples, [0, 2, 4])
             self.assertEqual(len(mdf.select(["outer"])[0].samples), 3)
 
+    def test_padded_structure(self) -> None:
+        # numpy pads "s.sub" to 8 bytes, the members are written back to back in 9 bytes
+        t = np.arange(4, dtype="<f8")
+        inner = np.dtype({"names": ["s.sub.a", "s.sub.b"], "formats": ["<u4", "u1"], "offsets": [0, 4], "itemsize": 8})
+        record = np.zeros(4, dtype=[("s.sub", inner), ("s.x", "<f4")])
+        record["s.sub"]["s.sub.a"] = [10, 20, 30, 40]
+        record["s.x"] = t / 2
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="s"))
+            with mdf.cut(start=1, stop=2) as cut:
+                np.testing.assert_array_equal(cut.get("s").samples["s.sub"]["s.sub.a"], [20, 30])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "padded.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("s").samples["s.x"], t / 2)
+            address = next(ch.address for ch in mdf.groups[0].channels if ch.name == "s")
+
+        # 8.8 and earlier write the padded size as bit_count of "s", beyond the end of the record
+        with open(outfile, "r+b") as f:
+            f.seek(address + 16)
+            (links_nr,) = struct.unpack("<Q", f.read(8))
+            f.seek(address + 24 + 8 * links_nr + 8)
+            f.write(struct.pack("<I", record.itemsize * 8))
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("s").samples, mdf.select(["s"])[0].samples):
+                np.testing.assert_array_equal(samples["s.sub"]["s.sub.a"], [10, 20, 30, 40])
+                np.testing.assert_array_equal(samples["s.x"], t / 2)
+
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
         # its raw value is the record index. Copying it to a new file stores
