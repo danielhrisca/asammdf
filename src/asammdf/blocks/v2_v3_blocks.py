@@ -3070,9 +3070,22 @@ class HeaderBlock:
         try:
             if self.block_len > v23c.HEADER_COMMON_SIZE:
                 if self.abs_time:
-                    timestamp = self.abs_time / 10**9
+                    # the time stamp is local time without DST, local time = UTC + UTC time offset
+                    timestamp = self.abs_time / 10**9 - self.tz_offset * 3600
 
-                    tz = timezone(timedelta(hours=self.tz_offset))
+                    # the date and time fields are local time with DST, their difference to the time stamp is the DST
+                    try:
+                        local_dt = datetime.strptime(
+                            "{} {}".format(self.date.decode("ascii"), self.time.decode("ascii")), "%d:%m:%Y %H:%M:%S"
+                        )
+                        diff = (local_dt - datetime(1970, 1, 1)).total_seconds() - self.abs_time // 10**9
+                        dst = round(diff / 3600)
+                        if abs(diff - dst * 3600) >= 60 or not -1 <= dst <= 1:
+                            dst = 0
+                    except ValueError:
+                        dst = 0
+
+                    tz = timezone(timedelta(hours=self.tz_offset + dst))
 
                     try:
                         timestamp_dt = datetime.fromtimestamp(timestamp, tz)
@@ -3110,8 +3123,10 @@ class HeaderBlock:
             offset = timestamp.tzinfo.utcoffset(timestamp)
             if offset is None:
                 raise ValueError("utcoffset is None")
+            # the UTC time offset excludes DST, the date and time fields include it
+            offset -= timestamp.tzinfo.dst(timestamp) or timedelta(0)
             self.tz_offset = int(offset.total_seconds() / 3600)
-            self.abs_time = int(timestamp.timestamp() * 10**9)
+            self.abs_time = int((timestamp.timestamp() + self.tz_offset * 3600) * 10**9)
 
     def start_time_string(self) -> str:
         tzinfo = self.start_time.tzinfo
@@ -3145,7 +3160,13 @@ class HeaderBlock:
         if self.block_len > v23c.HEADER_COMMON_SIZE:
             if self.abs_time:
                 tz_offset_sign = "-" if self.tz_offset < 0 else "+"
-                tz_information = f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST+{0:.2f}h]"
+                dst_offset = int(offset.total_seconds() / 3600) - self.tz_offset
+                if not -1 <= dst_offset <= 1:
+                    dst_offset = 0
+                dst_offset_sign = "-" if dst_offset < 0 else "+"
+                tz_information = (
+                    f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST{dst_offset_sign}{abs(dst_offset):.2f}h]"
+                )
 
         start_time = f"local time = {self.start_time.strftime('%d-%b-%Y %H:%M:%S + %fu')} {tz_information}"
         return start_time
