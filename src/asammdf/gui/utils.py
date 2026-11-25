@@ -1,3 +1,4 @@
+import ast
 import bisect
 import builtins
 import collections
@@ -36,7 +37,7 @@ from .dialogs.messagebox import MessageBox
 from .function_library import FunctionLibrary
 
 _BUILTINS = vars(builtins).copy()
-for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
+for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
     _BUILTINS.pop(key, None)
 
 
@@ -1276,6 +1277,15 @@ def contains_imports(string):
     for line in string.splitlines():
         if IMPORT.match(line) or FROM_IMPORT.match(line) or IMPORT_INNER.search(line) or FROM_INNER_IMPORT.search(line):
             return True
+
+    tree = ast.parse(string)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return True
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "__import__":
+                return True
 
     return False
 
