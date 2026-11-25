@@ -777,6 +777,35 @@ class TestMDF(unittest.TestCase):
 
         mdf.close()
 
+    def test_stack_master_only_group(self) -> None:
+        t = np.arange(5, dtype="f8")
+        layouts = {"first": [None, 1], "middle": [0, None, 2], "last": [0, None]}
+        for version in ("3.30", "4.10"):
+            for position, layout in layouts.items():
+                with MDF(version=version) as mdf:
+                    for index in layout:
+                        if index is None:
+                            # channel group with only the master channel
+                            mdf.append(DataFrame(index=t))
+                        else:
+                            mdf.append(Signal(t * index, t, name=f"s{index}"))
+                    path = mdf.save(Path(TestMDF.tempdir.name) / f"stack_{position}", overwrite=True)
+
+                names = [f"s{index}" for index in layout if index is not None]
+                expected = [
+                    (f"s{index}", f"stacked from channel group {index}") for index in layout if index is not None
+                ]
+                for files_nr in (1, 2):
+                    with self.subTest(version=version, position=position, files_nr=files_nr):
+                        with MDF.stack([path] * files_nr) as stacked:
+                            found = [
+                                (channel.name, group.channel_group.comment.split(" of ")[0])
+                                for group in stacked.groups
+                                for channel in group.channels
+                                if channel.name in names
+                            ]
+                        self.assertEqual(found, expected * files_nr)
+
     def test_resample_raster_0(self) -> None:
         sigs = [
             Signal(
