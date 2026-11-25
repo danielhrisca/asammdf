@@ -260,6 +260,34 @@ class TestMDF23(unittest.TestCase):
                 with MDF(outfile) as mdf:
                     self.assertTrue(mdf.header.description.startswith("created by asammdf "))
 
+    def test_array_to_mdf3(self) -> None:
+        timestamps = np.arange(5) * 0.5 + 10
+        samples = np.zeros(5, dtype=[("vec", "<f8", (3,))])
+        samples["vec"] = np.arange(15).reshape(5, 3)
+        signals = [
+            Signal(samples, timestamps, name="vec"),
+            Signal(np.arange(5) * 2.0, timestamps, name="scalar"),
+        ]
+
+        mdf4 = MDF(version="4.10")
+        mdf4.append(signals)
+        mdf3 = MDF(version="3.30")
+        mdf3.append(signals)
+
+        for mdf in (mdf4.convert("3.30"), mdf3):
+            outfile = mdf.save(Path(TestMDF23.tempdir.name) / "array", overwrite=True)
+            mdf.close()
+
+            with MDF(outfile) as mdf:
+                for i in range(3):
+                    sig = mdf.get(f"vec[{i}]")
+                    self.assertTrue(np.array_equal(sig.samples, samples["vec"][:, i]))
+                    self.assertTrue(np.array_equal(sig.timestamps, timestamps))
+                self.assertTrue(np.array_equal(mdf.get("vec").samples["vec"], samples["vec"]))
+                self.assertTrue(np.array_equal(mdf.get("scalar").samples, signals[1].samples))
+
+        mdf4.close()
+
 
 if __name__ == "__main__":
     unittest.main()
