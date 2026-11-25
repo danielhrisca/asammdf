@@ -1054,7 +1054,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
                         self._selected_filter.add(ch.name)
@@ -1216,7 +1216,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)

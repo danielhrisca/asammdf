@@ -63,13 +63,15 @@ def add_children(
     signals,
     origin_uuid=None,
     version="4.11",
-    bus=None,
+    info=None,
     pattern=None,
     seen=None,
 ):
     children = []
     if seen is None:
         seen = set()
+
+    info = info or ""
 
     for ch in channels:
 
@@ -83,7 +85,7 @@ def add_children(
 
         entry = ch.group, ch.index
 
-        child = MinimalTreeItem(entry, ch.name, strings=[ch.name if bus is None else f"{ch.name} —— {bus:<10}"], origin_uuid=origin_uuid)
+        child = MinimalTreeItem(entry, ch.name, info=info, origin_uuid=origin_uuid)
         child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
 
         if version >= "4.00":
@@ -98,7 +100,7 @@ def add_children(
                             ch.composition,
                             signals,
                             origin_uuid=origin_uuid,
-                            bus=bus,
+                            info=info,
                             pattern=pattern,
                             seen=seen,
                         )
@@ -127,7 +129,7 @@ def add_children(
                                 ch.components,
                                 signals,
                                 origin_uuid=origin_uuid,
-                                bus=bus,
+                                info=info,
                                 pattern=pattern,
                                 seen=seen,
                             )

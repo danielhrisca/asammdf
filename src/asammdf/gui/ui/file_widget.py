@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.3
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -83,6 +83,9 @@ class Ui_file_widget(object):
 
         self.channels_tree = TreeWidget(self.verticalLayoutWidget)
         self.channels_tree.setObjectName(u"channels_tree")
+        self.channels_tree.setColumnCount(2)
+        self.channels_tree.header().setDefaultSectionSize(300)
+        self.channels_tree.header().setStretchLastSection(True)
 
         self.channels_layout.addWidget(self.channels_tree)
 
@@ -206,6 +209,8 @@ class Ui_file_widget(object):
 
         self.filter_tree = TreeWidget(self.modify)
         self.filter_tree.setObjectName(u"filter_tree")
+        self.filter_tree.setColumnCount(2)
+        self.filter_tree.header().setDefaultSectionSize(300)
 
         self.verticalLayout_2.addWidget(self.filter_tree)
 
@@ -268,7 +273,7 @@ class Ui_file_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 331, 609))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 317, 652))
         self.verticalLayout_4 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_4.setSpacing(1)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -785,7 +790,7 @@ class Ui_file_widget(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollAreaWidgetContents_2 = QWidget()
         self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 999, 609))
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 466, 515))
         self.gridLayout_7 = QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_7.setSpacing(1)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
@@ -1112,7 +1117,8 @@ class Ui_file_widget(object):
         self.channels_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
         self.channels_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
         ___qtreewidgetitem = self.channels_tree.headerItem()
-        ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
+        ___qtreewidgetitem.setText(1, QCoreApplication.translate("file_widget", u"Info", None))
+        ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None))
 #if QT_CONFIG(tooltip)
         self.channels_tree.setToolTip(QCoreApplication.translate("file_widget", u"Double click channel to see extended information", None))
 #endif // QT_CONFIG(tooltip)
@@ -1156,7 +1162,8 @@ class Ui_file_widget(object):
         self.filter_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
         self.filter_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
         ___qtreewidgetitem1 = self.filter_tree.headerItem()
-        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
+        ___qtreewidgetitem1.setText(1, QCoreApplication.translate("file_widget", u"Info", None))
+        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Channels", None))
 #if QT_CONFIG(tooltip)
         self.filter_tree.setToolTip(QCoreApplication.translate("file_widget", u"Double click channel to see extended information", None))
 #endif // QT_CONFIG(tooltip)
@@ -1178,9 +1185,9 @@ class Ui_file_widget(object):
         self.advanced_serch_filter_btn.setText("")
         self.label.setText(QCoreApplication.translate("file_widget", u"All selected channels", None))
         ___qtreewidgetitem2 = self.selected_filter_channels.headerItem()
-        ___qtreewidgetitem2.setText(2, QCoreApplication.translate("file_widget", u"Index", None));
-        ___qtreewidgetitem2.setText(1, QCoreApplication.translate("file_widget", u"Group", None));
-        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("file_widget", u"Name", None));
+        ___qtreewidgetitem2.setText(2, QCoreApplication.translate("file_widget", u"Index", None))
+        ___qtreewidgetitem2.setText(1, QCoreApplication.translate("file_widget", u"Group", None))
+        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("file_widget", u"Name", None))
         self.cut_group.setTitle(QCoreApplication.translate("file_widget", u"Cut", None))
         self.label_59.setText(QCoreApplication.translate("file_widget", u"Start", None))
         self.cut_stop.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
@@ -1286,8 +1293,8 @@ class Ui_file_widget(object):
         self.label_12.setText(QCoreApplication.translate("file_widget", u"Prefix", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("file_widget", u"Bus Logging", None))
         ___qtreewidgetitem3 = self.info.headerItem()
-        ___qtreewidgetitem3.setText(1, QCoreApplication.translate("file_widget", u"Value", None));
-        ___qtreewidgetitem3.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None));
+        ___qtreewidgetitem3.setText(1, QCoreApplication.translate("file_widget", u"Value", None))
+        ___qtreewidgetitem3.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None))
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), QCoreApplication.translate("file_widget", u"Info", None))
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), QCoreApplication.translate("file_widget", u"Attachments", None))
     # retranslateUi

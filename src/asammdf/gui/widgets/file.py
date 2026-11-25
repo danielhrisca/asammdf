@@ -659,7 +659,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         signals,
                         origin_uuid=self.uuid,
                         version=self.mdf.version,
-                        bus=bus,
+                        info=bus,
                         pattern=search_name.pattern,
                     )
                 )
@@ -717,6 +717,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         name = base_name
 
                 channel_group.setText(0, name)
+                channel_group.setText(1, f'{group.channel_group.cycles_nr} samples')
                 channel_group.setIcon(0, utils.StaticIcons.icon("group"))
                 channel_group.setFlags(
                     channel_group.flags()
@@ -726,6 +727,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if group.channel_group.cycles_nr:
                     channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
+                    channel_group.setForeground(1, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
 
                 add_children(
@@ -747,7 +749,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for entry in signals:
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
-                channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                channel = MinimalTreeItem(entry, ch.name, origin_uuid=self.uuid)
                 child.setToolTip(0, f"{ch.name} @ group {ch.group}, index {ch.index}")
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
@@ -933,7 +935,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for name, gp_index, ch_index in signals:
                         entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                        channel = MinimalTreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
@@ -1533,13 +1535,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         continue
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.original_name)
+                        signals.append(item.name)
             else:
                 while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                        signals.append(item.original_name)
+                        signals.append(item.name)
 
             suffix = file_name.suffix.lower()
             if suffix == ".lab":
@@ -3193,7 +3195,7 @@ MultiRasterSeparator;&
 
             items = []
             for entry, name in self._selected_filter.items():
-                channel = MinimalTreeItem(entry, name, strings=[name], origin_uuid=self.uuid)
+                channel = MinimalTreeItem(entry, name, origin_uuid=self.uuid)
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 
