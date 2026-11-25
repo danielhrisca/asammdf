@@ -23,7 +23,7 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.messagebox import MessageBox
 from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
+from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress, StaticIcons
 from .database_item import DatabaseItem
 from .file import FILE_CLASSES
 from .tree import add_children
@@ -1176,11 +1176,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             else:
                                 ico = None
 
-                            if ico is not None:
-                                icon = QtGui.QIcon()
-                                icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-                                channel_group.setIcon(0, icon)
+                            channel_group.setIcon(0, StaticIcons.icon(ico))
 
                         acq_name = getattr(group.channel_group, "acq_name", "")
                         if acq_name:
@@ -1708,8 +1704,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.clear()
         self.files_list.addItems(source_files)
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon = StaticIcons.icon("file")
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 
@@ -1748,8 +1743,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.clear()
         self.files_list.addItems([item[1] for item in start_times])
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon = StaticIcons.icon("file")
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 

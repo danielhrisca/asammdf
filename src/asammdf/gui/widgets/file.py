@@ -52,6 +52,7 @@ from ..utils import (
     HelperChannel,
     run_thread_with_progress,
     setup_progress,
+    StaticIcons,
 )
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
@@ -203,9 +204,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle("Opening measurement")
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-            progress.setWindowIcon(icon)
+            progress.setWindowIcon(StaticIcons.icon("open"))
             progress.setMinimumWidth(600)
             progress.show()
         else:
@@ -697,11 +696,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         ico = None
 
-                    if ico is not None:
-                        icon = QtGui.QIcon()
-                        icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-                        channel_group.setIcon(0, icon)
+                    channel_group.setIcon(0, StaticIcons.icon(ico))
 
                 if self.display_cg_name:
                     acq_name = getattr(group.channel_group, "acq_name", "")
@@ -2612,10 +2607,7 @@ MultiRasterSeparator;&
                         else:
                             ico = None
 
-                        if ico is not None:
-                            icon = QtGui.QIcon()
-                            icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-                            channel_group_item.setIcon(0, icon)
+                        channel_group_item.setIcon(0, StaticIcons.icon(ico))
 
                 item = QtWidgets.QTreeWidgetItem()
                 item.setText(0, "Channels")

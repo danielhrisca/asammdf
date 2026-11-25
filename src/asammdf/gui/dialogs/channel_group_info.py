@@ -1,5 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..utils import StaticIcons
 from ..widgets.channel_group_info import ChannelGroupInfoWidget
 
 
@@ -18,8 +19,5 @@ class ChannelGroupInfoDialog(QtWidgets.QDialog):
 
         self.setStyleSheet('font: 8pt "Consolas";}')
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        self.setWindowIcon(icon)
+        self.setWindowIcon(StaticIcons.icon("info"))
         self.setGeometry(240, 60, 1200, 600)

@@ -58,6 +58,7 @@ class StaticIcons:
 
             no_icon = QtGui.QIcon()
             StaticIcons._icons["none"] = no_icon
+            StaticIcons._icons[None] = no_icon
             StaticIcons._icons["no_icon"] = no_icon
             StaticIcons._icons["no_error"] = no_icon
 

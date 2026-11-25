@@ -26,6 +26,7 @@ from ..utils import (
     SCROLLBAR_STYLE,
     unique_ranges,
     value_as_str,
+    StaticIcons,
 )
 from .tree_item import MinimalTreeItem
 
@@ -2592,9 +2593,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     disabled = self._previous_state
 
             if disabled:
-                self.setIcon(self.NameColumn, QtGui.QIcon(":/erase.png"))
+                self.setIcon(self.NameColumn, StaticIcons.icon("erase"))
             elif not self.parent() or (self.parent() and not self.parent().isDisabled()):
-                self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
+                self.setIcon(self.NameColumn, StaticIcons.icon("open"))
 
             self.setDisabled(disabled)
 
@@ -2632,11 +2633,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def set_pattern(self, pattern):
         if pattern:
-            self.setIcon(self.NameColumn, QtGui.QIcon(":/filter.png"))
+            self.setIcon(self.NameColumn, StaticIcons.icon("filter"))
             self.pattern = dict(pattern)
             self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
         else:
-            self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
+            self.setIcon(self.NameColumn, StaticIcons.icon("open"))
             self.pattern = None
 
     def set_prefix(self, text=""):
@@ -2917,10 +2918,7 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
 
         # self.setStyleSheet('font: 8pt "Consolas";}')
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        self.setWindowIcon(icon)
+        self.setWindowIcon(StaticIcons.icon("info"))
         self.setMinimumWidth(500)
         self.adjustSize()
 
