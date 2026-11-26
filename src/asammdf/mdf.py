@@ -3678,6 +3678,24 @@ class MDF:
                                         cg_translations[i] = j
                                         break
 
+            # one shift for all groups of the file keeps their relative timing: the group furthest behind
+            # its previous output starts after it by the shortest positive first sample interval of the file
+            shift = offset
+            backlogs: list[float] = []
+            deltas: list[float] = []
+            for i, group_index in enumerate(mdf.virtual_groups if mdf_index else ()):
+                index = cg_translations[group_index] if reorder_channel_groups else group_index
+                if index is None or (last := last_timestamps[i]) is None:
+                    continue
+                if cycles_nr := mdf.groups[index].channel_group.cycles_nr:
+                    master = mdf.get_master(index, record_count=min(2, cycles_nr)) + offset
+                    if len(master):
+                        backlogs.append(last - master[0])
+                    if len(master) >= 2 and (delta := master[1] - master[0]) > 0:
+                        deltas.append(delta)
+            if backlogs and (direct_timestamp_continuation or max(backlogs) >= 0):
+                shift += max(backlogs) + min(deltas, default=0.001)
+
             for i, group_index in enumerate(mdf.virtual_groups):
                 # save original group index for extension
                 # replace with the translated group index
@@ -3783,29 +3801,13 @@ class MDF:
                             signals_samples = typing.cast(list[tuple[NDArray[Any], NDArray[np.bool] | None]], signals)
 
                         master = signals_samples[0][0]
-                        _copied = False
 
                         if len(master):
                             if original_first_timestamp is None:
                                 original_first_timestamp = master[0]
-                            if offset > 0:
-                                master = master + offset
-                                _copied = True
-                            if last_timestamp is None:
-                                last_timestamp = master[-1]
-                            else:
-                                if last_timestamp >= master[0] or direct_timestamp_continuation:
-                                    if len(master) >= 2:
-                                        delta = master[1] - master[0]
-                                    else:
-                                        delta = 0.001
-                                    if _copied:
-                                        master -= master[0]
-                                    else:
-                                        master = master - master[0]
-                                        _copied = True
-                                    master += last_timestamp + delta
-                                last_timestamp = master[-1]
+                            if shift:
+                                master = master + shift
+                            last_timestamp = master[-1]
 
                             signals_samples[0] = master, None
 
