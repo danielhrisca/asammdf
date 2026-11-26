@@ -105,6 +105,35 @@ class TestMDF4(unittest.TestCase):
         self.assertEqual(rows[0][-1], 'sig,"a"')
         self.assertEqual([float(row[-1]) for row in rows[1:]], [7.0, 9.0])
 
+    def test_export_csv_text(self) -> None:
+        timestamps = np.arange(3, dtype=np.float64)
+        gear = {"val_0": 0, "text_0": "Park", "val_1": 1, "text_1": "Drive", "default_addr": "Fault"}
+        state = np.array([b"ok", b"", "Grün".encode("latin-1")])
+        labels = ["5 Ω", "温度", ""]
+        label = np.array([text.encode("utf-8") for text in labels])
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(np.array([0, 1, 5], dtype=np.uint8), timestamps, name="gear", conversion=gear),
+                    Signal(state, timestamps, name="state", encoding="latin-1"),
+                    Signal(label, timestamps, name="label", encoding="utf-8"),
+                ]
+            )
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"text_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    path = next(path.parent.glob(f"{path.stem}*.csv"))
+
+                    with open(path, newline="") as csv_file:
+                        rows = list(csv.DictReader(csv_file))
+                        encoding = csv_file.encoding
+                    self.assertEqual([row["gear"] for row in rows], ["Park", "Drive", "Fault"])
+                    # the CSV uses the system encoding and replaces what it cannot represent
+                    for name, texts in (("state", ["ok", "", "Grün"]), ("label", labels)):
+                        expected = [text.encode(encoding, "replace").decode(encoding) for text in texts]
+                        self.assertEqual([row[name] for row in rows], expected)
+
     def test_extend_canopen(self) -> None:
         dates = np.array(
             [
@@ -979,6 +1008,52 @@ class TestMDF4(unittest.TestCase):
                 expected = samples[:keep][~sig.invalidation_bits[:keep]]
                 self.assertEqual(len(ret.samples), len(expected))
                 self.assertTrue(np.allclose(ret.samples, expected))
+
+    def test_export_csv_can_frames(self) -> None:
+        timestamps = np.array([0.0, 1.0])
+        data_bytes = np.array([[0x86, 0, 0x13, 0xFF, 0x7D, 0xAD, 0x19, 0xFF], range(8)], dtype="u1")
+        with MDF(version="4.10") as mdf:
+            # two CAN groups, the second stores its ID as a linear conversion (float64 samples)
+            conversions: list[tuple[int, dict[str, object] | None]] = [(0x18FEDF00, None), (0, {"a": 0.0, "b": 0x7E4})]
+            for raw_id, conversion in conversions:
+                mdf.append(
+                    [
+                        Signal(np.full(2, raw_id, "<u4"), timestamps, name="CAN_DataFrame.ID", conversion=conversion),
+                        Signal(data_bytes, timestamps, name="CAN_DataFrame.DataBytes"),
+                        Signal(np.full(2, 8, "u1"), timestamps, name="CAN_DataFrame.DLC"),
+                    ]
+                )
+            names = ["CAN_DataFrame.ID", "CAN_DataFrame.DataBytes", "CAN_DataFrame.DLC"]
+            bytes_rows = ["86 00 13 FF 7D AD 19 FF", "00 01 02 03 04 05 06 07"]
+            first, second = ([[can_id, row, "8"] for row in bytes_rows] for can_id in ("18FEDF00", "7E4"))
+
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"can_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    rows: list[list[str]] = []
+                    for group_path in sorted(path.parent.glob(f"{path.stem}*.csv")):
+                        with open(group_path, newline="") as csv_file:
+                            rows.extend(row[1:] for row in csv.reader(csv_file))
+
+                    if single_time_base:
+                        header = names + [f"{name}_0" for name in names]
+                        expected = [header] + [a + b for a, b in zip(first, second, strict=True)]
+                    else:
+                        expected = [names, *first, names, *second]
+                    self.assertEqual(rows, expected)
+
+    def test_export_csv_missing_can_id(self) -> None:
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(np.array([0x7E0, np.nan]), [0.0, 1.0], name="CAN_DataFrame.ID"))
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"missing_id_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    path = next(path.parent.glob(f"{path.stem}*.csv"))
+                    with open(path, newline="") as csv_file:
+                        rows = list(csv.DictReader(csv_file))
+                    self.assertEqual([row["CAN_DataFrame.ID"] for row in rows], ["7E0", "nan"])
 
     def test_load_data_ld_separate_invalidation(self) -> None:
         """LD + separate invalidation must not reuse data original_size.
