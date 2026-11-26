@@ -4598,7 +4598,7 @@ class MDF:
                 (
                     byte_offset, 
                     byte_size, 
-                    master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                    master_channel.pos_invalidation_bit if master_channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                 )
             ]
 
@@ -4619,7 +4619,7 @@ class MDF:
                         (
                             byte_offset, 
                             byte_size, 
-                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                            channel.pos_invalidation_bit if channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                         )
                     )
 
@@ -4755,6 +4755,9 @@ class MDF:
                         vals = vals[:record_count]
                         if invalidation_bits is not None:
                             invalidation_bits = invalidation_bits[:record_count]
+
+                if channel.flags & v4c.FLAG_CN_ALL_INVALID and not self._mdf._ignore_invalidation_bits:
+                    invalidation_bits = InvalidationArray(np.ones(len(vals), dtype=bool))
 
                 output_signals[pair] = Signal(
                     samples=vals,

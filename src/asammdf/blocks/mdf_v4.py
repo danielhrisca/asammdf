@@ -6393,7 +6393,7 @@ class MDF4(MDF_Common[Group]):
                             (
                                 byte_offset, 
                                 byte_size, 
-                                master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                                master_channel.pos_invalidation_bit if master_channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                             )
                         )
                         channels.append(master_channel)
@@ -6404,7 +6404,7 @@ class MDF4(MDF_Common[Group]):
                         (
                             byte_offset, 
                             byte_size, 
-                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                            channel.pos_invalidation_bit if channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                         )
                     )
                     channels.append(channel)
@@ -6523,6 +6523,16 @@ class MDF4(MDF_Common[Group]):
 
         if all_invalid:
             invalidation_bits = np.ones(len(samples), dtype=bool)
+        elif channel.flags & v4c.FLAG_CN_ALL_INVALID and not self._ignore_invalidation_bits:
+            # cn_flags bit 0 marks every sample invalid, like a set invalidation bit,
+            # and cn_inval_bit_pos is only used with bit 1
+            if ignore_invalidation_bits:
+                invalidation_bits = np.ones(len(samples), dtype=bool)
+            else:
+                samples = samples[:0]
+                if timestamps is not None:
+                    timestamps = timestamps[:0]
+                invalidation_bits = None
 
         conversion = channel.conversion
 
@@ -6732,7 +6742,7 @@ class MDF4(MDF_Common[Group]):
         dependency_list = channel.composition
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
 
         _dtype = np.dtype(channel.dtype)
@@ -7075,7 +7085,7 @@ class MDF4(MDF_Common[Group]):
         )
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
         inverse_layout = any(axis["inverse_layout"] for axis in axes)
 
@@ -7440,7 +7450,7 @@ class MDF4(MDF_Common[Group]):
         ch_nr = channel_index
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
 
         data_type = channel.data_type
