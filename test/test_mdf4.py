@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import csv
+import importlib.util
 from pathlib import Path
 import struct
 import tempfile
@@ -1108,6 +1109,36 @@ class TestMDF4(unittest.TestCase):
         signal = mdf4.select([("boolean_array_channel", 0, 1)])[0]
 
         self.assertTrue((record == signal.samples).all())
+
+    @unittest.skipIf(importlib.util.find_spec("pyarrow") is None, "pyarrow is not installed")
+    def test_append_dataframe_text_columns_with_missing_value(self) -> None:
+        df = DataFrame(
+            {"text": ["München", None, "Aus"], "bytes": [b"Ein", None, b"Aus"]},
+            index=[0.0, 0.25, 0.5],
+        ).astype({"text": "string[pyarrow]", "bytes": "binary[pyarrow]"})
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(df)
+            self.assertEqual(mdf.get("text").samples.tolist(), ["München".encode(), b"<NA>", b"Aus"])
+            self.assertEqual(mdf.get("bytes").samples.tolist(), [b"Ein", b"<NA>", b"Aus"])
+
+    def test_append_dataframe_text_columns_are_utf_8(self) -> None:
+        texts = ["München", "Aus", "Störung"]
+        encoded = [text.encode("utf-8") for text in texts]
+        df = DataFrame({"str_column": texts, "bytes_column": encoded}, index=[0.0, 0.25, 0.5])
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(df)
+            path = mdf.save(Path(self.tempdir.name) / "dataframe_text.mf4", overwrite=True)
+
+        with MDF(path) as mdf:
+            for name in ("str_column", "bytes_column"):
+                group, index = mdf.whereis(name)[0]
+                self.assertEqual(mdf.groups[group].channels[index].data_type, v4c.DATA_TYPE_STRING_UTF_8)
+                self.assertEqual(mdf.get(name).samples.tolist(), encoded)
+
+        with MDF(version="4.10") as mdf, self.assertRaises(UnicodeDecodeError):
+            mdf.append(DataFrame({"latin_1": ["München".encode("latin-1")]}))
 
     def test_save_with_data_block_limit(self) -> None:
         """Regression for #1298: save must tolerate DataBlockInfo.block_limit.
