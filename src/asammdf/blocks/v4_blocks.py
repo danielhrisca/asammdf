@@ -9,6 +9,7 @@ import pathlib
 from pathlib import Path
 import re
 from struct import pack, unpack, unpack_from
+import sys
 from textwrap import wrap
 import time
 from traceback import format_exc
@@ -24,8 +25,13 @@ from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
-from zstd import compress as zstd_compress
-from zstd import decompress as zstd_decompress
+
+if sys.version_info >= (3, 14) and sys.platform == "win32":
+    from compression.zstd import compress as zstd_compress
+    from compression.zstd import decompress as zstd_decompress
+else:
+    from zstd import compress as zstd_compress
+    from zstd import decompress as zstd_decompress
 
 from .. import tool
 from . import v4_constants as v4c

@@ -54,7 +54,11 @@ except ImportError:
     from zlib import decompress as zlib_decompress
 from chardet import detect
 from lz4.frame import decompress as lz_decompress
-from zstd import decompress as zstd_decompress
+
+if sys.version_info >= (3, 14) and sys.platform == "win32":
+    from compression.zstd import decompress as zstd_decompress
+else:
+    from zstd import decompress as zstd_decompress
 
 
 class Terminated(Exception):
