@@ -8951,6 +8951,29 @@ class MDF4(MDF_Common[Group]):
             can_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
             indexes = argwhere(can_ids.samples == frame.arbitration_id.pgn).ravel()
+
+            # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+            if frame.arbitration_id.pgn == 0:
+                try:
+                    ide = self.get(
+                        "CAN_DataFrame.IDE",
+                        group=index,
+                        samples_only=True,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        data=data,
+                    )[0]
+                    if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                        ide = self.get(
+                            "CAN_DataFrame.IDE",
+                            group=index,
+                            samples_only=True,
+                            ignore_invalidation_bits=ignore_invalidation_bits,
+                            data=data,
+                            raw=True,
+                        )[0]
+                    indexes = indexes[ide[indexes] == 1]
+                except MdfException:
+                    pass
         else:
             indexes = argwhere(can_ids.samples == frame.arbitration_id.id).ravel()
 
@@ -9288,6 +9311,7 @@ class MDF4(MDF_Common[Group]):
             }
 
             msg_map: dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], int] = {}
+            j1939_ids: dict[tuple[int, int, int, str], int] = {}
 
             for i, group in enumerate(self.groups):
                 if (
@@ -9355,10 +9379,15 @@ class MDF4(MDF_Common[Group]):
 
                         total_unique_ids = total_unique_ids | set(unique_ids)
 
+                        done_j1939: set[tuple[int, int, str]] = set()
                         for msg_id, is_extended in sorted(unique_ids):
                             message = messages.get((msg_id, is_extended), None)
 
                             if message is None:
+                                if not is_extended:
+                                    # J1939 frames always have 29-bit identifiers
+                                    unknown_ids[(msg_id, is_extended)].append(True)
+                                    continue
                                 tmp_pgn = msg_id >> 8
                                 ps = tmp_pgn & 0xFF
                                 pf = (msg_id >> 16) & 0xFF
@@ -9377,6 +9406,15 @@ class MDF4(MDF_Common[Group]):
                             if is_j1939:
                                 source_address = msg_id & 0xFF
                                 pgn_number = message.arbitration_id.pgn
+                                # the frames are selected by PGN and SA, so each pair is decoded once per
+                                # message and keeps the first CAN ID seen whatever the priority or destination
+                                j1939_key = (pgn_number, source_address, message.name)
+                                if j1939_key in done_j1939:
+                                    unknown_ids[(msg_id, is_extended)].append(False)
+                                    continue
+                                done_j1939.add(j1939_key)
+                                unknown_ids[(msg_id, is_extended)].append(False)
+                                msg_id = j1939_ids.setdefault((bus, *j1939_key), msg_id)
                                 key = (pgn_number, source_address, True)
                                 found_ids[dbc_name].add((key, message.name))
 
@@ -9398,7 +9436,9 @@ class MDF4(MDF_Common[Group]):
 
                             if is_j1939:
                                 idx = np.argwhere(
-                                    (j1939_msg_pgns == pgn_number) & (j9193_msg_sa == source_address)
+                                    (j1939_msg_pgns == pgn_number)
+                                    & (j9193_msg_sa == source_address)
+                                    & (bus_msg_ide == 1)
                                 ).ravel()
                             else:
                                 idx = np.argwhere((bus_msg_ids == msg_id) & (bus_msg_ide == is_extended)).ravel()
@@ -9711,7 +9751,7 @@ class MDF4(MDF_Common[Group]):
 
                             unknown_ids[msg_id].append(False)
 
-                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            idx = np.argwhere((bus_msg_ids == msg_id) & (bus_ids == bus)).ravel()
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
@@ -11570,6 +11610,25 @@ class MDF4(MDF_Common[Group]):
                             continue
 
                         idx = bus_msg_ids == msg_id
+
+                        # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+                        if is_j1939 and msg_id == 0:
+                            try:
+                                ide = self.get(
+                                    "CAN_DataFrame.IDE", group=group_index, data=fragment, samples_only=True
+                                )[0]
+                                if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                                    ide = self.get(
+                                        "CAN_DataFrame.IDE",
+                                        group=group_index,
+                                        data=fragment,
+                                        samples_only=True,
+                                        raw=True,
+                                    )[0]
+                                idx &= ide[idx_] == 1
+                            except MdfException:
+                                pass
+
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 
