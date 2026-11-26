@@ -4925,13 +4925,13 @@ class WithMDIArea:
                 position = (group_index, index)
                 alias = {}
                 for gp_index, gp in enumerate(file.mdf.groups):
-                    for ch_index, ch in enumerate(gp.channels):
-                        if (gp_index, ch_index) != position and (
+                    for ch in gp.channels:
+                        if (gp_index, ch.index) != position and (
                             ch.data_type,
                             ch.byte_offset,
                             ch.bit_count,
                         ) == info:
-                            alias[ch.name] = (gp_index, ch_index)
+                            alias[ch.name] = (gp_index, ch.index)
 
                 if alias:
                     alias_text = "\n".join(

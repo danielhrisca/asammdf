@@ -23,8 +23,8 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
             self.source_label.setText(source.metadata())
 
         items = []
-        for i, ch in enumerate(group.channels):
-            item = ListItem(entry=i, name=ch.name)
+        for ch in group.channels:
+            item = ListItem(entry=ch.index, name=ch.name)
             item.setText(item.name)
             items.append(item)
 
