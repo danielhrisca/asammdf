@@ -1,3 +1,4 @@
+import ast
 import bisect
 import builtins
 import collections
@@ -34,7 +35,7 @@ from .dialogs.messagebox import MessageBox
 from .function_library import FunctionLibrary
 
 _BUILTINS = vars(builtins).copy()
-for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
+for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
     _BUILTINS.pop(key, None)
 
 ERROR_ICON = None
@@ -141,8 +142,8 @@ VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 FUNC_NAME = re.compile(r"def\s+(?P<name>\S+)\s*\(")
-IMPORT = re.compile(r"^\s*import\s+")
-IMPORT_INNER = re.compile(r";\s*import\s+")
+IMPORT = re.compile(r"^\s*(__)?import(__)?\s+")
+IMPORT_INNER = re.compile(r";\s*(__)?import(__)?\s+")
 FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
 FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
 
@@ -1226,6 +1227,15 @@ def contains_imports(string):
         if IMPORT.match(line) or FROM_IMPORT.match(line) or IMPORT_INNER.search(line) or FROM_INNER_IMPORT.search(line):
             return True
 
+    tree = ast.parse(string)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return True
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "__import__":
+                return True
+
     return False
 
 
@@ -1239,8 +1249,13 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
         trace = "'in_globals' must be a dict"
     else:
         definition = definition.replace("\t", "    ")
+        try:
+            has_imports = contains_imports(definition)
+        except:
+            trace = format_exc()
+        else:
 
-        if contains_imports(definition):
+            if has_imports:
             trace = "Cannot use import statements in the definition"
         else:
             _globals = in_globals or generate_python_function_globals()
