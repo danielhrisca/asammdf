@@ -3973,7 +3973,8 @@ class MDF:
 
             for i, group in enumerate(mdf.virtual_groups):
                 included_channels = mdf.included_channels(group)[group]
-                if not included_channels:
+                # a group with only its master channel has no channels to stack
+                if not any(included_channels.values()):
                     continue
 
                 for idx, signals in enumerate(
