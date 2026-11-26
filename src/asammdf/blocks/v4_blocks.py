@@ -3862,6 +3862,9 @@ class ChannelConversion(_ChannelConversionBase):
 
                 else:
                     X = vals
+                    if X.dtype.kind in "iu" and (P1 or P4):
+                        # an integer square in numexpr can overflow before the float parameters apply
+                        X = X.astype("f8")
                     try:
                         vals = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
@@ -3883,6 +3886,9 @@ class ChannelConversion(_ChannelConversionBase):
                     if P1 != P5:
                         new_values = new_values * (P1 / P5)
                 else:
+                    if X.dtype.kind in "iu" and (P1 or P4):
+                        # an integer square in numexpr can overflow before the float parameters apply
+                        X = X.astype("f8")
                     try:
                         new_values = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
@@ -3937,13 +3943,18 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
                 idx2 = np.searchsorted(upper_vals, new_values, side="right")
             else:
+                # integer raw values include the upper bound
                 idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
-                idx2 = np.searchsorted(upper_vals, new_values, side="right") - 1
+                idx2 = np.searchsorted(upper_vals, new_values, side="left")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
 
-            new_values = np.zeros(len(new_values), dtype=phys_vals.dtype)
+            dtype = phys_vals.dtype
+            if len(idx_ne):
+                # the default can need a wider type than the table values, for example NaN
+                dtype = np.result_type(phys_vals, np.asarray(self.default))
+            new_values = np.zeros(len(new_values), dtype=dtype)
 
             if len(idx_ne):
                 new_values[idx_ne] = self.default
@@ -4292,8 +4303,8 @@ class ChannelConversion(_ChannelConversionBase):
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
                 triplets = sorted(zip(lower, upper, phys, strict=False))
-                lower_vals = np.array([e[0] for e in triplets], dtype="<i8")
-                upper_vals = np.array([e[1] for e in triplets], dtype="<i8")
+                lower_vals = np.array([e[0] for e in triplets])
+                upper_vals = np.array([e[1] for e in triplets])
                 phys = [e[2] for e in triplets]
 
                 ref = self.referenced_blocks["default_addr"]
@@ -4317,8 +4328,8 @@ class ChannelConversion(_ChannelConversionBase):
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
                     triplets = sorted(zip(lower, upper, phys, strict=False))
-                    lower_vals = np.array([e[0] for e in triplets], dtype="<i8")
-                    upper_vals = np.array([e[1] for e in triplets], dtype="<i8")
+                    lower_vals = np.array([e[0] for e in triplets])
+                    upper_vals = np.array([e[1] for e in triplets])
                     phys = [e[2] for e in triplets]
 
                     self._cache = {
@@ -4340,8 +4351,13 @@ class ChannelConversion(_ChannelConversionBase):
 
             ret_vals = np.full(new_values.size, None, "O")
 
-            idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
-            idx2 = np.searchsorted(upper_vals, new_values, side="left")
+            if new_values.dtype.kind == "f":
+                # float raw values exclude the upper bound
+                idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
+                idx2 = np.searchsorted(upper_vals, new_values, side="right")
+            else:
+                idx1 = np.searchsorted(np.array(lower_vals.tolist(), dtype="<i8"), new_values, side="right") - 1
+                idx2 = np.searchsorted(np.array(upper_vals.tolist(), dtype="<i8"), new_values, side="left")
 
             idx_ne = np.argwhere(idx1 != idx2).ravel()
             idx_eq = np.argwhere(idx1 == idx2).ravel()
