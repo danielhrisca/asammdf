@@ -33,7 +33,13 @@ jobs:
         run: choco install visualstudio2022-workload-vctools -y
 
       - name: Install library dev packages (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && runner.arch == 'X64'
+        run: |
+          sudo apt update
+          sudo apt-get install libegl1 libopengl0 libxml2-16 libxml2-dev libxslt1-dev libxslt1.1 libxslt-dev python3-dev
+
+      - name: Install library dev packages (Linux) 
+        if: runner.os == 'Linux' && runner.arch == 'ARM64'
         run: |
           sudo apt update
           sudo apt-get install libegl1 libopengl0 libxml2 libxml2-dev libxslt1-dev libxslt1.1 libxslt-dev python3-dev
