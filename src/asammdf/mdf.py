@@ -3683,7 +3683,7 @@ class MDF:
                     master = mdf.get_master(index, record_count=min(2, cycles_nr)) + offset
                     if len(master):
                         backlogs.append(last - master[0])
-                    if len(master) == 2 and (delta := master[1] - master[0]) > 0:
+                    if len(master) >= 2 and (delta := master[1] - master[0]) > 0:
                         deltas.append(delta)
             if backlogs and (direct_timestamp_continuation or max(backlogs) >= 0):
                 shift += max(backlogs) + min(deltas, default=0.001)
@@ -3799,10 +3799,6 @@ class MDF:
                                 original_first_timestamp = master[0]
                             if shift:
                                 master = master + shift
-                            if idx and last_timestamp is not None and last_timestamp >= master[0]:
-                                # a later fragment that starts before the output of its group still continues it
-                                delta = master[1] - master[0] if len(master) >= 2 else 0.001
-                                master = master - master[0] + last_timestamp + delta
                             last_timestamp = master[-1]
 
                             signals_samples[0] = master, None
