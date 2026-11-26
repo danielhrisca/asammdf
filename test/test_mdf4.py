@@ -761,6 +761,136 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
 
+    def test_structure_with_bit_fields(self) -> None:
+        # two 4 bit members share the only byte of the structure,
+        # like the bit fields of CAN bus logging frames
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
+        record["frame.low"] = [0x21, 0x43, 0x65]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            structure, low, high = channels[1], channels[2], channels[3]
+            structure.bit_count = 8
+            low.bit_count = 4
+            high.byte_offset = low.byte_offset
+            high.bit_offset = 4
+            high.bit_count = 4
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "bit_fields.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("frame").samples, mdf.select(["frame"])[0].samples):
+                np.testing.assert_array_equal(samples["frame.low"], [1, 3, 5])
+                np.testing.assert_array_equal(samples["frame.high"], [2, 4, 6])
+
+    def test_structure_with_bit_fields_of_the_same_name(self) -> None:
+        # without the source both bit fields are named "frame", the field
+        # names follow the structure dtype as for byte aligned members
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
+        record["frame.low"] = [0x21, 0x43, 0x65]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            structure, low, high = channels[1], channels[2], channels[3]
+            structure.bit_count = 8
+            low.bit_count = 4
+            high.byte_offset = low.byte_offset
+            high.bit_offset = 4
+            high.bit_count = 4
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "bit_fields_same_name.mf4", overwrite=True)
+
+        with MDF(outfile, remove_source_from_channel_names=True) as mdf:
+            for samples in (mdf.get(group=0, index=1).samples, mdf.select([(None, 0, 1)])[0].samples):
+                self.assertEqual(samples.dtype.names, ("frame", "frame$0"))
+                np.testing.assert_array_equal(samples["frame"], [1, 3, 5])
+                np.testing.assert_array_equal(samples["frame$0"], [2, 4, 6])
+
+    def test_structure_with_24_bit_and_virtual_members(self) -> None:
+        # the record bytes of a 24 bit member include the next byte and
+        # a virtual member has no bytes, its value is the record index
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.count", "<u4"), ("frame.index", "<u8")])
+        record["frame.count"] = [0xAA000001, 0xAA000002, 0xAA000003]
+        record["frame.index"] = 9
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            count, index = channels[2], channels[3]
+            count.bit_count = 24
+            index.channel_type = v4c.CHANNEL_TYPE_VIRTUAL
+            index.bit_count = 0
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "24_bit_and_virtual.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("frame").samples, mdf.select(["frame"])[0].samples):
+                np.testing.assert_array_equal(samples["frame.count"], [1, 2, 3])
+                np.testing.assert_array_equal(samples["frame.index"], [0, 1, 2])
+
+    def test_appended_structure(self) -> None:
+        # filter and to_dataframe(channels=...) append the structure to a new file in memory
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.a", "<u2"), ("frame.b", "u1")])
+        record["frame.a"] = [10, 20, 30]
+        record["frame.b"] = [1, 2, 3]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            np.testing.assert_array_equal(mdf.get("frame").samples, record)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "structure.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            df = mdf.to_dataframe(channels=["frame"])
+            self.assertEqual(list(df.columns), ["frame.frame.a", "frame.frame.b"])
+            self.assertEqual(df["frame.frame.a"].tolist(), [10, 20, 30])
+
+    def test_nested_structure_save(self) -> None:
+        t = np.arange(3, dtype="<f8")
+        raw = np.array([0, 1, 2], dtype=np.uint8)
+        inner = np.rec.fromarrays([raw], dtype=[("outer.inner.x", "u1")])
+        nested = np.rec.fromarrays([inner, raw * 2], dtype=[("outer.inner", inner.dtype), ("outer.plain", "u1")])
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(nested, t, name="outer"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "nested.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("outer.plain").samples, [0, 2, 4])
+            self.assertEqual(len(mdf.select(["outer"])[0].samples), 3)
+
+    def test_padded_structure(self) -> None:
+        # numpy pads "s.sub" to 8 bytes, the members are written back to back in 9 bytes
+        t = np.arange(4, dtype="<f8")
+        inner = np.dtype({"names": ["s.sub.a", "s.sub.b"], "formats": ["<u4", "u1"], "offsets": [0, 4], "itemsize": 8})
+        record = np.zeros(4, dtype=[("s.sub", inner), ("s.x", "<f4")])
+        record["s.sub"]["s.sub.a"] = [10, 20, 30, 40]
+        record["s.x"] = t / 2
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="s"))
+            with mdf.cut(start=1, stop=2) as cut:
+                np.testing.assert_array_equal(cut.get("s").samples["s.sub"]["s.sub.a"], [20, 30])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "padded.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("s").samples["s.x"], t / 2)
+            address = next(ch.address for ch in mdf.groups[0].channels if ch.name == "s")
+
+        # 8.8 and earlier write the padded size as bit_count of "s", beyond the end of the record
+        with open(outfile, "r+b") as f:
+            f.seek(address + 16)
+            (links_nr,) = struct.unpack("<Q", f.read(8))
+            f.seek(address + 24 + 8 * links_nr + 8)
+            f.write(struct.pack("<I", record.itemsize * 8))
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("s").samples, mdf.select(["s"])[0].samples):
+                np.testing.assert_array_equal(samples["s.sub"]["s.sub.a"], [10, 20, 30, 40])
+                np.testing.assert_array_equal(samples["s.x"], t / 2)
+
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
         # its raw value is the record index. Copying it to a new file stores

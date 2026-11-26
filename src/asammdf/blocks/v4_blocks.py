@@ -113,7 +113,7 @@ def dtype_with_composition(channel):
 
     db = UniqueDB(sep="$")
 
-    dtype = np.dtype(get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type))
+    dtype = np.dtype(get_fmt_v4(channel.data_type, channel.bit_offset + channel.bit_count, channel.channel_type))
 
     name = channel.name
     if dep_list := channel.composition:
@@ -149,7 +149,9 @@ def dtype_with_composition(channel):
                 shape = None
 
             offset = channel.byte_offset
-            total_size = channel.bit_count // 8
+            # the members give the size, bit_count of older files can include padding that is not in the record,
+            # array elements keep bit_count as their stride
+            total_size = channel.bit_count // 8 if ca_blocks else 0
 
             names = []
             formats = []

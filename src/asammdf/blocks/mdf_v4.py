@@ -898,6 +898,9 @@ class MDF4(MDF_Common[Group]):
                     )
                     # channel.dtype is set inside the composition @property
                     channel.composition = ret_composition
+                    # 8.8 and earlier count the padding of a structure even past the end of the record
+                    if channel.byte_offset + channel.bit_count // 8 > grp.channel_group.samples_byte_nr:
+                        channel.bit_count = min(channel.bit_count, np.dtype(channel.dtype).itemsize * 8)
 
                 elif blk_id == b"##CA":
                     sub_composition : list[Channel | ChannelArrayBlock] = []
@@ -4341,6 +4344,7 @@ class MDF4(MDF_Common[Group]):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
+        primary: bool = True,
     ) -> tuple[int, Channel, list[tuple[NDArray[Any], int]]]:
 
         si_map = self._si_map
@@ -4451,13 +4455,13 @@ class MDF4(MDF_Common[Group]):
 
                 ch.source = new_source
 
-        entry = gp_channels.add(ch)
+        entry = gp_channels.add(ch, primary=primary)
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        composition = ch.composition = []
+        composition: list[Channel] = []
 
         # then we add the fields
         for name in names:
@@ -4815,9 +4819,15 @@ class MDF4(MDF_Common[Group]):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
+                    primary=False,
                 )
                 composition.append(sub_structure)
                 fields.extend(new_fields)
+
+        # the members are written back to back, without the padding of the samples dtype
+        struct_self.bit_count = (offset - struct_self.byte_offset) * 8
+        # the setter builds the structure dtype from the members added above
+        struct_self.composition = composition
 
         return offset, struct_self, fields
 
@@ -6745,13 +6755,24 @@ class MDF4(MDF_Common[Group]):
             v4c.FLAG_CN_INVALIDATION_PRESENT
         )
 
+        def plain(members: list[Any]) -> bool:
+            # the record dtype cannot shift, mask or sign extend members or compute virtual ones
+            return all(
+                ch.channel_type == v4c.CHANNEL_TYPE_VALUE
+                and not ch.bit_offset
+                and ch.bit_count > 0
+                and not ch.bit_count % 8
+                and (ch.data_type not in v4c.INT_TYPES or ch.bit_count in v4c.STANDARD_INT_SIZES)
+                and plain(ch.composition or [])
+                for ch in members
+                if isinstance(ch, Channel)
+            )
+
         _dtype = np.dtype(channel.dtype)
         conditions = [
-            _dtype.itemsize == channel.bit_count // 8,
-            all(
-                ch.channel_type != v4c.CHANNEL_TYPE_VLSD
-                for ch in dependency_list
-            ),
+            # padding after the last member stays in the record and is skipped
+            _dtype.itemsize <= channel.bit_count // 8,
+            plain(dependency_list),
         ]
         channel_values: list[NDArray[Any]] | list[list[NDArray[Any]]]
         if all(conditions):
@@ -6785,6 +6806,17 @@ class MDF4(MDF_Common[Group]):
             unique_names = UniqueDB()
             fast_path = False
             names = [unique_names.get_unique_name(ch.name) for ch in dependency_list]
+            if (
+                conditions[0]
+                and _dtype.names
+                and len(_dtype.names) == len(names)
+                and all(ch.channel_type != v4c.CHANNEL_TYPE_VLSD for ch in dependency_list)
+            ):
+                # only plain() sent the structure here, keep the field names of the fast path;
+                # the dtype lists the members sorted by byte offset (see dtype_with_composition)
+                order = sorted(range(len(names)), key=lambda i: dependency_list[i].byte_offset)
+                for i, name in zip(order, _dtype.names, strict=True):
+                    names[i] = name
 
             channel_values_list: list[list[NDArray[Any]]] = [[] for _ in dependency_list]
             masters = []
