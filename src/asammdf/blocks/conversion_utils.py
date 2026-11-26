@@ -1,6 +1,7 @@
 """asammdf utility functions for channel conversions"""
 
 from copy import deepcopy
+import math
 import typing
 from typing import Literal, overload
 
@@ -117,20 +118,29 @@ def conversion_transfer(
 
                     case v4c.CONVERSION_TYPE_RTAB:
                         nr = (conversion.val_param_nr - 1) // 3
+
+                        # each range becomes table points with the same physical value. The raw values must
+                        # increase strictly, so a point range gives one point and an upper bound shared with the
+                        # next range moves down a step
+                        points: list[tuple[float, float]] = []
+                        for i in range(nr):
+                            l_ = typing.cast(float, conversion[f"lower_{i}"])
+                            u_ = typing.cast(float, conversion[f"upper_{i}"])
+                            p_ = typing.cast(float, conversion[f"phys_{i}"])
+                            points.append((l_, p_))
+                            if l_ < u_:
+                                if i + 1 < nr and u_ == conversion[f"lower_{i + 1}"]:
+                                    u_ = math.nextafter(u_, -math.inf)
+                                points.append((u_, p_))
+
                         v3_kwargs = {
                             "unit": unit,
-                            "ref_param_nr": nr,
+                            "ref_param_nr": len(points),
                             "conversion_type": v3c.CONVERSION_TYPE_TABI,
                         }
-
-                        for i in range(nr):
-                            l_ = conversion[f"lower_{i}"]
-                            u_ = typing.cast(float, conversion[f"upper_{i}"])
-                            p_ = conversion[f"phys_{i}"]
-                            v3_kwargs[f"raw_{i}"] = l_  # type: ignore[literal-required]
-                            v3_kwargs[f"raw_{i}"] = u_ - 0.000_001  # type: ignore[literal-required]
-                            v3_kwargs[f"phys_{i}"] = p_  # type: ignore[literal-required]
-                            v3_kwargs[f"phys_{i}"] = p_  # type: ignore[literal-required]
+                        for i, (raw, phys) in enumerate(points):
+                            v3_kwargs[f"raw_{i}"] = raw  # type: ignore[literal-required]
+                            v3_kwargs[f"phys_{i}"] = phys  # type: ignore[literal-required]
 
                         conversion = v3b.ChannelConversion(**v3_kwargs)
 
@@ -142,10 +152,12 @@ def conversion_transfer(
                             "unit": unit,
                             "conversion_type": v3c.CONVERSION_TYPE_RTABX,
                         }
-                        for i in range(nr):
-                            v3_kwargs[f"lower_{i}"] = conversion[f"val_{i}"]  # type: ignore[literal-required]
-                            v3_kwargs[f"upper_{i}"] = conversion[f"val_{i}"]  # type: ignore[literal-required]
-                            block = conversion.referenced_blocks[f"text_{i}"]
+                        # MDF 3 readers expect the ranges in ascending order
+                        keys = [typing.cast(float, conversion[f"val_{i}"]) for i in range(nr)]
+                        for i, j in enumerate(sorted(range(nr), key=keys.__getitem__)):
+                            v3_kwargs[f"lower_{i}"] = conversion[f"val_{j}"]  # type: ignore[literal-required]
+                            v3_kwargs[f"upper_{i}"] = conversion[f"val_{j}"]  # type: ignore[literal-required]
+                            block = conversion.referenced_blocks[f"text_{j}"]
                             if isinstance(block, v4b.ChannelConversion):
                                 v3_kwargs[f"text_{i}"] = block.name.encode("latin-1")  # type: ignore[literal-required]
                             else:
@@ -170,10 +182,11 @@ def conversion_transfer(
                             "unit": unit,
                             "conversion_type": v3c.CONVERSION_TYPE_RTABX,
                         }
-                        for i in range(nr):
-                            v3_kwargs[f"lower_{i}"] = conversion[f"lower_{i}"]  # type: ignore[literal-required]
-                            v3_kwargs[f"upper_{i}"] = conversion[f"upper_{i}"]  # type: ignore[literal-required]
-                            block = conversion.referenced_blocks[f"text_{i}"]
+                        lowers = [typing.cast(float, conversion[f"lower_{i}"]) for i in range(nr)]
+                        for i, j in enumerate(sorted(range(nr), key=lowers.__getitem__)):
+                            v3_kwargs[f"lower_{i}"] = conversion[f"lower_{j}"]  # type: ignore[literal-required]
+                            v3_kwargs[f"upper_{i}"] = conversion[f"upper_{j}"]  # type: ignore[literal-required]
+                            block = conversion.referenced_blocks[f"text_{j}"]
                             if isinstance(block, v4b.ChannelConversion):
                                 v3_kwargs[f"text_{i}"] = block.name.encode("latin-1")  # type: ignore[literal-required]
                             else:

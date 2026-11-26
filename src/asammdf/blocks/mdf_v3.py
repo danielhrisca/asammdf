@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Buffer, Callable, Iterable, Iterator, Sequence
+from copy import copy
 from datetime import datetime
 from functools import lru_cache
 from itertools import product
@@ -1491,7 +1492,10 @@ class MDF3(MDF_Common[Group]):
             else:
                 new_dg_cntr = len(self.groups)
                 new_gp = Group(DataGroup(), version=3)
-                new_gp_channels = new_gp.channels = []
+                # time channel, same as in the main group
+                channel = copy(gp_channels[0])
+                channel.group = new_dg_cntr
+                new_gp_channels = new_gp.channels = [channel]
                 new_gp_dep = new_gp.channel_dependencies = []
                 new_gp_sig_types = new_gp.signal_types = []
                 self.groups.append(new_gp)
@@ -1501,6 +1505,14 @@ class MDF3(MDF_Common[Group]):
                 new_ch_cntr = 0
                 new_offset = 0
                 new_field_names = UniqueDB()
+
+                self.channels_db.add(time_name, (new_dg_cntr, new_ch_cntr))
+                self.masters_db[new_dg_cntr] = 0
+                new_gp_dep.append(None)
+                new_fields.append(timestamps)
+                new_types.append((new_field_names.get_unique_name(time_name), timestamps.dtype))
+                new_offset += t_size
+                new_ch_cntr += 1
 
                 names = signal.samples.dtype.names
                 name = signal.name
@@ -1560,7 +1572,7 @@ class MDF3(MDF_Common[Group]):
                     additional_byte_offset = ceil((new_offset - v23c.MAX_UINT16) / 8)
                     start_bit_offset = new_offset - additional_byte_offset * 8
                 else:
-                    start_bit_offset = offset
+                    start_bit_offset = new_offset
                     additional_byte_offset = 0
 
                 cn_kargs = {
@@ -1579,6 +1591,7 @@ class MDF3(MDF_Common[Group]):
                 channel = Channel(**cn_kargs)
                 channel.group = new_dg_cntr
                 channel.index = new_ch_cntr
+                channel.name = name
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
 
@@ -1663,7 +1676,7 @@ class MDF3(MDF_Common[Group]):
 
                     new_gp_dep.append(None)
 
-                    ch_cntr += 1
+                    new_ch_cntr += 1
 
                 for name in names[1:] if names else ():
                     samples = signal.samples[name]
@@ -1823,7 +1836,7 @@ class MDF3(MDF_Common[Group]):
 
                         new_gp_dep.append(None)
 
-                        ch_cntr += 1
+                        new_ch_cntr += 1
 
                 # channel group
                 cg_kargs = {
@@ -3263,19 +3276,15 @@ class MDF3(MDF_Common[Group]):
                 logger.warning(message)
                 dst = name
 
-        if not self.header.comment:
-            self.header.comment = f"""<FHcomment>
-<TX>created</TX>
-<tool_id>{tool.__tool__}</tool_id>
-<tool_vendor>{tool.__vendor__}</tool_vendor>
-<tool_version>{tool.__version__}</tool_version>
-</FHcomment>"""
+        # header.comment is the generated HDcomment XML, so only its TX text gets the history
+        if not self.header.description:
+            self.header.description = f"created by {tool.__tool__} {tool.__version__}"
         else:
-            old_history = self.header.comment
+            old_history = self.header.description
             timestamp = time.asctime()
 
             text = f"{old_history}\n{timestamp}: updated by {tool.__tool__} {tool.__version__}"
-            self.header.comment = text
+            self.header.description = text
 
         defined_texts: dict[bytes | str, int] = {}
         cc_map: dict[bytes, int] = {}
