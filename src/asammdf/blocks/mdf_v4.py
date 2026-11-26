@@ -737,11 +737,7 @@ class MDF4(MDF_Common[Group]):
 
             addr = event.range_start_ev_addr
             if addr:
-                range_start_ev_addr = ev_map.get(addr, None)
-                if range_start_ev_addr is not None:
-                    event.parent = range_start_ev_addr
-                else:
-                    event.parent = None
+                event.range_start = ev_map.get(addr, None)
 
         self._si_map.clear()
         self._ch_map.clear()
@@ -10458,10 +10454,18 @@ class MDF4(MDF_Common[Group]):
                     else:
                         event.comment_addr = 0
 
-                    if event.parent is not None:
-                        event.parent_ev_addr = ev_map[event.parent]
-                    if event.range_start is not None:
-                        event.range_start_ev_addr = ev_map[event.range_start]
+                    if event.flags & v4c.FLAG_EV_GROUP_NAME:
+                        if event.group_name:
+                            tx_block = TextBlock(text=event.group_name)
+                            tx_block.address = address
+                            blocks.append(tx_block)
+                            address += tx_block.block_len
+                            event.group_name_addr = tx_block.address
+                        else:
+                            event.group_name_addr = 0
+
+                    event.parent_ev_addr = ev_map[event.parent] if event.parent is not None else 0
+                    event.range_start_ev_addr = ev_map[event.range_start] if event.range_start is not None else 0
 
                 for i in range(len(self.events) - 1):
                     self.events[i].next_ev_addr = self.events[i + 1].address
@@ -10488,19 +10492,15 @@ class MDF4(MDF_Common[Group]):
                             blocks.append(tx_block)
 
                 for at_block in self.attachments:
+                    # events link attachments by address, map the old addresses to the new ones
+                    old_address = at_block.address
                     address = at_block.to_blocks(address, blocks, defined_texts)
+                    at_map[old_address] = at_block.address
 
                 for i in range(len(self.attachments) - 1):
                     at_block = self.attachments[i]
                     at_block.next_at_addr = self.attachments[i + 1].address
                 self.attachments[-1].next_at_addr = 0
-
-                if self.events:
-                    for event in self.events:
-                        for i in range(event.attachment_nr):
-                            key = f"attachment_{i}_addr"
-                            addr = typing.cast(int, event[key])
-                            event[key] = at_map[addr]
 
                 for i, gp in enumerate(self.groups):
                     for j, channel in enumerate(gp.channels):
@@ -10511,6 +10511,14 @@ class MDF4(MDF_Common[Group]):
 
                         if channel.channel_type == v4c.CHANNEL_TYPE_SYNC and channel.attachment is not None:
                             channel.data_block_addr = self.attachments[channel.attachment].address
+
+            for event in self.events:
+                for i in range(event.attachment_nr):
+                    key = f"attachment_{i}_addr"
+                    addr = typing.cast(int, event[key])
+                    # a NIL link stays NIL, new attachments also have address 0
+                    if addr:
+                        event[key] = at_map[addr]
 
             if progress is not None:
                 blocks_nr = len(blocks)
@@ -10536,6 +10544,8 @@ class MDF4(MDF_Common[Group]):
             else:
                 self.header.first_dg_addr = 0
             self.header.file_history_addr = self.file_history[0].address
+            # the channel hierarchy (CHBLOCK) is not written
+            self.header.channel_tree_addr = 0
             if self.attachments:
                 first_attachment = self.attachments[0]
                 addr_ = first_attachment.address
@@ -10548,14 +10558,6 @@ class MDF4(MDF_Common[Group]):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups, strict=False):
                 gp.data_group.data_block_addr = orig_addr
-
-            at_map = {value: key for key, value in at_map.items()}
-
-            for event in self.events:
-                for i in range(event.attachment_nr):
-                    key = f"attachment_{i}_addr"
-                    addr = typing.cast(int, event[key])
-                    event[key] = at_map[addr]
 
         except:
             if not file_like:

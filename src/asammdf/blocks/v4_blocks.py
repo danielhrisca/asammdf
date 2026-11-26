@@ -5936,7 +5936,7 @@ class EventBlock(_EventBlockBase):
         self.name = self.comment = self.group_name = ""
         self.scopes: list[tuple[int, int] | int] = []
         self.parent: int | None = None
-        self.range_start = None
+        self.range_start: int | None = None
 
         try:
             self.address = address = kwargs["address"]
@@ -6003,6 +6003,8 @@ class EventBlock(_EventBlockBase):
 
             self.name = get_text_v4(self.name_addr, stream, file_limit=file_limit)
             self.comment = get_text_v4(self.comment_addr, stream, file_limit=file_limit)
+            if self.flags & v4c.FLAG_EV_GROUP_NAME:
+                self.group_name = get_text_v4(self.group_name_addr, stream, file_limit=file_limit)
 
         except KeyError:
             self.address = 0
