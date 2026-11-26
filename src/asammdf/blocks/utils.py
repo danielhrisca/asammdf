@@ -1065,7 +1065,8 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
         if channel_name:
             if channel_name not in self:
                 self[channel_name] = (entry,)
-            else:
+            # all names of a channel are added one after the other
+            elif self[channel_name][-1] != entry:
                 self[channel_name] += (entry,)
 
             if "\\" in channel_name:
