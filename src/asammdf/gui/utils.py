@@ -1311,16 +1311,21 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
         trace = "'in_globals' must be a dict"
     else:
         definition = definition.replace("\t", "    ")
-
-        if contains_imports(definition):
-            trace = "Cannot use import statements in the definition"
+        try:
+            has_imports = contains_imports(definition)
+        except:
+            trace = format_exc()
         else:
-            _globals = in_globals or generate_python_function_globals()
 
-            try:
-                exec(definition, _globals)
-            except:
-                trace = format_exc()
+            if has_imports:
+                trace = "Cannot use import statements in the definition"
+            else:
+                _globals = in_globals or generate_python_function_globals()
+
+                try:
+                    exec(definition, _globals)
+                except:
+                    trace = format_exc()
 
     return trace
 
