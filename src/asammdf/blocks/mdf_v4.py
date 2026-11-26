@@ -108,6 +108,7 @@ from .utils import (
     MdfException,
     NamedTemporaryFile,
     NoRecordInfo,
+    NOT_FOUND,
     SignalDataBlockInfo,
     Terminated,
     THREAD_COUNT,
@@ -11983,7 +11984,7 @@ class MDF4(MDF_Common[Group]):
             raise RuntimeError("self._file is None")
         self.header = HeaderBlock(address=0x40, stream=self._file)
 
-    def create_component_channels(self, group, channel, offset=0, path=""):
+    def create_component_channels(self, group, channel, offset=0, path="", prev=""):
 
         def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
             """Convert 1D index to CA's nD coordinates."""
@@ -11993,7 +11994,7 @@ class MDF4(MDF_Common[Group]):
                 index %= factor
             return coords
 
-        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> tuple[str, str]:
             coords = "[" + "][".join(str(coord) for coord in indices) + "]"
             m = re.match(ch_parent_name, ch_name)
             n = re.search(r"\[\d+\]", ch_name)
@@ -12004,26 +12005,51 @@ class MDF4(MDF_Common[Group]):
             else:
                 name = ch_name + coords
             return name, coords
+
+        def reset_index(channels):
+            for channel in channels:
+                if not isinstance(channel, Channel):
+                    continue
+
+                channel.index = NOT_FOUND
+                channel.display_names.clear()
+
+                if channel.composition:
+                    reset_index(channel.composition)
         
         composition = channel.composition
         if not composition:
             return
 
         if all(isinstance(dep, Channel) for dep in composition):
+            if path:
+                prefix = channel.name.rsplit('.', 1)[0]
+                if path.endswith(prefix):
+                    prefix = f'{prefix}.'
+                    sub_path = f'{path}.{channel.name.removeprefix(prefix)}'
+                else:
+                    sub_path = f'{path}.{channel.name}'
+            else:
+                sub_path = channel.name
+
             for dep in composition:
-                if offset:
-                    dep.byte_offset += offset
+                dep.byte_offset += offset
+
+                if dep.index == NOT_FOUND:
                     entry = group.channels.add(dep, primary=False)
                     self.channels_db.add(dep.name, entry)
 
-                if path:
-                    path_name = f'{path}.{dep.name}'
-                    dep.display_names['composition_path'] = path_name
-                    self.channels_db.add(path_name, (dep.group, dep.index))
+                if dep.name.startswith(channel.name):
+                    prefix = f"{channel.name}."
+                    path_name = f'{sub_path}.{dep.name.removeprefix(prefix)}'
+                else:
+                    path_name = f'{sub_path}.{dep.name}'
+                    
+                dep.display_names[path_name] = 'composition_path'
+                self.channels_db.add(path_name, (dep.group, dep.index))
                         
-                sub_path = f'{path}.{channel.name}' if path else channel.name
                 self.create_component_channels(group, dep, offset, path=sub_path)
-        
+
         else:
 
             ca_blocks = [dep for dep in composition if isinstance(dep, ChannelArrayBlock)]
@@ -12056,6 +12082,7 @@ class MDF4(MDF_Common[Group]):
                 nd_coords = _get_nd_coords(elem_id, multipliers)
 
                 new_block = deepcopy(channel)
+                reset_index([new_block])
 
                 # update byte offset & position of invalidation bit
                 byte_offset = bit_offset = 0
@@ -12077,16 +12104,19 @@ class MDF4(MDF_Common[Group]):
 
                 if path:
                     path_name = f'{path}.{new_block.name}'
-                    new_block.display_names['composition_path'] = path_name
+                    new_block.display_names[path_name] = 'composition_path'
                     self.channels_db.add(path_name, entry)
+                else:
+                    path_name = new_block.name
                 
                 if cn_blocks:
                     new_composition = deepcopy(cn_blocks)
+                    reset_index(new_composition)
                     for cn_block in new_composition:
                         cn_block.byte_offset += byte_offset
                         group.channels.add(cn_block, primary=False)
                     new_block.composition = new_composition
-                    new_channels.append((new_block, byte_offset))
+                    new_channels.append((new_block, byte_offset, path_name))
 
                 else:
                     new_block.component_addr = 0
@@ -12096,9 +12126,8 @@ class MDF4(MDF_Common[Group]):
 
             channel.components = components
 
-            for new_channel, new_offset in new_channels:
-                sub_path = f'{path}.{new_channel.name}' if path else new_channel.name
-                self.create_component_channels(group, new_channel, new_offset, path=sub_path)
+            for new_channel, new_offset, sub_path in new_channels:
+                self.create_component_channels(group, new_channel, new_offset, path=path)
 
 
 def debug_channel(

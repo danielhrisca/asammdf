@@ -12,6 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.v4_blocks import Channel
 from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
+from ...blocks.utils import NOT_FOUND
 from ...signal import Signal
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
@@ -30,7 +31,6 @@ from ..utils import (
 )
 from .tree_item import MinimalTreeItem
 
-NOT_FOUND = 0xFFFFFFFF
 MINIMUM_COLUMN_WIDTH = 30
 
 

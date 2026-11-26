@@ -31,6 +31,7 @@ from ...blocks.utils import (
     UniqueDB,
 )
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
+from ...blocks.utils import NOT_FOUND
 from ...signal import Signal
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
@@ -57,7 +58,6 @@ from .xy import XY
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-NOT_FOUND = 0xFFFFFFFF
 
 SNAP_PIXELS_DISTANCE = 20
 CASCADE_PIXELS_DISTANCE = SNAP_PIXELS_DISTANCE + 10

@@ -45,6 +45,9 @@ from .options import GLOBAL_OPTIONS
 from .types import StrPath
 
 
+NOT_FOUND = 0xFFFFFFFF
+
+
 class Terminated(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__("terminated by user", *args)

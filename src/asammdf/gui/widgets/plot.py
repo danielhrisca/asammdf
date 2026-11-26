@@ -118,6 +118,7 @@ def monkey_patch_pyqtgraph():
 
 import asammdf.mdf as mdf_module
 
+from ...blocks.utils import NOT_FOUND
 from ...signal import Signal
 from .. import serde
 from ..dialogs.define_channel import DefineChannel
@@ -133,7 +134,6 @@ bin_ = bin
 
 HERE = Path(__file__).resolve().parent
 
-NOT_FOUND = 0xFFFFFFFF
 HONEYWELL_SECONDS_PER_CM = 0.1
 
 float64 = np.float64
