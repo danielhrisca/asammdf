@@ -11867,7 +11867,7 @@ class MDF4(MDF_Common[Group]):
             raise RuntimeError("self._file is None")
         self.header = HeaderBlock(address=0x40, stream=self._file)
 
-    def create_component_channels(self, group, channel, offset=0):
+    def create_component_channels(self, group, channel, offset=0, path=""):
 
         def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
             """Convert 1D index to CA's nD coordinates."""
@@ -11899,7 +11899,14 @@ class MDF4(MDF_Common[Group]):
                     dep.byte_offset += offset
                     entry = group.channels.add(dep, primary=False)
                     self.channels_db.add(dep.name, entry)
-                self.create_component_channels(group, dep, offset)
+
+                if path:
+                    path_name = f'{path}.{dep.name}'
+                    dep.display_names['composition_path'] = path_name
+                    self.channels_db.add(path_name, (dep.group, dep.index))
+                        
+                sub_path = f'{path}.{channel.name}' if path else channel.name
+                self.create_component_channels(group, dep, offset, path=sub_path)
         
         else:
 
@@ -11951,6 +11958,11 @@ class MDF4(MDF_Common[Group]):
                 # append to channel list
                 entry = group.channels.add(new_block, primary=False)
                 self.channels_db.add(new_block.name, entry)
+
+                if path:
+                    path_name = f'{path}.{new_block.name}'
+                    new_block.display_names['composition_path'] = path_name
+                    self.channels_db.add(path_name, entry)
                 
                 if cn_blocks:
                     new_composition = deepcopy(cn_blocks)
@@ -11969,7 +11981,8 @@ class MDF4(MDF_Common[Group]):
             channel.components = components
 
             for new_channel, new_offset in new_channels:
-                self.create_component_channels(group, new_channel, new_offset)
+                sub_path = f'{path}.{new_channel.name}' if path else new_channel.name
+                self.create_component_channels(group, new_channel, new_offset, path=sub_path)
 
 
 def debug_channel(
