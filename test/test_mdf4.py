@@ -254,6 +254,23 @@ class TestMDF4(unittest.TestCase):
                 [value.decode(signal.encoding) for value in signal.samples], ["M\u00fcnchen", "Z\u00fcrich"]
             )
 
+    def test_display_name_equal_to_name_is_one_occurrence(self) -> None:
+        # a display name that repeats the channel name registers the same entry
+        # again, the channel must still be found once by that name
+        samples = np.arange(3, dtype=np.float64)
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(samples, [0.0, 1.0, 2.0], name="speed", display_names={"speed": "display"}))
+            mdf.append(Signal(samples, [0.0, 1.0, 2.0], name="rpm"))
+            mdf.append(Signal(samples + 1, [0.0, 1.0, 2.0], name="rpm"))
+            self.assertEqual(mdf.channels_db["speed"], ((0, 1),))
+            # the reader adds a display name "name\device" before the name itself
+            mdf.channels_db.add("speed\\ECU", (0, 1))
+            mdf.channels_db.add("speed", (0, 1))
+            self.assertEqual(mdf.channels_db["speed"], ((0, 1),))
+            self.assertEqual(mdf.get("speed").samples.tolist(), samples.tolist())
+            with self.assertRaisesRegex(MdfException, "Multiple occurrences"):
+                mdf.get("rpm")
+
     def test_read_mdf4_00(self) -> None:
         seed = np.random.randint(0, 2**31)
 
