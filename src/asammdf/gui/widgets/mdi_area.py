@@ -3085,8 +3085,9 @@ class WithMDIArea:
                         elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
                             events.append([event_info])
                         else:
-                            if event.parent is not None:
-                                parent = events[event.parent]
+                            start = event.range_start if event.range_start is not None else event.parent
+                            if start is not None:
+                                parent = events[start]
                                 parent.append(event_info)
                             events.append(None)
                     events = [ev for ev in events if ev is not None]
@@ -4105,8 +4106,10 @@ class WithMDIArea:
                     elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
                         events.append([event_info])
                     else:
-                        parent = events[event.parent]
-                        parent.append(event_info)
+                        start = event.range_start if event.range_start is not None else event.parent
+                        if start is not None:
+                            parent = events[start]
+                            parent.append(event_info)
                         events.append(None)
                 events = [ev for ev in events if ev is not None]
             else:
@@ -4925,13 +4928,13 @@ class WithMDIArea:
                 position = (group_index, index)
                 alias = {}
                 for gp_index, gp in enumerate(file.mdf.groups):
-                    for ch_index, ch in enumerate(gp.channels):
-                        if (gp_index, ch_index) != position and (
+                    for ch in gp.channels:
+                        if (gp_index, ch.index) != position and (
                             ch.data_type,
                             ch.byte_offset,
                             ch.bit_count,
                         ) == info:
-                            alias[ch.name] = (gp_index, ch_index)
+                            alias[ch.name] = (gp_index, ch.index)
 
                 if alias:
                     alias_text = "\n".join(

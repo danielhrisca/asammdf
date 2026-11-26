@@ -60,6 +60,44 @@ class TestMDF4(unittest.TestCase):
                         else:
                             np.testing.assert_array_equal(signal.invalidation_bits, invalid, strict=True)
 
+    def test_all_values_invalid_flag(self) -> None:
+        timestamps = np.arange(5, dtype=np.float64)
+        samples = np.arange(5, dtype=np.int16)
+        masked = np.array([False, True, False, True, False])
+        for with_invalidation_bytes in (True, False):
+            signals = [Signal(samples, timestamps, name="flagged")]
+            if with_invalidation_bytes:
+                signals.append(Signal(samples, timestamps, name="masked", invalidation_bits=masked))
+            with MDF(version="4.10") as mdf:
+                mdf.append(signals, common_timebase=True)
+                path = mdf.save(Path(self.tempdir.name) / "all_values_invalid.mf4", overwrite=True)
+            with MDF(path) as mdf:
+                address = next(ch.address for ch in mdf.groups[0].channels if ch.name == "flagged")
+
+            # set cn_flags to bit 0 only and leave cn_inval_bit_pos unused
+            data = bytearray(path.read_bytes())
+            links_nr = struct.unpack_from("<Q", data, address + 16)[0]
+            struct.pack_into("<2I", data, address + 24 + 8 * links_nr + 12, v4c.FLAG_CN_ALL_INVALID, 0xFFFFFFFF)
+            path.write_bytes(data)
+
+            for large_file in (False, True):
+                with (
+                    self.subTest(with_invalidation_bytes=with_invalidation_bytes, large_file=large_file),
+                    MDF(path) as mdf,
+                    patch("asammdf.blocks.mdf_v4.validate_blocks", return_value=large_file),
+                    patch("asammdf.mdf.validate_blocks", return_value=large_file),
+                ):
+                    self.assertEqual(len(mdf.get("flagged")), 0)
+                    for signal in mdf.get("flagged", ignore_invalidation_bits=True), mdf.select(["flagged"])[0]:
+                        np.testing.assert_array_equal(signal.samples, samples, strict=True)
+                        np.testing.assert_array_equal(signal.invalidation_bits, np.ones(5, dtype=bool), strict=True)
+                    if with_invalidation_bytes:
+                        signal = mdf.get("masked", ignore_invalidation_bits=True)
+                        np.testing.assert_array_equal(signal.invalidation_bits, masked, strict=True)
+                    with MDF(path, ignore_invalidation_bits=True) as unmasked:  # type: ignore[call-arg]
+                        self.assertEqual(len(unmasked.get("flagged")), 5)
+                        self.assertEqual(len(unmasked.select(["flagged"], validate=True)[0]), 5)
+
     def test_invalidation_buffers_are_released(self) -> None:
         cycles = 100_000
         timestamps = np.arange(cycles, dtype=np.float64)
@@ -104,6 +142,35 @@ class TestMDF4(unittest.TestCase):
             rows = list(csv.reader(csv_file))
         self.assertEqual(rows[0][-1], 'sig,"a"')
         self.assertEqual([float(row[-1]) for row in rows[1:]], [7.0, 9.0])
+
+    def test_export_csv_text(self) -> None:
+        timestamps = np.arange(3, dtype=np.float64)
+        gear = {"val_0": 0, "text_0": "Park", "val_1": 1, "text_1": "Drive", "default_addr": "Fault"}
+        state = np.array([b"ok", b"", "Grün".encode("latin-1")])
+        labels = ["5 Ω", "温度", ""]
+        label = np.array([text.encode("utf-8") for text in labels])
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(np.array([0, 1, 5], dtype=np.uint8), timestamps, name="gear", conversion=gear),
+                    Signal(state, timestamps, name="state", encoding="latin-1"),
+                    Signal(label, timestamps, name="label", encoding="utf-8"),
+                ]
+            )
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"text_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    path = next(path.parent.glob(f"{path.stem}*.csv"))
+
+                    with open(path, newline="") as csv_file:
+                        rows = list(csv.DictReader(csv_file))
+                        encoding = csv_file.encoding
+                    self.assertEqual([row["gear"] for row in rows], ["Park", "Drive", "Fault"])
+                    # the CSV uses the system encoding and replaces what it cannot represent
+                    for name, texts in (("state", ["ok", "", "Grün"]), ("label", labels)):
+                        expected = [text.encode(encoding, "replace").decode(encoding) for text in texts]
+                        self.assertEqual([row[name] for row in rows], expected)
 
     def test_extend_canopen(self) -> None:
         dates = np.array(
@@ -590,6 +657,41 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
+    def test_text_to_text_conversion_with_nil_links(self) -> None:
+        # In a text to text conversion (CC type 10) a NIL output or default link
+        # keeps the input text, a link to an empty TXBLOCK gives an empty text.
+        samples = np.array([text.encode("latin-1") for text in ("on", "off", "été")])
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(samples, [0.0, 1.0, 2.0], name="state", encoding="latin-1"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "cc_trans.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            # the conversion is the 5th link of a CNBLOCK
+            conversion_link = mdf.groups[0].channels[1].address + 24 + 4 * 8
+
+        data = bytearray(Path(outfile).read_bytes())
+        data += bytes(-len(data) % 8)
+        texts = {}
+        for text in (b"on", b"off", b""):
+            texts[text] = len(data)
+            data += bytes(TextBlock(text=text))
+        # "on" -> NIL, "off" -> empty TXBLOCK, default NIL
+        links = (0, 0, 0, 0, texts[b"on"], 0, texts[b"off"], texts[b""], 0)
+        cc_address = len(data)
+        data += struct.pack("<4sI11Q2B3H2d", b"##CC", 0, 120, 9, *links, v4c.CONVERSION_TYPE_TRANS, 0, 0, 5, 0, 0, 0)
+        data[conversion_link : conversion_link + 8] = cc_address.to_bytes(8, "little")
+        Path(outfile).write_bytes(data)
+
+        expected = ["on", "", "été"]
+        with MDF(outfile) as mdf:
+            signal = mdf.get("state")
+            self.assertEqual([text.decode(signal.encoding) for text in signal.samples.tolist()], expected)
+            saved = mdf.save(Path(TestMDF4.tempdir.name) / "cc_trans_saved.mf4", overwrite=True)
+
+        with MDF(saved) as mdf:
+            signal = mdf.get("state")
+            self.assertEqual([text.decode(signal.encoding) for text in signal.samples.tolist()], expected)
+
     def test_row_oriented_array_components(self) -> None:
         # regression test: element offsets of non-square row oriented arrays
         # used the wrong stride and could point outside of the record
@@ -658,6 +760,136 @@ class TestMDF4(unittest.TestCase):
                 self.assertTrue(np.array_equal(ret_reference.samples, reference))
                 self.assertEqual(ret_payload.samples.dtype, np.uint8)
                 self.assertTrue(np.array_equal(ret_payload.samples, payload))
+
+    def test_structure_with_bit_fields(self) -> None:
+        # two 4 bit members share the only byte of the structure,
+        # like the bit fields of CAN bus logging frames
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
+        record["frame.low"] = [0x21, 0x43, 0x65]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            structure, low, high = channels[1], channels[2], channels[3]
+            structure.bit_count = 8
+            low.bit_count = 4
+            high.byte_offset = low.byte_offset
+            high.bit_offset = 4
+            high.bit_count = 4
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "bit_fields.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("frame").samples, mdf.select(["frame"])[0].samples):
+                np.testing.assert_array_equal(samples["frame.low"], [1, 3, 5])
+                np.testing.assert_array_equal(samples["frame.high"], [2, 4, 6])
+
+    def test_structure_with_bit_fields_of_the_same_name(self) -> None:
+        # without the source both bit fields are named "frame", the field
+        # names follow the structure dtype as for byte aligned members
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
+        record["frame.low"] = [0x21, 0x43, 0x65]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            structure, low, high = channels[1], channels[2], channels[3]
+            structure.bit_count = 8
+            low.bit_count = 4
+            high.byte_offset = low.byte_offset
+            high.bit_offset = 4
+            high.bit_count = 4
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "bit_fields_same_name.mf4", overwrite=True)
+
+        with MDF(outfile, remove_source_from_channel_names=True) as mdf:
+            for samples in (mdf.get(group=0, index=1).samples, mdf.select([(None, 0, 1)])[0].samples):
+                self.assertEqual(samples.dtype.names, ("frame", "frame$0"))
+                np.testing.assert_array_equal(samples["frame"], [1, 3, 5])
+                np.testing.assert_array_equal(samples["frame$0"], [2, 4, 6])
+
+    def test_structure_with_24_bit_and_virtual_members(self) -> None:
+        # the record bytes of a 24 bit member include the next byte and
+        # a virtual member has no bytes, its value is the record index
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.count", "<u4"), ("frame.index", "<u8")])
+        record["frame.count"] = [0xAA000001, 0xAA000002, 0xAA000003]
+        record["frame.index"] = 9
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            count, index = channels[2], channels[3]
+            count.bit_count = 24
+            index.channel_type = v4c.CHANNEL_TYPE_VIRTUAL
+            index.bit_count = 0
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "24_bit_and_virtual.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("frame").samples, mdf.select(["frame"])[0].samples):
+                np.testing.assert_array_equal(samples["frame.count"], [1, 2, 3])
+                np.testing.assert_array_equal(samples["frame.index"], [0, 1, 2])
+
+    def test_appended_structure(self) -> None:
+        # filter and to_dataframe(channels=...) append the structure to a new file in memory
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.a", "<u2"), ("frame.b", "u1")])
+        record["frame.a"] = [10, 20, 30]
+        record["frame.b"] = [1, 2, 3]
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            np.testing.assert_array_equal(mdf.get("frame").samples, record)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "structure.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            df = mdf.to_dataframe(channels=["frame"])
+            self.assertEqual(list(df.columns), ["frame.frame.a", "frame.frame.b"])
+            self.assertEqual(df["frame.frame.a"].tolist(), [10, 20, 30])
+
+    def test_nested_structure_save(self) -> None:
+        t = np.arange(3, dtype="<f8")
+        raw = np.array([0, 1, 2], dtype=np.uint8)
+        inner = np.rec.fromarrays([raw], dtype=[("outer.inner.x", "u1")])
+        nested = np.rec.fromarrays([inner, raw * 2], dtype=[("outer.inner", inner.dtype), ("outer.plain", "u1")])
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(nested, t, name="outer"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "nested.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("outer.plain").samples, [0, 2, 4])
+            self.assertEqual(len(mdf.select(["outer"])[0].samples), 3)
+
+    def test_padded_structure(self) -> None:
+        # numpy pads "s.sub" to 8 bytes, the members are written back to back in 9 bytes
+        t = np.arange(4, dtype="<f8")
+        inner = np.dtype({"names": ["s.sub.a", "s.sub.b"], "formats": ["<u4", "u1"], "offsets": [0, 4], "itemsize": 8})
+        record = np.zeros(4, dtype=[("s.sub", inner), ("s.x", "<f4")])
+        record["s.sub"]["s.sub.a"] = [10, 20, 30, 40]
+        record["s.x"] = t / 2
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="s"))
+            with mdf.cut(start=1, stop=2) as cut:
+                np.testing.assert_array_equal(cut.get("s").samples["s.sub"]["s.sub.a"], [20, 30])
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "padded.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            np.testing.assert_array_equal(mdf.get("s").samples["s.x"], t / 2)
+            address = next(ch.address for ch in mdf.groups[0].channels if ch.name == "s")
+
+        # 8.8 and earlier write the padded size as bit_count of "s", beyond the end of the record
+        with open(outfile, "r+b") as f:
+            f.seek(address + 16)
+            (links_nr,) = struct.unpack("<Q", f.read(8))
+            f.seek(address + 24 + 8 * links_nr + 8)
+            f.write(struct.pack("<I", record.itemsize * 8))
+
+        with MDF(outfile) as mdf:
+            for samples in (mdf.get("s").samples, mdf.select(["s"])[0].samples):
+                np.testing.assert_array_equal(samples["s.sub"]["s.sub.a"], [10, 20, 30, 40])
+                np.testing.assert_array_equal(samples["s.x"], t / 2)
 
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
@@ -728,6 +960,59 @@ class TestMDF4(unittest.TestCase):
         block = bytes(event)
         self.assertEqual(len(block), event.block_len)
         self.assertEqual(struct.unpack_from("<Q", block, 24 + 5 * 8)[0], 0x100)
+
+    def test_save_event_with_attachment(self) -> None:
+        path = Path(self.tempdir.name) / "event_attachment.mf4"
+        with MDF(version="4.20") as mdf:
+            mdf.append([Signal(np.arange(5.0), np.arange(5.0), name="x")])
+            mdf.attach(b"note", file_name="note.txt", compression=False)
+            mdf.save(path, overwrite=True)
+
+        # link an event to the attachment, leave a NIL attachment link and give it a
+        # group name, as other writers do
+        with MDF(path) as mdf:
+            event = EventBlock(range_type=v4c.EVENT_RANGE_TYPE_BEGINNING)
+            event.attachment_nr = 2
+            event["attachment_0_addr"] = mdf.attachments[0].address
+            event["attachment_1_addr"] = 0
+            event.flags |= v4c.FLAG_EV_GROUP_NAME
+            event.group_name = "group"
+            event.links_nr += 3
+            event.block_len += 24
+            mdf.events.append(event)
+            # the end of a range links the event that starts it
+            range_end = EventBlock(range_type=v4c.EVENT_RANGE_TYPE_END)
+            range_end.range_start = 0
+            mdf.events.append(range_end)
+            # a channel hierarchy link of the source, the CHBLOCKs are not written
+            assert isinstance(mdf.header, v4b.HeaderBlock)
+            mdf.header.channel_tree_addr = mdf.attachments[0].address
+            mdf.attach(b"other", file_name="other.txt", compression=False)
+            resaved = mdf.save(path.with_name("event_attachment_resaved.mf4"), overwrite=True)
+
+        # save over the open file, the event must still point to valid blocks
+        with MDF(resaved) as mdf:
+            mdf.save(resaved, overwrite=True)
+
+        with MDF(resaved) as mdf:
+            self.assertEqual(mdf.events[0].attachment_nr, 2)
+            self.assertEqual(mdf.events[0]["attachment_0_addr"], mdf.attachments[0].address)
+            self.assertEqual(mdf.events[0]["attachment_1_addr"], 0)
+            self.assertEqual(mdf.extract_attachment(index=0)[0], b"note")
+            self.assertEqual(mdf.events[0].group_name, "group")
+            self.assertEqual(mdf.events[1].range_start, 0)
+            self.assertEqual(mdf.events[1].range_start_ev_addr, mdf.events[0].address)
+            assert isinstance(mdf.header, v4b.HeaderBlock)
+            self.assertEqual(mdf.header.channel_tree_addr, 0)
+
+            # cut and resample do not copy event attachments, their events keep no link
+            for name, out in (("cut", mdf.cut(start=1.0)), ("resample", mdf.resample(0.5))):
+                with out:
+                    out_path = out.save(path.with_name(f"event_attachment_{name}.mf4"), overwrite=True)
+                with MDF(out_path) as copy:
+                    self.assertEqual(len(copy.events), 2)
+                    self.assertEqual(copy.events[0].attachment_nr, 0)
+            self.assertEqual(mdf.events[0]["attachment_0_addr"], mdf.attachments[0].address)
 
     def test_unit_in_md_block(self) -> None:
         # MDF 4 allows the unit of a channel or conversion to be an MDBLOCK
@@ -891,6 +1176,52 @@ class TestMDF4(unittest.TestCase):
                 expected = samples[:keep][~sig.invalidation_bits[:keep]]
                 self.assertEqual(len(ret.samples), len(expected))
                 self.assertTrue(np.allclose(ret.samples, expected))
+
+    def test_export_csv_can_frames(self) -> None:
+        timestamps = np.array([0.0, 1.0])
+        data_bytes = np.array([[0x86, 0, 0x13, 0xFF, 0x7D, 0xAD, 0x19, 0xFF], range(8)], dtype="u1")
+        with MDF(version="4.10") as mdf:
+            # two CAN groups, the second stores its ID as a linear conversion (float64 samples)
+            conversions: list[tuple[int, dict[str, object] | None]] = [(0x18FEDF00, None), (0, {"a": 0.0, "b": 0x7E4})]
+            for raw_id, conversion in conversions:
+                mdf.append(
+                    [
+                        Signal(np.full(2, raw_id, "<u4"), timestamps, name="CAN_DataFrame.ID", conversion=conversion),
+                        Signal(data_bytes, timestamps, name="CAN_DataFrame.DataBytes"),
+                        Signal(np.full(2, 8, "u1"), timestamps, name="CAN_DataFrame.DLC"),
+                    ]
+                )
+            names = ["CAN_DataFrame.ID", "CAN_DataFrame.DataBytes", "CAN_DataFrame.DLC"]
+            bytes_rows = ["86 00 13 FF 7D AD 19 FF", "00 01 02 03 04 05 06 07"]
+            first, second = ([[can_id, row, "8"] for row in bytes_rows] for can_id in ("18FEDF00", "7E4"))
+
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"can_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    rows: list[list[str]] = []
+                    for group_path in sorted(path.parent.glob(f"{path.stem}*.csv")):
+                        with open(group_path, newline="") as csv_file:
+                            rows.extend(row[1:] for row in csv.reader(csv_file))
+
+                    if single_time_base:
+                        header = names + [f"{name}_0" for name in names]
+                        expected = [header] + [a + b for a, b in zip(first, second, strict=True)]
+                    else:
+                        expected = [names, *first, names, *second]
+                    self.assertEqual(rows, expected)
+
+    def test_export_csv_missing_can_id(self) -> None:
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(np.array([0x7E0, np.nan]), [0.0, 1.0], name="CAN_DataFrame.ID"))
+            for single_time_base in (True, False):
+                with self.subTest(single_time_base=single_time_base):
+                    path = Path(self.tempdir.name) / f"missing_id_{single_time_base}.csv"
+                    mdf.export("csv", filename=path, single_time_base=single_time_base)
+                    path = next(path.parent.glob(f"{path.stem}*.csv"))
+                    with open(path, newline="") as csv_file:
+                        rows = list(csv.DictReader(csv_file))
+                    self.assertEqual([row["CAN_DataFrame.ID"] for row in rows], ["7E0", "nan"])
 
     def test_load_data_ld_separate_invalidation(self) -> None:
         """LD + separate invalidation must not reuse data original_size.

@@ -3,7 +3,7 @@
 import bisect
 from collections import defaultdict, deque
 from collections.abc import Buffer, Callable, Collection, Iterable, Iterator, Sequence
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
@@ -737,11 +737,7 @@ class MDF4(MDF_Common[Group]):
 
             addr = event.range_start_ev_addr
             if addr:
-                range_start_ev_addr = ev_map.get(addr, None)
-                if range_start_ev_addr is not None:
-                    event.parent = range_start_ev_addr
-                else:
-                    event.parent = None
+                event.range_start = ev_map.get(addr, None)
 
         self._si_map.clear()
         self._ch_map.clear()
@@ -828,6 +824,19 @@ class MDF4(MDF_Common[Group]):
                 logger.warning(f"Channel address {ch_addr:X} has an invalid data type {channel.data_type}")
                 continue
 
+            conversion = channel.conversion
+            if conversion is not None and conversion.conversion_type == v4c.CONVERSION_TYPE_TRANS:
+                # a NIL output of a text to text conversion keeps the input text in this encoding
+                encoding = {
+                    v4c.DATA_TYPE_STRING_LATIN_1: "latin-1",
+                    v4c.DATA_TYPE_STRING_UTF_16_LE: "utf-16-le",
+                    v4c.DATA_TYPE_STRING_UTF_16_BE: "utf-16-be",
+                }.get(channel.data_type, "utf-8")
+                if encoding != conversion.input_encoding:
+                    # the block can be shared with channels of another encoding
+                    channel.conversion = conversion = copy(conversion)
+                    conversion.input_encoding = encoding
+
             if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                 channel.attachment = self._attachments_map.get(
                     channel.data_block_addr,
@@ -889,6 +898,9 @@ class MDF4(MDF_Common[Group]):
                     )
                     # channel.dtype is set inside the composition @property
                     channel.composition = ret_composition
+                    # 8.8 and earlier count the padding of a structure even past the end of the record
+                    if channel.byte_offset + channel.bit_count // 8 > grp.channel_group.samples_byte_nr:
+                        channel.bit_count = min(channel.bit_count, np.dtype(channel.dtype).itemsize * 8)
 
                 elif blk_id == b"##CA":
                     sub_composition : list[Channel | ChannelArrayBlock] = []
@@ -4332,6 +4344,7 @@ class MDF4(MDF_Common[Group]):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
+        primary: bool = True,
     ) -> tuple[int, Channel, list[tuple[NDArray[Any], int]]]:
 
         si_map = self._si_map
@@ -4442,13 +4455,13 @@ class MDF4(MDF_Common[Group]):
 
                 ch.source = new_source
 
-        entry = gp_channels.add(ch)
+        entry = gp_channels.add(ch, primary=primary)
 
         self.channels_db.add(name, entry)
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        composition = ch.composition = []
+        composition: list[Channel] = []
 
         # then we add the fields
         for name in names:
@@ -4806,9 +4819,15 @@ class MDF4(MDF_Common[Group]):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
+                    primary=False,
                 )
                 composition.append(sub_structure)
                 fields.extend(new_fields)
+
+        # the members are written back to back, without the padding of the samples dtype
+        struct_self.bit_count = (offset - struct_self.byte_offset) * 8
+        # the setter builds the structure dtype from the members added above
+        struct_self.composition = composition
 
         return offset, struct_self, fields
 
@@ -6384,7 +6403,7 @@ class MDF4(MDF_Common[Group]):
                             (
                                 byte_offset, 
                                 byte_size, 
-                                master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                                master_channel.pos_invalidation_bit if master_channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                             )
                         )
                         channels.append(master_channel)
@@ -6395,7 +6414,7 @@ class MDF4(MDF_Common[Group]):
                         (
                             byte_offset, 
                             byte_size, 
-                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                            channel.pos_invalidation_bit if channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                         )
                     )
                     channels.append(channel)
@@ -6514,6 +6533,16 @@ class MDF4(MDF_Common[Group]):
 
         if all_invalid:
             invalidation_bits = np.ones(len(samples), dtype=bool)
+        elif channel.flags & v4c.FLAG_CN_ALL_INVALID and not self._ignore_invalidation_bits:
+            # cn_flags bit 0 marks every sample invalid, like a set invalidation bit,
+            # and cn_inval_bit_pos is only used with bit 1
+            if ignore_invalidation_bits:
+                invalidation_bits = np.ones(len(samples), dtype=bool)
+            else:
+                samples = samples[:0]
+                if timestamps is not None:
+                    timestamps = timestamps[:0]
+                invalidation_bits = None
 
         conversion = channel.conversion
 
@@ -6723,16 +6752,27 @@ class MDF4(MDF_Common[Group]):
         dependency_list = channel.composition
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
+
+        def plain(members: list[Any]) -> bool:
+            # the record dtype cannot shift, mask or sign extend members or compute virtual ones
+            return all(
+                ch.channel_type == v4c.CHANNEL_TYPE_VALUE
+                and not ch.bit_offset
+                and ch.bit_count > 0
+                and not ch.bit_count % 8
+                and (ch.data_type not in v4c.INT_TYPES or ch.bit_count in v4c.STANDARD_INT_SIZES)
+                and plain(ch.composition or [])
+                for ch in members
+                if isinstance(ch, Channel)
+            )
 
         _dtype = np.dtype(channel.dtype)
         conditions = [
-            _dtype.itemsize == channel.bit_count // 8,
-            all(
-                ch.channel_type != v4c.CHANNEL_TYPE_VLSD
-                for ch in dependency_list
-            ),
+            # padding after the last member stays in the record and is skipped
+            _dtype.itemsize <= channel.bit_count // 8,
+            plain(dependency_list),
         ]
         channel_values: list[NDArray[Any]] | list[list[NDArray[Any]]]
         if all(conditions):
@@ -6766,6 +6806,17 @@ class MDF4(MDF_Common[Group]):
             unique_names = UniqueDB()
             fast_path = False
             names = [unique_names.get_unique_name(ch.name) for ch in dependency_list]
+            if (
+                conditions[0]
+                and _dtype.names
+                and len(_dtype.names) == len(names)
+                and all(ch.channel_type != v4c.CHANNEL_TYPE_VLSD for ch in dependency_list)
+            ):
+                # only plain() sent the structure here, keep the field names of the fast path;
+                # the dtype lists the members sorted by byte offset (see dtype_with_composition)
+                order = sorted(range(len(names)), key=lambda i: dependency_list[i].byte_offset)
+                for i, name in zip(order, _dtype.names, strict=True):
+                    names[i] = name
 
             channel_values_list: list[list[NDArray[Any]]] = [[] for _ in dependency_list]
             masters = []
@@ -7066,7 +7117,7 @@ class MDF4(MDF_Common[Group]):
         )
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
         inverse_layout = any(axis["inverse_layout"] for axis in axes)
 
@@ -7431,7 +7482,7 @@ class MDF4(MDF_Common[Group]):
         ch_nr = channel_index
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            v4c.FLAG_CN_INVALIDATION_PRESENT
         )
 
         data_type = channel.data_type
@@ -8942,6 +8993,29 @@ class MDF4(MDF_Common[Group]):
             can_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
             indexes = argwhere(can_ids.samples == frame.arbitration_id.pgn).ravel()
+
+            # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+            if frame.arbitration_id.pgn == 0:
+                try:
+                    ide = self.get(
+                        "CAN_DataFrame.IDE",
+                        group=index,
+                        samples_only=True,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        data=data,
+                    )[0]
+                    if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                        ide = self.get(
+                            "CAN_DataFrame.IDE",
+                            group=index,
+                            samples_only=True,
+                            ignore_invalidation_bits=ignore_invalidation_bits,
+                            data=data,
+                            raw=True,
+                        )[0]
+                    indexes = indexes[ide[indexes] == 1]
+                except MdfException:
+                    pass
         else:
             indexes = argwhere(can_ids.samples == frame.arbitration_id.id).ravel()
 
@@ -9279,6 +9353,7 @@ class MDF4(MDF_Common[Group]):
             }
 
             msg_map: dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], int] = {}
+            j1939_ids: dict[tuple[int, int, int, str], int] = {}
 
             for i, group in enumerate(self.groups):
                 if (
@@ -9346,10 +9421,15 @@ class MDF4(MDF_Common[Group]):
 
                         total_unique_ids = total_unique_ids | set(unique_ids)
 
+                        done_j1939: set[tuple[int, int, str]] = set()
                         for msg_id, is_extended in sorted(unique_ids):
                             message = messages.get((msg_id, is_extended), None)
 
                             if message is None:
+                                if not is_extended:
+                                    # J1939 frames always have 29-bit identifiers
+                                    unknown_ids[(msg_id, is_extended)].append(True)
+                                    continue
                                 tmp_pgn = msg_id >> 8
                                 ps = tmp_pgn & 0xFF
                                 pf = (msg_id >> 16) & 0xFF
@@ -9368,6 +9448,15 @@ class MDF4(MDF_Common[Group]):
                             if is_j1939:
                                 source_address = msg_id & 0xFF
                                 pgn_number = message.arbitration_id.pgn
+                                # the frames are selected by PGN and SA, so each pair is decoded once per
+                                # message and keeps the first CAN ID seen whatever the priority or destination
+                                j1939_key = (pgn_number, source_address, message.name)
+                                if j1939_key in done_j1939:
+                                    unknown_ids[(msg_id, is_extended)].append(False)
+                                    continue
+                                done_j1939.add(j1939_key)
+                                unknown_ids[(msg_id, is_extended)].append(False)
+                                msg_id = j1939_ids.setdefault((bus, *j1939_key), msg_id)
                                 key = (pgn_number, source_address, True)
                                 found_ids[dbc_name].add((key, message.name))
 
@@ -9389,7 +9478,9 @@ class MDF4(MDF_Common[Group]):
 
                             if is_j1939:
                                 idx = np.argwhere(
-                                    (j1939_msg_pgns == pgn_number) & (j9193_msg_sa == source_address)
+                                    (j1939_msg_pgns == pgn_number)
+                                    & (j9193_msg_sa == source_address)
+                                    & (bus_msg_ide == 1)
                                 ).ravel()
                             else:
                                 idx = np.argwhere((bus_msg_ids == msg_id) & (bus_msg_ide == is_extended)).ravel()
@@ -9702,7 +9793,7 @@ class MDF4(MDF_Common[Group]):
 
                             unknown_ids[msg_id].append(False)
 
-                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            idx = np.argwhere((bus_msg_ids == msg_id) & (bus_ids == bus)).ravel()
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
@@ -10445,10 +10536,18 @@ class MDF4(MDF_Common[Group]):
                     else:
                         event.comment_addr = 0
 
-                    if event.parent is not None:
-                        event.parent_ev_addr = ev_map[event.parent]
-                    if event.range_start is not None:
-                        event.range_start_ev_addr = ev_map[event.range_start]
+                    if event.flags & v4c.FLAG_EV_GROUP_NAME:
+                        if event.group_name:
+                            tx_block = TextBlock(text=event.group_name)
+                            tx_block.address = address
+                            blocks.append(tx_block)
+                            address += tx_block.block_len
+                            event.group_name_addr = tx_block.address
+                        else:
+                            event.group_name_addr = 0
+
+                    event.parent_ev_addr = ev_map[event.parent] if event.parent is not None else 0
+                    event.range_start_ev_addr = ev_map[event.range_start] if event.range_start is not None else 0
 
                 for i in range(len(self.events) - 1):
                     self.events[i].next_ev_addr = self.events[i + 1].address
@@ -10475,19 +10574,15 @@ class MDF4(MDF_Common[Group]):
                             blocks.append(tx_block)
 
                 for at_block in self.attachments:
+                    # events link attachments by address, map the old addresses to the new ones
+                    old_address = at_block.address
                     address = at_block.to_blocks(address, blocks, defined_texts)
+                    at_map[old_address] = at_block.address
 
                 for i in range(len(self.attachments) - 1):
                     at_block = self.attachments[i]
                     at_block.next_at_addr = self.attachments[i + 1].address
                 self.attachments[-1].next_at_addr = 0
-
-                if self.events:
-                    for event in self.events:
-                        for i in range(event.attachment_nr):
-                            key = f"attachment_{i}_addr"
-                            addr = typing.cast(int, event[key])
-                            event[key] = at_map[addr]
 
                 for i, gp in enumerate(self.groups):
                     for j, channel in enumerate(gp.channels):
@@ -10498,6 +10593,14 @@ class MDF4(MDF_Common[Group]):
 
                         if channel.channel_type == v4c.CHANNEL_TYPE_SYNC and channel.attachment is not None:
                             channel.data_block_addr = self.attachments[channel.attachment].address
+
+            for event in self.events:
+                for i in range(event.attachment_nr):
+                    key = f"attachment_{i}_addr"
+                    addr = typing.cast(int, event[key])
+                    # a NIL link stays NIL, new attachments also have address 0
+                    if addr:
+                        event[key] = at_map[addr]
 
             if progress is not None:
                 blocks_nr = len(blocks)
@@ -10523,6 +10626,8 @@ class MDF4(MDF_Common[Group]):
             else:
                 self.header.first_dg_addr = 0
             self.header.file_history_addr = self.file_history[0].address
+            # the channel hierarchy (CHBLOCK) is not written
+            self.header.channel_tree_addr = 0
             if self.attachments:
                 first_attachment = self.attachments[0]
                 addr_ = first_attachment.address
@@ -10535,14 +10640,6 @@ class MDF4(MDF_Common[Group]):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups, strict=False):
                 gp.data_group.data_block_addr = orig_addr
-
-            at_map = {value: key for key, value in at_map.items()}
-
-            for event in self.events:
-                for i in range(event.attachment_nr):
-                    key = f"attachment_{i}_addr"
-                    addr = typing.cast(int, event[key])
-                    event[key] = at_map[addr]
 
         except:
             if not file_like:
@@ -11555,6 +11652,25 @@ class MDF4(MDF_Common[Group]):
                             continue
 
                         idx = bus_msg_ids == msg_id
+
+                        # every 11-bit identifier gives PGN 0, but J1939 frames always have 29-bit identifiers
+                        if is_j1939 and msg_id == 0:
+                            try:
+                                ide = self.get(
+                                    "CAN_DataFrame.IDE", group=group_index, data=fragment, samples_only=True
+                                )[0]
+                                if ide.dtype.kind == "S":  # value to text conversion, compare the bit itself
+                                    ide = self.get(
+                                        "CAN_DataFrame.IDE",
+                                        group=group_index,
+                                        data=fragment,
+                                        samples_only=True,
+                                        raw=True,
+                                    )[0]
+                                idx &= ide[idx_] == 1
+                            except MdfException:
+                                pass
+
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 

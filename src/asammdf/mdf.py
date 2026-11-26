@@ -10,6 +10,7 @@ from functools import reduce
 import gzip
 from io import BufferedIOBase, BytesIO
 import logging
+import math
 import mmap
 import os
 from pathlib import Path
@@ -66,12 +67,12 @@ from .blocks.types import (
     StrPath,
 )
 from .blocks.utils import (
+    _csv_bytearray2hex,
     as_non_byte_sized_signed_int,
     astype,
     ChannelsDB,
     components,
     csv_bytearray2hex,
-    csv_int2hex,
     DataBlockInfo,
     downcast,
     FileLike,
@@ -539,10 +540,10 @@ class MDF:
                                 self.groups[dg_cntr]
                             except:
                                 event_valid = False
-                    # ignore attachments for now
-                    for i in range(new_event.attachment_nr):
-                        key = f"attachment_{i}_addr"
-                        event[key] = 0
+                    # ignore attachments for now, event attachments are not copied to the output
+                    new_event.links_nr -= new_event.attachment_nr
+                    new_event.block_len -= 8 * new_event.attachment_nr
+                    new_event.attachment_nr = 0
                     if event_valid:
                         self._mdf.events.append(new_event)
                 else:
@@ -2703,6 +2704,15 @@ class MDF:
             if escapechar is not None:
                 escapechar = escapechar[0]
 
+            def decode_text(value: object) -> object:
+                # text columns of the DataFrame are object columns that hold bytes
+                if isinstance(value, bytes):
+                    try:
+                        return value.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return value.decode("latin-1")
+                return value
+
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -2722,24 +2732,24 @@ class MDF:
                 else:
                     units["timestamps"] = "s"
 
-                if hasattr(self, "can_logging_db") and self.can_logging_db:
-                    dropped = {}
+                hex_formatters: dict[str, Callable[..., object]] = {}
+                for name_ in df.columns:
+                    # the channels of a second CAN bus get a "_<n>" suffix in the DataFrame
+                    bus_name = re.sub(r"_\d+$", "", name_)
+                    column = df[name_]
+                    # text columns with these names (for example read back from a CSV) stay as they are
+                    if bus_name.endswith("CAN_DataFrame.ID") and column.dtype.kind in "uif":
+                        hex_formatters[name_] = (
+                            lambda value: f"{int(value) & 0x1FFFFFFF:X}" if math.isfinite(value) else value
+                        )
+                    elif (
+                        bus_name.endswith("CAN_DataFrame.DataBytes")
+                        and len(column)
+                        and isinstance(column.iat[0], np.ndarray)
+                    ):
+                        hex_formatters[name_] = _csv_bytearray2hex
 
-                    for name_ in df.columns:
-                        if name_.endswith("CAN_DataFrame.ID"):
-                            dropped[name_] = pd.Series(
-                                csv_int2hex(df[name_].astype(np.dtype("<u4")) & 0x1FFFFFFF),
-                                index=df.index,
-                            )
-
-                        elif name_.endswith("CAN_DataFrame.DataBytes"):
-                            dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
-
-                    df = df.drop(columns=list(dropped))
-                    for name, s in dropped.items():
-                        df[name] = s
-
-                with open(filename, "w", newline="") as csvfile:
+                with open(filename, "w", newline="", errors="replace") as csvfile:
                     writer = csv.writer(
                         csvfile,
                         delimiter=delimiter,
@@ -2758,20 +2768,10 @@ class MDF:
                         writer.writerow(units_row)
 
                     for col in df:
-                        if df[col].dtype.kind == "S":
-                            for encoding, errors in (
-                                ("utf-8", "strict"),
-                                ("latin-1", "strict"),
-                                ("utf-8", "replace"),
-                                ("latin-1", "replace"),
-                            ):
-                                try:
-                                    df[col] = df[col] = df[col].str.decode(encoding, errors)
-                                    break
-                                except:
-                                    continue
+                        if df[col].dtype == object and col not in hex_formatters:
+                            df[col] = df[col].map(decode_text)
 
-                    vals: list[object]
+                    vals: list[Iterable[object]]
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
@@ -2779,6 +2779,10 @@ class MDF:
                             df.index.to_list(),
                             *(df[name].to_list() for name in df),
                         ]
+                    # the hex text is built row by row, a whole column of it would need much more memory
+                    for position, name in enumerate(df.columns, 1):
+                        if name in hex_formatters:
+                            vals[position] = map(hex_formatters[name], vals[position])
                     count = len(df.index)
 
                     if progress is not None:
@@ -2888,7 +2892,7 @@ class MDF:
                     else:
                         units["timestamps"] = "s"
 
-                    with open(group_csv_name, "w", newline="") as csvfile:
+                    with open(group_csv_name, "w", newline="", errors="replace") as csvfile:
                         writer = csv.writer(
                             csvfile,
                             delimiter=delimiter,
@@ -2899,22 +2903,19 @@ class MDF:
                             quoting=quoting,
                         )
 
-                        if hasattr(self, "can_logging_db") and self.can_logging_db:
-                            dropped = {}
-
-                            for name_ in df.columns:
-                                if name_.endswith("CAN_DataFrame.ID"):
-                                    dropped[name_] = pd.Series(
-                                        csv_int2hex(df[name_] & 0x1FFFFFFF),
-                                        index=df.index,
-                                    )
-
-                                elif name_.endswith("CAN_DataFrame.DataBytes"):
-                                    dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
-
-                            df = df.drop(columns=list(dropped))
-                            for name_, s in dropped.items():
-                                df[name_] = s
+                        hex_formatters = {}
+                        for name_ in df.columns:
+                            column = df[name_]
+                            if name_.endswith("CAN_DataFrame.ID") and column.dtype.kind in "uif":
+                                hex_formatters[name_] = (
+                                    lambda value: f"{int(value) & 0x1FFFFFFF:X}" if math.isfinite(value) else value
+                                )
+                            elif (
+                                name_.endswith("CAN_DataFrame.DataBytes")
+                                and len(column)
+                                and isinstance(column.iat[0], np.ndarray)
+                            ):
+                                hex_formatters[name_] = _csv_bytearray2hex
 
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
@@ -2923,6 +2924,10 @@ class MDF:
                             units_row = [units[name] for name in names_row]
                             writer.writerow(units_row)
 
+                        for col in df:
+                            if df[col].dtype == object and col not in hex_formatters:
+                                df[col] = df[col].map(decode_text)
+
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
                         else:
@@ -2930,6 +2935,9 @@ class MDF:
                                 df.index.to_list(),
                                 *(df[name].to_list() for name in df),
                             ]
+                        for position, name in enumerate(df.columns, 1):
+                            if name in hex_formatters:
+                                vals[position] = map(hex_formatters[name], vals[position])
 
                         for i, row in enumerate(zip(*vals, strict=False)):
                             writer.writerow(row)
@@ -3973,7 +3981,8 @@ class MDF:
 
             for i, group in enumerate(mdf.virtual_groups):
                 included_channels = mdf.included_channels(group)[group]
-                if not included_channels:
+                # a group with only its master channel has no channels to stack
+                if not any(included_channels.values()):
                     continue
 
                 for idx, signals in enumerate(
@@ -4589,7 +4598,7 @@ class MDF:
                 (
                     byte_offset, 
                     byte_size, 
-                    master_channel.pos_invalidation_bit if master_channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                    master_channel.pos_invalidation_bit if master_channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                 )
             ]
 
@@ -4610,7 +4619,7 @@ class MDF:
                         (
                             byte_offset, 
                             byte_size, 
-                            channel.pos_invalidation_bit if channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT) else -1
+                            channel.pos_invalidation_bit if channel.flags & v4c.FLAG_CN_INVALIDATION_PRESENT else -1
                         )
                     )
 
@@ -4746,6 +4755,9 @@ class MDF:
                         vals = vals[:record_count]
                         if invalidation_bits is not None:
                             invalidation_bits = invalidation_bits[:record_count]
+
+                if channel.flags & v4c.FLAG_CN_ALL_INVALID and not self._mdf._ignore_invalidation_bits:
+                    invalidation_bits = InvalidationArray(np.ones(len(vals), dtype=bool))
 
                 output_signals[pair] = Signal(
                     samples=vals,

@@ -1890,9 +1890,9 @@ MultiRasterSeparator;&
                 self._selected_filter = set(channels)
 
                 for i, gp in enumerate(mdf.groups):
-                    for j, ch in enumerate(gp.channels):
+                    for ch in gp.channels:
                         if ch.name in channels:
-                            entry = i, j
+                            entry = i, ch.index
                             channel = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
                             channel.setText(0, ch.name)
                             channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
