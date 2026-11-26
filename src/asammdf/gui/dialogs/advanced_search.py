@@ -386,20 +386,20 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         ):
                             matches.update(
                                 {
-                                    (group_index, channel_index): {
+                                    (group_index, ch.index): {
                                         "names": [ch.name],
                                         "comment": extract_xml_comment(ch.comment).strip(),
                                         "unit": (ch.conversion and ch.conversion.unit) or ch.unit,
                                         "source_name": cg_source.name,
                                         "source_path": cg_source.path,
                                     }
-                                    for channel_index, ch in enumerate(group.channels)
+                                    for ch in group.channels
                                 }
                             )
 
                         else:
-                            for channel_index, ch in enumerate(group.channels):
-                                entry = group_index, channel_index
+                            for ch in group.channels:
+                                entry = group_index, ch.index
                                 source = ch.source
 
                                 targets = [
@@ -669,9 +669,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             position = (group_index, index)
             alias = {}
             gp = self.mdf.groups[group_index]
-            for ch_index, ch in enumerate(gp.channels):
-                if ch_index != channel_index and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
-                    alias[ch.name] = (group_index, ch_index)
+            for ch in gp.channels:
+                if ch.index != channel_index and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
+                    alias[ch.name] = (group_index, ch.index)
 
             if alias:
                 alias_text = "\n".join(
