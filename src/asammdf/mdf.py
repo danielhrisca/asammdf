@@ -194,6 +194,18 @@ def get_measurement_timestamp_and_version(
     return header.start_time, version
 
 
+def _copy_start_time(source: v4b.HeaderBlock | v3b.HeaderBlock, target: v4b.HeaderBlock | v3b.HeaderBlock) -> None:
+    target.start_time = source.start_time
+    # start_time folds the MDF 4 DST offset into a fixed UTC offset, keep both offsets of the source
+    if (
+        isinstance(source, v4b.HeaderBlock)
+        and isinstance(target, v4b.HeaderBlock)
+        and source.time_flags & v4c.FLAG_HD_TIME_OFFSET_VALID
+    ):
+        target.tz_offset = source.tz_offset
+        target.daylight_save_time = source.daylight_save_time
+
+
 def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: StrPath | None = None) -> Path:
     folder: StrPath
     if not dir:
@@ -1099,7 +1111,7 @@ class MDF:
 
             out.configure(from_other=self)
 
-            out.header.start_time = self.header.start_time
+            _copy_start_time(self.header, out.header)
 
             groups_nr = len(self.virtual_groups)
 
@@ -1327,7 +1339,7 @@ class MDF:
             out.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
             delta = 0
-            out.header.start_time = self.header.start_time
+            _copy_start_time(self.header, out.header)
 
         groups_nr = len(self.virtual_groups)
 
@@ -3244,7 +3256,7 @@ class MDF:
         )
 
         mdf.configure(from_other=self)
-        mdf.header.start_time = self.header.start_time
+        _copy_start_time(self.header, mdf.header)
 
         groups_nr = len(gps)
 
@@ -3500,9 +3512,11 @@ class MDF:
 
             try:
                 oldest = min(start_times)
+                oldest_index: int | None = start_times.index(oldest)
             except TypeError:
                 start_times = [timestamp.astimezone(UTC) for timestamp in start_times]
                 oldest = min(start_times)
+                oldest_index = None
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in start_times]
             offsets = [max(0, offset) for offset in offsets]
@@ -3520,6 +3534,7 @@ class MDF:
                         timestamp, version = get_measurement_timestamp_and_version(bytes_io)
 
             oldest = timestamp
+            oldest_index = 0
             versions.append(version)
 
             offsets = [0 for _ in files]
@@ -3561,6 +3576,9 @@ class MDF:
                 merged.configure(from_other=mdf)
 
                 merged.header.start_time = oldest
+
+            if mdf_index == oldest_index:
+                _copy_start_time(mdf.header, merged.header)
 
             reorder_channel_groups = False
             cg_translations: dict[int, int | None] = {}
@@ -3948,14 +3966,17 @@ class MDF:
 
             try:
                 oldest = min(start_times)
+                oldest_index: int | None = start_times.index(oldest)
             except TypeError:
                 start_times = [timestamp.astimezone(UTC) for timestamp in start_times]
                 oldest = min(start_times)
+                oldest_index = None
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in start_times]
 
         else:
             offsets = [0 for file in files]
+            oldest_index = 0
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files, strict=False)):
             if not isinstance(mdf, MDF):
@@ -3980,6 +4001,9 @@ class MDF:
                     stacked.header.start_time = oldest
                 else:
                     stacked.header.start_time = mdf.header.start_time
+
+            if mdf_index == oldest_index:
+                _copy_start_time(mdf.header, stacked.header)
 
             for i, group in enumerate(mdf.virtual_groups):
                 included_channels = mdf.included_channels(group)[group]
@@ -4394,7 +4418,7 @@ class MDF:
             mdf.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
             new_raster = None
-            mdf.header.start_time = self.header.start_time
+            _copy_start_time(self.header, mdf.header)
 
         for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
             channels = [
@@ -6514,7 +6538,7 @@ class MDF:
         if not isinstance(out._mdf, mdf_v4.MDF4):
             raise MdfException("extract_bus_logging is only supported in MDF4 files")
 
-        out.header.start_time = self.header.start_time
+        _copy_start_time(self.header, out.header)
 
         if database_files.get("CAN", None):
             out._mdf = self._mdf._extract_can_logging(
@@ -6635,7 +6659,7 @@ class MDF:
 
         out = MDF(version=version)
 
-        out.header.start_time = self.header.start_time
+        _copy_start_time(self.header, out.header)
 
         groups_nr = len(self.virtual_groups)
 

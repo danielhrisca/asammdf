@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections.abc import Callable
 import csv
 import importlib.util
 from pathlib import Path
@@ -328,6 +329,34 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(signal.encoding, encoding)
                 self.assertEqual(signal.samples.tolist(), samples.tolist(), encoding)
                 self.assertEqual(mdf.select(["text"])[0].encoding, encoding)
+
+    def test_derived_files_keep_dst_offset(self) -> None:
+        with MDF(version="4.10") as mdf, MDF(version="4.10") as later:
+            for source in (mdf, later):
+                source.append(Signal(np.arange(4, dtype="f8"), np.arange(4, dtype="f8"), name="x"))
+            header, later_header = mdf.header, later.header
+            assert isinstance(header, v4b.HeaderBlock) and isinstance(later_header, v4b.HeaderBlock)
+            # Central European Summer Time, the later measurement in UTC
+            header.tz_offset, header.daylight_save_time = 60, 60
+            later_header.tz_offset, later_header.daylight_save_time = 0, 0
+            later_header.abs_time = header.abs_time + 10 * 10**9
+            operations: dict[str, Callable[[], MDF]] = {
+                "convert": lambda: mdf.convert("4.00"),
+                "filter": lambda: mdf.filter(["x"]),
+                "cut": lambda: mdf.cut(start=1),
+                "resample": lambda: mdf.resample(0.5),
+                # the oldest measurement is not the first one
+                "concatenate": lambda: MDF.concatenate([later, mdf]),
+                "stack": lambda: MDF.stack([later, mdf]),
+            }
+            for name, operation in operations.items():
+                with self.subTest(name), operation() as out:
+                    out_header = out.header
+                    assert isinstance(out_header, v4b.HeaderBlock)
+                    self.assertEqual(
+                        (out_header.start_time, out_header.tz_offset, out_header.daylight_save_time),
+                        (header.start_time, 60, 60),
+                    )
 
     def test_dataframe_text_stays_utf8(self) -> None:
         df = DataFrame({"city": ["M\u00fcnchen", "Z\u00fcrich"]}, index=[1.0, 2.0])
