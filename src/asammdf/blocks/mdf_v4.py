@@ -7116,7 +7116,7 @@ class MDF4(MDF_Common[Group]):
             one_piece = True
 
         axes = []
-        for dep in dependency_list:
+        for dep in [dep for dep in dependency_list if isinstance(dep, ChannelArrayBlock)]:
             axes.extend(dep.get_axes_information())
 
         shape = tuple(axis["size"] for axis in axes)
@@ -7937,7 +7937,7 @@ class MDF4(MDF_Common[Group]):
                 ):
                     vals = extract(signal_data, True, vals - vals[0])
                     if vals.shape[1] < max_vlsd_size:
-                        samples = np.hstack(
+                        vals = np.hstack(
                             (
                                 vals,
                                 np.zeros(
