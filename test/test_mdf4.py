@@ -28,6 +28,24 @@ class TestMDF4(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.tempdir = tempfile.TemporaryDirectory()
 
+    def test_save_without_adding_file_history(self) -> None:
+        directory = Path(self.tempdir.name)
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(np.array([42]), np.array([0.0]), name="value"))
+            path = mdf.save(directory / "created.mf4", add_history_block=False)
+
+        with MDF(path) as mdf:
+            self.assertEqual(len(mdf.file_history), 1)
+            created = mdf.file_history[0]
+            self.assertIn("<TX>created</TX>", created.comment)
+            copy = mdf.save(directory / "copy.mf4", add_history_block=False)
+
+        with MDF(copy) as mdf:
+            self.assertEqual(len(mdf.file_history), 1)
+            self.assertEqual(mdf.file_history[0].comment, created.comment)
+            self.assertEqual(mdf.file_history[0].abs_time, created.abs_time)
+            np.testing.assert_array_equal(mdf.get("value").samples, [42])
+
     def test_invalidation_channel_flags(self) -> None:
         timestamps = np.arange(5, dtype=np.float64)
         invalid = np.array([False, True, False, True, False])
