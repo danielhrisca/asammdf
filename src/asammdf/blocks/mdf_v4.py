@@ -715,8 +715,6 @@ class MDF4(MDF_Common[Group]):
             actual_size = len(samples)
             target_size = group.channel_group.cycles_nr
 
-            print(channel.name, actual_size, target_size, group.data_blocks[-1])
-
             if actual_size < target_size:
 
                 virtual_channel_group = self.virtual_groups[channel.group]
@@ -7884,9 +7882,6 @@ class MDF4(MDF_Common[Group]):
                                 np.ndarray[tuple[int], np.dtype[np.bool]], np.array([], dtype=np.bool)
                             )
                         if not ignore_invalidation_bits:
-                            print(len(invalidation_array))
-                            print(len(vals))
-                            print(len(timestamps))
                             vals = vals[nonzero(~invalidation_array)[0]]
                             if master_is_required:
                                 if timestamps is None:
@@ -7940,41 +7935,22 @@ class MDF4(MDF_Common[Group]):
                     v4c.DATA_TYPE_MIME_SAMPLE,
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
-                    samples = extract(signal_data, True, vals - vals[0])
-                    if samples.shape[1] < max_vlsd_size:
+                    vals = extract(signal_data, True, vals - vals[0])
+                    if vals.shape[1] < max_vlsd_size:
                         samples = np.hstack(
                             (
-                                samples,
+                                vals,
                                 np.zeros(
                                     (
-                                        samples.shape[0],
-                                        max_vlsd_size - samples.shape[1],
+                                        vals.shape[0],
+                                        max_vlsd_size - vals.shape[1],
                                     ),
-                                    dtype=samples.dtype,
+                                    dtype=vals.dtype,
                                 ),
                             )
                         )
                 else:
-                    samples = extract(signal_data, False, vals - vals[0])
-
-                vals = samples
-
-                # target_size = len(vals)
-                # actual_size = len(samples)
-
-                # if actual_size < target_size:
-                #     logger.warning(
-                #         f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
-                #         " The signal data has been increased to {target_size} samples by appending zeros."
-                #     )
-                #     samples = np.append(samples, np.zeros(target_size - actual_size, dtype=samples.dtype))
-
-                # elif actual_size > target_size:
-                #     logger.warning(
-                #         f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
-                #         " The signal data has been truncated to {target_size} samples."
-                #     )
-                #     samples=samples[:target_size]
+                    vals = extract(signal_data, False, vals - vals[0])
 
                 if data_type not in (
                     v4c.DATA_TYPE_BYTEARRAY,
@@ -8603,7 +8579,7 @@ class MDF4(MDF_Common[Group]):
         record_size = channel_group.samples_byte_nr
         if not group.uses_ld:
             record_size += channel_group.invalidation_bytes_nr
-            
+
         if record_count is not None:
             cycles_nr = record_count
         else:
