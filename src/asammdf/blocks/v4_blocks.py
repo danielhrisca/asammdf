@@ -2161,6 +2161,9 @@ class Channel:
             )
             return pack(fmt, *[getattr(self, key) for key in keys])
 
+    def __repr__(self):
+        return f"ChannelV4({self.name} {hex(self.address)} @ {hex(id(self))})"
+
     def __str__(self) -> str:
         return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
     conversion: {self.conversion},
