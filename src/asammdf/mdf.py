@@ -2464,7 +2464,6 @@ class MDF:
                 reduce_memory_usage=reduce_memory_usage,
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 raw=raw,
-                numeric_1D_only=fmt == "parquet",
             )
             units: dict[Hashable, str] = {}
             comments: dict[Hashable, str] = {}
@@ -3131,7 +3130,19 @@ class MDF:
 
         elif fmt == "parquet":
             filename = filename.with_suffix(".parquet")
-            table = pa.table(df)
+            columns = []
+            for name, column in df.items():
+                if column.dtype.kind in "biuf":
+                    columns.append(name)
+                elif column.dtype.kind == "O" and not column.empty:
+                    value = np.asarray(column.iloc[0])
+                    # pyarrow cannot write complex numbers, records or arrays with more dimensions
+                    if value.ndim < 2 and value.dtype.kind in "biufSU":
+                        if value.ndim and value.dtype == np.uint8:
+                            # byte arrays as binary, lists of single bytes need much more memory
+                            df[name] = column.map(bytes)
+                        columns.append(name)
+            table = pa.Table.from_pandas(df, columns=columns)
             if compression:
                 write_parquet(table, filename, compression=compression)  # type: ignore[arg-type]
             else:

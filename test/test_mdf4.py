@@ -192,6 +192,38 @@ class TestMDF4(unittest.TestCase):
                         expected = [text.encode(encoding, "replace").decode(encoding) for text in texts]
                         self.assertEqual([row[name] for row in rows], expected)
 
+    @unittest.skipIf(importlib.util.find_spec("pyarrow") is None, "pyarrow is not installed")
+    def test_export_parquet_text_and_arrays(self) -> None:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        timestamps = np.arange(2, dtype=np.float64)
+        gear = {"val_0": 0, "text_0": "Park", "default_addr": "Fault"}
+        counts = np.array([([1, -2],), ([3, 4],)], dtype=[("counts", "<i2", (2,))])
+        maps = np.zeros(2, dtype=[("map", "<f8", (2, 2))])
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(np.array([0, 5], dtype=np.uint8), timestamps, name="gear", conversion=gear),
+                    Signal(np.array([[1, 2], [3, 4]], dtype=np.uint8), timestamps, name="data_bytes"),
+                    Signal(np.array([True, False]), timestamps, name="flag"),
+                    Signal(counts, timestamps, name="counts"),
+                    Signal(maps, timestamps, name="map"),
+                    Signal(np.array([1j, 2j], dtype=np.complex64), timestamps, name="phase"),
+                ]
+            )
+            path = Path(self.tempdir.name) / "export.parquet"
+            mdf.export("parquet", filename=path)
+
+        table = pq.read_table(path)
+        # pyarrow cannot write the 2D map values and complex numbers
+        self.assertEqual(table.column_names, ["data_bytes", "flag", "counts", "gear", "timestamps"])
+        self.assertEqual(table.column("gear").to_pylist(), [b"Park", b"Fault"])
+        self.assertEqual(table.column("data_bytes").to_pylist(), [bytes([1, 2]), bytes([3, 4])])
+        self.assertEqual(table.schema.field("flag").type, pa.bool_())
+        self.assertEqual(table.column("flag").to_pylist(), [True, False])
+        self.assertEqual(table.column("counts").to_pylist(), [[1, -2], [3, 4]])
+
     def test_extend_canopen(self) -> None:
         dates = np.array(
             [
