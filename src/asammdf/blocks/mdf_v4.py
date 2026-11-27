@@ -9492,13 +9492,19 @@ class MDF4(MDF_Common[Group]):
                                 _pgn = tmp_pgn & 0x3FF00
                                 msg_pgn = _pgn + ps if pf >= 240 else _pgn
 
-                                for (_pgn, _sa), _msg in j1939_messages.items():
-                                    if _pgn == msg_pgn:
-                                        message = _msg
-                                        break
-                                else:
-                                    unknown_ids[(msg_id, is_extended)].append(True)
-                                    continue
+                                # the logged priority may differ from the database, so try the PGN and source
+                                # address first (for PDU1 only with the same destination address)
+                                message = j1939_messages.get((msg_pgn, msg_id & 0xFF))
+                                if message is not None and pf < 240 and (message.arbitration_id.id >> 8) & 0xFF != ps:
+                                    message = None
+                                if message is None:
+                                    for (_pgn, _sa), _msg in j1939_messages.items():
+                                        if _pgn == msg_pgn:
+                                            message = _msg
+                                            break
+                                    else:
+                                        unknown_ids[(msg_id, is_extended)].append(True)
+                                        continue
 
                             is_j1939 = message.is_j1939 or global_is_j1939
                             if is_j1939:

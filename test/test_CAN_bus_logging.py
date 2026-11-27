@@ -223,6 +223,25 @@ class TestBusFrameSelection(unittest.TestCase):
 
             self.assertEqual(sorted(group.channels[1].name for group in out.groups), ["SpeedA", "SpeedB"])
 
+    def test_j1939_message_per_source_address(self) -> None:
+        dbc = load_can_database(
+            "j1939.dbc",
+            contents=J1939_DBC.replace(
+                'BO_ 2348810494 TSC1: 8 Vector__XXX\n SG_ EngRqedSpeed : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX',
+                'BO_ 2348810251 TSC1_A: 8 Vector__XXX\n SG_ SpeedA : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX\n'
+                'BO_ 2348810273 TSC1_B: 8 Vector__XXX\n SG_ SpeedB : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX',
+            ).replace(
+                'BA_ "VFrameFormat" BO_ 2348810494 3;',
+                'BA_ "VFrameFormat" BO_ 2348810251 3;\nBA_ "VFrameFormat" BO_ 2348810273 3;',
+            ),
+        )
+        # one TSC1 message for each of the source addresses 0x0B and 0x21, sent with priority 6 instead of 3
+        with can_logging([0x1800000B, 0x18000021] * 3, [1] * 6, [100.0, 200.0] * 3) as mdf:
+            out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+
+            np.testing.assert_array_equal(out.get("SpeedA").samples, [100.0] * 3, strict=True)
+            np.testing.assert_array_equal(out.get("SpeedB").samples, [200.0] * 3, strict=True)
+
     def test_j1939_one_group_per_pgn_and_source_address(self) -> None:
         dbc = load_can_database("j1939.dbc", contents=J1939_DBC)
         # TSC1 from source address 0x0B to destinations 0x00 and 0x10, only the second one in the last frames
