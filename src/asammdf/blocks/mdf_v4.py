@@ -709,6 +709,8 @@ class MDF4(MDF_Common[Group]):
                 progress(progress_steps - 1, progress_steps)  # second to last step now
 
         for channel in self._signal_data_channels:
+            if channel.channel_type != v4c.CHANNEL_TYPE_VLSD:
+                continue
             group = self.groups[channel.group]
             signal_data = self._load_signal_data(group=group, index=channel.index)
             samples = extract(signal_data, False, None)
@@ -1186,7 +1188,7 @@ class MDF4(MDF_Common[Group]):
         else:
             max_size = (invalidation_size + samples_size) * channel_group.cycles_nr
 
-        if not samples_size:
+        if not samples_size or not channel_group.cycles_nr:
             if rm:
                 yield Fragment(b"", offset, _count, b"")
             else:
@@ -12029,28 +12031,20 @@ class MDF4(MDF_Common[Group]):
                 index %= factor
             return coords
 
-        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> tuple[str, str]:
-            coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-            m = re.match(ch_parent_name, ch_name)
-            n = re.search(r"\[\d+\]", ch_name)
-            if m:
-                name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-            elif n:
-                name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-            else:
-                name = ch_name + coords
-            return name, coords
-
-        def reset_index(channels):
+        def relocate_children(channels, parent_name, indexed_name, byte_offset, bit_offset):
             for channel in channels:
                 if not isinstance(channel, Channel):
                     continue
 
                 channel.index = NOT_FOUND
                 channel.display_names.clear()
-
+                if channel.name.startswith(parent_name + "."):
+                    channel.name = indexed_name + channel.name[len(parent_name):]
+                channel.byte_offset += byte_offset
+                channel.pos_invalidation_bit += bit_offset
+                channel.prepare_record_info()
                 if channel.composition:
-                    reset_index(channel.composition)
+                    relocate_children(channel.composition, parent_name, indexed_name, byte_offset, bit_offset)
         
         composition = channel.composition
         if not composition:
@@ -12117,7 +12111,8 @@ class MDF4(MDF_Common[Group]):
                 nd_coords = _get_nd_coords(elem_id, multipliers)
 
                 new_block = deepcopy(channel)
-                reset_index([new_block])
+                new_block.index = NOT_FOUND
+                new_block.display_names.clear()
 
                 # update byte offset & position of invalidation bit
                 byte_offset = bit_offset = 0
@@ -12130,7 +12125,8 @@ class MDF4(MDF_Common[Group]):
                 new_block.pos_invalidation_bit += bit_offset
 
                 # update channel name
-                new_block.name, coords = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+                coords = "[" + "][".join(map(str, nd_coords)) + "]"
+                new_block.name = channel.name + coords
                 new_block.comment = f'component {coords} of {channel.name}\n{channel.comment}'
 
                 # append to channel list
@@ -12145,13 +12141,10 @@ class MDF4(MDF_Common[Group]):
                     path_name = new_block.name
                 
                 if cn_blocks:
-                    new_composition = deepcopy(cn_blocks)
-                    reset_index(new_composition)
-                    for cn_block in new_composition:
-                        cn_block.byte_offset += byte_offset
-                        group.channels.add(cn_block, primary=False)
+                    new_composition = [dep for dep in new_block.composition if isinstance(dep, Channel)]
+                    relocate_children(new_composition, channel.name, new_block.name, byte_offset, bit_offset)
                     new_block.composition = new_composition
-                    new_channels.append((new_block, byte_offset, path_name))
+                    new_channels.append((new_block, 0, path_name))
 
                 else:
                     new_block.component_addr = 0
