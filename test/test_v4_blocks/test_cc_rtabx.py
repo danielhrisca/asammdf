@@ -17,6 +17,26 @@ class TestValueRangeToText(unittest.TestCase):
             values = conversion.convert(raw[:count])
             self.assertEqual(values[:5].tolist(), expected, count)
 
+    def test_uint64_bounds_from_100_samples_on(self) -> None:
+        # extract_bus_logging stores a DBC value as lower = upper, here 0 and the SNA value of a 64-bit signal
+        raw = np.resize(np.array([0, 1, 2**64 - 2, 2**64 - 1], dtype=np.uint64), 100)
+        expected = [b"zero", b"other", b"other", b"SNA"]
+
+        for count in (99, 100):
+            conversion = from_dict(
+                {
+                    "lower_0": 0,
+                    "upper_0": 0,
+                    "text_0": b"zero",
+                    "lower_1": 2**64 - 1,
+                    "upper_1": 2**64 - 1,
+                    "text_1": b"SNA",
+                    "default_addr": b"other",
+                }
+            )
+            values = conversion.convert(raw[:count])
+            self.assertEqual(values[:4].tolist(), expected, count)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone, UTC
 from pathlib import Path
 import tempfile
+from typing import Any
 import unittest
 from zoneinfo import ZoneInfo
 
@@ -10,6 +11,8 @@ import numpy as np
 from asammdf import MDF, Signal
 from asammdf.blocks.mdf_v2 import MDF2
 from asammdf.blocks.mdf_v3 import MDF3
+import asammdf.blocks.v2_v3_blocks as v3b
+import asammdf.blocks.v2_v3_constants as v3c
 
 CHANNEL_LEN = 10000
 
@@ -255,6 +258,22 @@ class TestMDF23(unittest.TestCase):
 
                 self.assertEqual(value_text.tolist(), [b"zero", b"one", b"minus five", b"other", b"other"])
                 self.assertEqual(range_text.tolist(), [b"zero", b"zero", b"other", b"ten", b"other"])
+
+    def test_value_to_text_real_keys(self) -> None:
+        kwargs: dict[str, Any] = {
+            "conversion_type": v3c.CONVERSION_TYPE_TABX,
+            "ref_param_nr": 2,
+            "param_val_0": 0.5,
+            "text_0": b"half",
+            "param_val_1": float(2**64 - 1),
+            "text_1": b"SNA",
+        }
+        conversion = v3b.ChannelConversion(**kwargs)
+        values = conversion.convert(np.array([0.0, 0.5]))
+        np.testing.assert_array_equal(values, np.array([b"", b"half"]), strict=True)
+
+        values = conversion.convert(np.array([0, 2**64 - 1], dtype=np.uint64))
+        np.testing.assert_array_equal(values, np.array([b"", b"SNA"], dtype="S4"), strict=True)
 
     def test_save_keeps_header_comment_text(self) -> None:
         for version in ("3.20", "3.30"):
