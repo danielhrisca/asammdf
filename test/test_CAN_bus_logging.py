@@ -188,6 +188,23 @@ class TestBusFrameSelection(unittest.TestCase):
             self.assertTrue(np.array_equal(speed.samples, [1000.0] * 4))
             self.assertTrue(np.array_equal(speed.timestamps, np.arange(0, 12, 3) * 0.01))
 
+    def test_j1939_extracts_wide_bytes_and_scalar_signal(self) -> None:
+        dbc = load_can_database(
+            "j1939.dbc",
+            contents=J1939_DBC.replace("TSC1: 8", "TSC1: 21").replace(
+                "\n\nBA_DEF_ BO_",
+                '\n SG_ Payload : 24|144@1+ (1,0) [0|0] "" Vector__XXX\n\nBA_DEF_ BO_',
+            ),
+        )
+        with can_logging([0x0C00000B] * 2, [1] * 2, [1000.0, 8100.0]) as mdf:
+            with mdf.extract_bus_logging({"CAN": [(dbc, 0)]}) as out:
+                wide = out.get("Payload", raw=True)
+                expected_bytes = np.array([[0] * 5 + [0xFF] * 13 + [0] * 2] * 2, dtype="u1")
+                self.assertEqual(wide.samples.dtype, np.dtype("u1"))
+                np.testing.assert_array_equal(wide.samples, expected_bytes)
+                np.testing.assert_array_equal(wide.timestamps, [0.0, 0.01])
+                np.testing.assert_array_equal(out.get("EngRqedSpeed").samples, [1000.0])
+
     def test_j1939_message_per_destination(self) -> None:
         dbc = load_can_database(
             "j1939.dbc",
