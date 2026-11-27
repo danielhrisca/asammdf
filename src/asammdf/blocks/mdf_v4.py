@@ -7911,22 +7911,39 @@ class MDF4(MDF_Common[Group]):
                     v4c.DATA_TYPE_MIME_SAMPLE,
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
-                    vals = extract(signal_data, True, vals - vals[0])
-                    if vals.shape[1] < max_vlsd_size:
-                        vals = np.hstack(
+                    samples = extract(signal_data, True, vals - vals[0])
+                    if samples.shape[1] < max_vlsd_size:
+                        samples = np.hstack(
                             (
-                                vals,
+                                samples,
                                 np.zeros(
                                     (
-                                        vals.shape[0],
-                                        max_vlsd_size - vals.shape[1],
+                                        samples.shape[0],
+                                        max_vlsd_size - samples.shape[1],
                                     ),
-                                    dtype=vals.dtype,
+                                    dtype=samples.dtype,
                                 ),
                             )
                         )
                 else:
-                    vals = extract(signal_data, False, vals - vals[0])
+                    samples = extract(signal_data, False, vals - vals[0])
+
+                target_size = len(vals)
+                actual_size = len(samples)
+
+                if actual_size < target_size:
+                    logger.warning(
+                        f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
+                        " The signal data has been increased to {target_size} samples by appending zeros."
+                    )
+                    samples = np.append(samples, np.zeros(target_size - actual_size, dtype=samples.dtype))
+
+                elif actual_size > target_size:
+                    logger.warning(
+                        f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
+                        " The signal data has been truncated to {target_size} samples."
+                    )
+                    samples=samples[:target_size]
 
                 if data_type not in (
                     v4c.DATA_TYPE_BYTEARRAY,
