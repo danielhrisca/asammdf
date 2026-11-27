@@ -5,6 +5,7 @@ from pathlib import Path
 import struct
 import tempfile
 import tracemalloc
+from typing import Any
 import unittest
 from unittest.mock import patch
 
@@ -461,6 +462,214 @@ class TestMDF4(unittest.TestCase):
 
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+
+    def test_read_vlsd_records_sharing_signal_data(self) -> None:
+        # in a finalized file several records may point to the same VLSD entry,
+        # so the signal data has fewer entries than the channel group has records
+        payloads = [b"\x01\x02", b"\x01\x02", b"\x03\x04"]
+        offsets = [0, 0, 6]
+        timestamps = np.arange(3) * 0.1
+        records = b"".join(t.tobytes() + o.to_bytes(8, "little") for t, o in zip(timestamps, offsets, strict=True))
+
+        hd = v4b.HeaderBlock()
+        dg = v4b.DataGroup()
+        cg = v4b.ChannelGroup(cycles_nr=3, samples_byte_nr=16)
+        time_ch = v4b.Channel(
+            channel_type=v4c.CHANNEL_TYPE_MASTER,
+            sync_type=v4c.SYNC_TYPE_TIME,
+            data_type=v4c.DATA_TYPE_REAL_INTEL,
+            bit_count=64,
+        )
+        data_ch = v4b.Channel(
+            channel_type=v4c.CHANNEL_TYPE_VLSD, data_type=v4c.DATA_TYPE_BYTEARRAY, byte_offset=8, bit_count=64
+        )
+        time_name = v4b.TextBlock(text="t")
+        data_name = v4b.TextBlock(text="DataBytes")
+        dt = v4b.DataBlock(data=records)
+        sd = v4b.DataBlock(type="SD", data=b"".join(len(p).to_bytes(4, "little") + p for p in payloads[1:]))
+
+        blocks: list[Any] = [hd, dg, cg, time_ch, data_ch, time_name, data_name, dt, sd]
+        address = 64
+        for block in blocks:
+            block.address = address
+            address += len(bytes(block))
+        hd.first_dg_addr = dg.address
+        dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+        cg.first_ch_addr = time_ch.address
+        time_ch.next_ch_addr, time_ch.name_addr = data_ch.address, time_name.address
+        data_ch.data_block_addr, data_ch.name_addr = sd.address, data_name.address
+
+        outfile = Path(TestMDF4.tempdir.name) / "vlsd_shared_entries.mf4"
+        outfile.write_bytes(
+            bytes(v4b.FileIdentificationBlock(version="4.10")) + b"".join(bytes(block) for block in blocks)
+        )
+
+        with MDF(outfile) as mdf:
+            signal = mdf.get("DataBytes")
+
+        np.testing.assert_array_equal(signal.samples, np.array([[1, 2], [1, 2], [3, 4]], dtype=np.uint8), strict=True)
+        np.testing.assert_array_equal(signal.timestamps, timestamps, strict=True)
+
+    def test_read_vlsd_invalid_record_with_any_offset(self) -> None:
+        # the offset of an invalid VLSD record may point outside the signal data
+        payloads = [b"%PDF-1.7", b"\x00\xff\x00\xff\x00", b"%%EOF"]
+        offsets = [0, 12, 0xFFFF_FFFF_FFFF_0000, 21]
+        timestamps = np.arange(4) * 0.1
+        records = b"".join(
+            t.tobytes() + o.to_bytes(8, "little") + bytes([i == 2])
+            for i, (t, o) in enumerate(zip(timestamps, offsets, strict=True))
+        )
+
+        hd = v4b.HeaderBlock()
+        dg = v4b.DataGroup()
+        cg = v4b.ChannelGroup(cycles_nr=4, samples_byte_nr=16, invalidation_bytes_nr=1)
+        time_ch = v4b.Channel(
+            channel_type=v4c.CHANNEL_TYPE_MASTER,
+            sync_type=v4c.SYNC_TYPE_TIME,
+            data_type=v4c.DATA_TYPE_REAL_INTEL,
+            bit_count=64,
+        )
+        data_ch = v4b.Channel(
+            channel_type=v4c.CHANNEL_TYPE_VLSD,
+            data_type=v4c.DATA_TYPE_BYTEARRAY,
+            byte_offset=8,
+            bit_count=64,
+            flags=v4c.FLAG_CN_INVALIDATION_PRESENT,
+        )
+        time_name = v4b.TextBlock(text="t")
+        data_name = v4b.TextBlock(text="DataBytes")
+        dt = v4b.DataBlock(data=records)
+        sd = v4b.DataBlock(type="SD", data=b"".join(len(p).to_bytes(4, "little") + p for p in payloads))
+
+        blocks: list[Any] = [hd, dg, cg, time_ch, data_ch, time_name, data_name, dt, sd]
+        address = 64
+        for block in blocks:
+            block.address = address
+            address += len(bytes(block))
+        hd.first_dg_addr = dg.address
+        dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+        cg.first_ch_addr = time_ch.address
+        time_ch.next_ch_addr, time_ch.name_addr = data_ch.address, time_name.address
+        data_ch.data_block_addr, data_ch.name_addr = sd.address, data_name.address
+
+        outfile = Path(TestMDF4.tempdir.name) / "vlsd_invalid_offset.mf4"
+        outfile.write_bytes(
+            bytes(v4b.FileIdentificationBlock(version="4.10")) + b"".join(bytes(block) for block in blocks)
+        )
+
+        with MDF(outfile) as mdf:
+            signal = mdf.get("DataBytes")
+
+        expected = np.zeros((3, 8), dtype=np.uint8)
+        for row, payload in zip(expected, payloads, strict=True):
+            row[: len(payload)] = list(payload)
+        np.testing.assert_array_equal(signal.samples, expected, strict=True)
+        np.testing.assert_array_equal(signal.timestamps, timestamps[[0, 1, 3]], strict=True)
+
+    def test_open_sync_channel_linked_to_attachment(self) -> None:
+        # the data link of a sync channel points to the attachment, not to signal data
+        records = b"".join(np.float64(i * 0.1).tobytes() + i.to_bytes(4, "little") for i in range(3))
+        for flags in (0, v4c.FLAG_UNFIN_UPDATE_CG_COUNTER):
+            with self.subTest(unfinalized_flags=flags):
+                hd = v4b.HeaderBlock()
+                dg = v4b.DataGroup()
+                cg = v4b.ChannelGroup(cycles_nr=3, samples_byte_nr=12)
+                time_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_MASTER,
+                    sync_type=v4c.SYNC_TYPE_TIME,
+                    data_type=v4c.DATA_TYPE_REAL_INTEL,
+                    bit_count=64,
+                )
+                frame_ch = v4b.Channel(
+                    channel_type=v4c.CHANNEL_TYPE_SYNC,
+                    sync_type=v4c.SYNC_TYPE_INDEX,
+                    data_type=v4c.DATA_TYPE_UNSIGNED_INTEL,
+                    byte_offset=8,
+                    bit_count=32,
+                )
+                time_name = v4b.TextBlock(text="t")
+                frame_name = v4b.TextBlock(text="frame")
+                at = v4b.AttachmentBlock(data=b"\0" * 8, file_name="video.avi", embedded=True, compression=False)
+                dt = v4b.DataBlock(data=records)
+
+                blocks: list[Any] = [hd, dg, cg, time_ch, frame_ch, time_name, frame_name, at, dt]
+                address = 64
+                for block in blocks:
+                    block.address = address
+                    address += len(bytes(block))
+                hd.first_dg_addr, hd.first_attachment_addr = dg.address, at.address
+                dg.first_cg_addr, dg.data_block_addr = cg.address, dt.address
+                cg.first_ch_addr = time_ch.address
+                time_ch.next_ch_addr, time_ch.name_addr = frame_ch.address, time_name.address
+                frame_ch.data_block_addr, frame_ch.name_addr = at.address, frame_name.address
+
+                identification = v4b.FileIdentificationBlock(version="4.10")
+                identification.unfinalized_standard_flags = flags
+                outfile = Path(TestMDF4.tempdir.name) / f"sync_attachment_{flags}.mf4"
+                outfile.write_bytes(bytes(identification) + b"".join(bytes(block) for block in blocks))
+
+                with MDF(outfile) as mdf:
+                    self.assertEqual(mdf.groups[0].channel_group.cycles_nr, 3)
+
+    def test_read_ld_transposed_invalidation_block(self) -> None:
+        # the DI block of an LD channel group is transposed with its own column count,
+        # the channel uses bit 1 of the second invalidation byte
+        invalidation = b"\x00\x00\x00\x02\x01\x00\x00\x02"
+        records = b"".join(np.float64(i * 0.1).tobytes() + i.to_bytes(4, "little") for i in range(4))
+
+        hd = v4b.HeaderBlock()
+        dg = v4b.DataGroup()
+        cg = v4b.ChannelGroup(cycles_nr=4, samples_byte_nr=12, invalidation_bytes_nr=2)
+        time_ch = v4b.Channel(
+            channel_type=v4c.CHANNEL_TYPE_MASTER,
+            sync_type=v4c.SYNC_TYPE_TIME,
+            data_type=v4c.DATA_TYPE_REAL_INTEL,
+            bit_count=64,
+        )
+        value_ch = v4b.Channel(
+            data_type=v4c.DATA_TYPE_UNSIGNED_INTEL,
+            byte_offset=8,
+            bit_count=32,
+            flags=v4c.FLAG_CN_INVALIDATION_PRESENT,
+            pos_invalidation_bit=9,
+        )
+        time_name = v4b.TextBlock(text="t")
+        value_name = v4b.TextBlock(text="value")
+        dv = v4b.DataBlock(data=records, type="DV")
+        di = v4b.DataZippedBlock(
+            data=invalidation, zip_type=v4c.FLAG_DZ_TRANSPOSED_DEFLATE, param=2, original_type=b"DI"
+        )
+
+        blocks: list[Any] = [hd, dg, cg, time_ch, value_ch, time_name, value_name, dv, di]
+        address = 64
+        for block in blocks:
+            block.address = address
+            address += len(bytes(block))
+        hd.first_dg_addr = dg.address
+        dg.first_cg_addr, dg.data_block_addr = cg.address, address
+        cg.first_ch_addr = time_ch.address
+        time_ch.next_ch_addr, time_ch.name_addr = value_ch.address, time_name.address
+        value_ch.name_addr = value_name.address
+        # LDBLOCK: next LD, DV and DI links, flags, zip infos, extended flags, block count, offset
+        ld = struct.pack(
+            "<4sI2Q3Q4BIQ", b"##LD", 0, 64, 3, 0, dv.address, di.address, 0, 0, 0,
+            v4c.FLAG_LD_EXT_INVALIDATION_PRESENT, 1, 0,
+        )  # fmt: skip
+
+        outfile = Path(TestMDF4.tempdir.name) / "ld_transposed_invalidation.mf4"
+        outfile.write_bytes(
+            bytes(v4b.FileIdentificationBlock(version="4.20")) + b"".join(bytes(block) for block in blocks) + ld
+        )
+
+        with MDF(outfile) as mdf:
+            signal = mdf.get("value", ignore_invalidation_bits=True)
+            saved = mdf.save(Path(TestMDF4.tempdir.name) / "ld_transposed_invalidation_saved.mf4", overwrite=True)
+        with MDF(saved) as mdf:
+            saved_signal = mdf.get("value", ignore_invalidation_bits=True)
+
+        for sig in (signal, saved_signal):
+            np.testing.assert_array_equal(sig.samples, np.arange(4, dtype="<u4"), strict=True)
+            np.testing.assert_array_equal(sig.invalidation_bits, np.array([0, 1, 0, 1], dtype=bool), strict=True)
 
     def test_read_unsorted_vlsd_channel_group(self) -> None:
         # bus loggers such as mdflib store the frame bytes as VLSD records of a
