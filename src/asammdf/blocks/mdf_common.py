@@ -90,6 +90,56 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.index = index
         self._version = version
 
+    def adjust_cycles(self, cycles):
+        channel_group = self.channel_group
+
+        if self.uses_ld:
+            record_size = channel_group.samples_byte_nr
+            invalidation_size = channel_group.invalidation_bytes_nr
+        else:
+            record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+            invalidation_size = 0
+
+        current_cycles = channel_group.cycles_nr
+
+        if cycles < current_cycles:
+
+            channel_group.cycles_nr = cycles
+            delta = record_size * (current_cycles - cycles)
+            inval_delta = invalidation_size * (current_cycles - cycles)
+
+            for block in self.data_blocks[::-1]:
+
+                if block.block_limit is not None:
+                    size = block.original_size - block.block_limit
+                else:
+                    size = block.original_size
+
+                if size <= delta:
+                    block.block_limit = 0
+                    delta -= size
+
+                else:
+                    block.block_limit = size - delta
+                    delta = 0
+
+                if inval_block := block.invalidation_block:
+                    if inval_block.block_limit is not None:
+                        size = inval_block.original_size - inval_block.block_limit
+                    else:
+                        size = inval_block.original_size
+    
+                    if size <= inval_delta:
+                        inval_block.block_limit = 0
+                        inval_delta -= size
+    
+                    else:
+                        inval_block.block_limit = size - inval_delta
+                        inval_delta = 0
+
+                if delta <= 0:
+                    break
+
     @property
     def data_blocks(self):
         if not isinstance(self._data_blocks, list):

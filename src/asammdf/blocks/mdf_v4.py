@@ -537,6 +537,8 @@ class MDF4(MDF_Common[Group]):
         # go to first date group and read each data group sequentially
         dg_addr = self.header.first_dg_addr
 
+        self._signal_data_channels = []
+
         while dg_addr:
             new_groups = []
             group = DataGroup(address=dg_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
@@ -706,6 +708,24 @@ class MDF4(MDF_Common[Group]):
             if callable(progress):
                 progress(progress_steps - 1, progress_steps)  # second to last step now
 
+        for channel in self._signal_data_channels:
+            group = self.groups[channel.group]
+            signal_data = self._load_signal_data(group=group, index=channel.index)
+            samples = extract(signal_data, False, None)
+            actual_size = len(samples)
+            target_size = group.channel_group.cycles_nr
+
+            print(channel.name, actual_size, target_size, group.data_blocks[-1])
+
+            if actual_size < target_size:
+
+                virtual_channel_group = self.virtual_groups[channel.group]
+                virtual_channel_group.cycles_nr = actual_size
+
+                for index in virtual_channel_group.groups:
+                    comp_group = self.groups[index]
+                    comp_group.adjust_cycles(actual_size)
+
         for grp in self.groups:
             channels = grp.channels
             if len(channels) == 1 and channels[0].dtype.itemsize == grp.channel_group.samples_byte_nr:
@@ -746,6 +766,7 @@ class MDF4(MDF_Common[Group]):
         self._units_map.clear()
 
         self._attachments_map.clear()
+        self._signal_data_channels.clear()
 
         self._master = None
 
@@ -869,6 +890,7 @@ class MDF4(MDF_Common[Group]):
             cn_data_addr = channel.data_block_addr
             if cn_data_addr:
                 channel.signal_data = list(self._get_signal_data_blocks_info(cn_data_addr, stream))
+                self._signal_data_channels.append(channel)
 
             if cn_data_addr:
                 self._cn_data_map[cn_data_addr] = entry
@@ -7635,7 +7657,11 @@ class MDF4(MDF_Common[Group]):
         else:
             channel_group = grp.channel_group
 
-            record_size = channel_group.samples_byte_nr
+            samples_byte_nr = channel_group.samples_byte_nr
+            if grp.uses_ld:
+                record_size = samples_byte_nr
+            else:
+                record_size = channel_group.invalidation_bytes_nr + samples_byte_nr
 
             if one_piece:
                 fragment = next(fragments)
@@ -7646,13 +7672,13 @@ class MDF4(MDF_Common[Group]):
                 if info is not None:
                     dtype_, byte_size, byte_offset, bit_offset = info
                     buffer: Buffer
-                    if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype.itemsize == record_size:
+                    if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype.itemsize == samples_byte_nr:
                         buffer = bytearray(data_bytes)
                     else:
                         if fragment.is_record:
                             buffer = get_channel_raw_bytes(
                                 data_bytes,
-                                record_size + channel_group.invalidation_bytes_nr,
+                                record_size,
                                 byte_offset,
                                 byte_size,
                             )
@@ -7693,7 +7719,7 @@ class MDF4(MDF_Common[Group]):
                     elif channel_type == v4c.CHANNEL_TYPE_VALUE and channel.fast_path is None:
                         channel.fast_path = (
                             gp_nr,
-                            record_size + channel_group.invalidation_bytes_nr,
+                            record_size,
                             byte_offset,
                             byte_size,
                             channel.pos_invalidation_bit if channel_invalidation_present else -1,
@@ -7773,13 +7799,13 @@ class MDF4(MDF_Common[Group]):
                     for count, fragment in enumerate(fragments, 1):
                         data_bytes = fragment.data
 
-                        if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype.itemsize == record_size:
+                        if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype.itemsize == samples_byte_nr:
                             buffers.append(bytearray(data_bytes))
                         else:
                             buffers.append(
                                 get_channel_raw_bytes(
                                     data_bytes,
-                                    record_size + channel_group.invalidation_bytes_nr,
+                                    record_size,
                                     byte_offset,
                                     byte_size,
                                 )
@@ -7858,6 +7884,9 @@ class MDF4(MDF_Common[Group]):
                                 np.ndarray[tuple[int], np.dtype[np.bool]], np.array([], dtype=np.bool)
                             )
                         if not ignore_invalidation_bits:
+                            print(len(invalidation_array))
+                            print(len(vals))
+                            print(len(timestamps))
                             vals = vals[nonzero(~invalidation_array)[0]]
                             if master_is_required:
                                 if timestamps is None:
@@ -7928,22 +7957,24 @@ class MDF4(MDF_Common[Group]):
                 else:
                     samples = extract(signal_data, False, vals - vals[0])
 
-                target_size = len(vals)
-                actual_size = len(samples)
+                vals = samples
 
-                if actual_size < target_size:
-                    logger.warning(
-                        f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
-                        " The signal data has been increased to {target_size} samples by appending zeros."
-                    )
-                    samples = np.append(samples, np.zeros(target_size - actual_size, dtype=samples.dtype))
+                # target_size = len(vals)
+                # actual_size = len(samples)
 
-                elif actual_size > target_size:
-                    logger.warning(
-                        f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
-                        " The signal data has been truncated to {target_size} samples."
-                    )
-                    samples=samples[:target_size]
+                # if actual_size < target_size:
+                #     logger.warning(
+                #         f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
+                #         " The signal data has been increased to {target_size} samples by appending zeros."
+                #     )
+                #     samples = np.append(samples, np.zeros(target_size - actual_size, dtype=samples.dtype))
+
+                # elif actual_size > target_size:
+                #     logger.warning(
+                #         f"{channel.name} has {target_size} samples but its referenced signal data has {actual_size} samples."
+                #         " The signal data has been truncated to {target_size} samples."
+                #     )
+                #     samples=samples[:target_size]
 
                 if data_type not in (
                     v4c.DATA_TYPE_BYTEARRAY,
@@ -8570,7 +8601,9 @@ class MDF4(MDF_Common[Group]):
         time_ch_nr = self.masters_db.get(index, None)
         channel_group = group.channel_group
         record_size = channel_group.samples_byte_nr
-        record_size += channel_group.invalidation_bytes_nr
+        if not group.uses_ld:
+            record_size += channel_group.invalidation_bytes_nr
+            
         if record_count is not None:
             cycles_nr = record_count
         else:
