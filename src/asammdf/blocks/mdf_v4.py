@@ -9977,7 +9977,8 @@ class MDF4(MDF_Common[Group]):
                 added zstd and lz4 compression options; only available for MDF version >= 4.30
 
         add_history_block : bool, default True
-            Option to add file history block.
+            Add a file history entry on save. The first entry is always written
+            to identify the application that created the MDF4 file.
 
         Returns
         -------
@@ -10025,12 +10026,8 @@ class MDF4(MDF_Common[Group]):
 
             dst_ = open(destination, "wb+")
 
-        if not self.file_history:
-            comment = "created"
-        else:
-            comment = "updated"
-
-        if add_history_block:
+        if add_history_block or not self.file_history:
+            comment = "updated" if self.file_history else "created"
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
     <TX>{comment}</TX>
