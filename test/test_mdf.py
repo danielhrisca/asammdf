@@ -682,6 +682,13 @@ class TestMDF(unittest.TestCase):
                 np.testing.assert_allclose(slow.timestamps[3:], [1.2, 1.7, 2.2])
                 np.testing.assert_allclose(fast.timestamps[6:], np.linspace(1.2, 2.2, 6))
 
+    def test_concatenate_channel_with_other_data_type(self) -> None:
+        first, second = MDF(), MDF()
+        first.append(Signal(np.arange(3, dtype="f8"), np.arange(3.0), name="x"))
+        second.append(Signal(np.arange(3, dtype="i8"), np.arange(3.0, 6.0), name="x"))
+        with first, second, self.assertRaisesRegex(MdfException, "channel x has data type int64 instead of float64"):
+            MDF.concatenate([first, second])
+
     @unittest.skipIf(sys.platform != "win32", "skip for unix for now")
     def test_filter(self) -> None:
         print("MDF read tests")

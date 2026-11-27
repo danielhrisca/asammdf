@@ -3524,6 +3524,7 @@ class MDF:
 
             offsets = [0 for _ in files]
 
+        cg_dtypes: dict[int, list[np.dtype[Any]]] = {}
         included_channel_names: list[list[str]] = []
         cg_map: dict[int, int] = {}
 
@@ -3774,6 +3775,7 @@ class MDF:
                         )
                         MDF._transfer_channel_group_data(merged.groups[cg_nr].channel_group, cg)
                         cg_map[group_index] = cg_nr
+                        cg_dtypes[cg_nr] = [sig.samples.dtype for sig in signals]
 
                     else:
                         if different_channel_order:
@@ -3822,6 +3824,21 @@ class MDF:
                             # set the original channel group number back for extension
                             if reorder_channel_groups:
                                 cg_nr = cg_map[origin_gp_idx]
+                            # the first file sets the record layout, so extend would reinterpret the bytes of
+                            # a number stored with another width or as float instead of integer in a later file
+                            for name, (samples, _), dtype in zip(
+                                included_channel_names[i], signals_samples[1:], cg_dtypes[cg_nr], strict=False
+                            ):
+                                if (
+                                    samples.dtype.kind in "biuf"
+                                    and dtype.kind in "biuf"
+                                    and (samples.dtype.itemsize, samples.dtype.kind == "f")
+                                    != (dtype.itemsize, dtype.kind == "f")
+                                ):
+                                    raise MdfException(
+                                        f"internal structure of file {mdf_index} is different; "
+                                        f"channel {name} has data type {samples.dtype} instead of {dtype}"
+                                    )
                             merged.extend(cg_nr, signals_samples)
 
                             if first_timestamp is None:
