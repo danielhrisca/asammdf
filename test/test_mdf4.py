@@ -821,6 +821,44 @@ class TestMDF4(unittest.TestCase):
                     with MDF(outfile) as mdf, self.assertRaises(MdfException):
                         mdf.filter(["t"])
 
+    def test_select_with_fewer_records_than_cycle_count(self) -> None:
+        # some writers leave cg_cycle_count higher than the records in the data block
+        # or set cg_data_bytes to 0, select must return only the records get finds
+        timestamps = np.arange(10) * 0.1
+        values = np.arange(10, dtype="<f8") + 100
+        invalid = np.arange(10) % 3 == 0
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(values, timestamps, name="v", invalidation_bits=invalid)])
+            source = mdf.save(Path(self.tempdir.name) / "fewer_records.mf4", overwrite=True)
+        with MDF(source) as mdf:
+            address = mdf.groups[0].channel_group.address
+
+        # cg_cycle_count and cg_data_bytes with cg_inval_bytes follow the six links of the CGBLOCK
+        for offset, fmt, fields, count in ((80, "<Q", (15,), 10), (96, "<II", (0, 0), 0)):
+            with self.subTest(fields=fields):
+                data = bytearray(source.read_bytes())
+                struct.pack_into(fmt, data, address + offset, *fields)
+                outfile = source.with_name(f"fewer_records_{count}.mf4")
+                outfile.write_bytes(data)
+
+                with MDF(outfile) as mdf:
+                    signals = [mdf.select(["v"])[0], next(mdf.iter_channels())]
+
+                if count:
+                    # the large-file path without creating a 200 MiB fixture
+                    with (
+                        MDF(outfile) as mdf,
+                        patch("asammdf.blocks.mdf_v4.validate_blocks", return_value=True),
+                        patch("asammdf.mdf.validate_blocks", return_value=True),
+                    ):
+                        signals += [mdf.get("v", ignore_invalidation_bits=True), mdf.select(["v"])[0]]
+
+                for signal in signals:
+                    np.testing.assert_array_equal(signal.timestamps, timestamps[:count], strict=True)
+                    np.testing.assert_array_equal(signal.samples, values[:count], strict=True)
+                    if count:
+                        np.testing.assert_array_equal(np.asarray(signal.invalidation_bits), invalid, strict=True)
+
     def test_attachment_blocks_with_padded_block_len(self) -> None:
         original_data = [f"attachment {i}".encode() for i in range(3)]
         with MDF() as mdf:
