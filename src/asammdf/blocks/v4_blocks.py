@@ -7342,7 +7342,7 @@ class ListData(_ListDataBase):
         fmt += f"{self.data_block_nr}Q"
         keys += tuple(f"data_block_addr_{i}" for i in range(self.data_block_nr))
 
-        if self.flags & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
+        if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
             fmt += f"{self.data_block_nr}Q"
             keys += tuple(f"invalidation_bits_addr_{i}" for i in range(self.data_block_nr))
 

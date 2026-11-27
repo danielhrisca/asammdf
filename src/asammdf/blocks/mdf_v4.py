@@ -644,6 +644,7 @@ class MDF4(MDF_Common[Group]):
                     total_size += (
                         channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr + record_id_nr
                     ) * channel_group.cycles_nr
+                    inval_total_size += channel_group.invalidation_bytes_nr * channel_group.cycles_nr
 
                     record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
@@ -888,7 +889,12 @@ class MDF4(MDF_Common[Group]):
             cn_data_addr = channel.data_block_addr
             if cn_data_addr:
                 channel.signal_data = list(self._get_signal_data_blocks_info(cn_data_addr, stream))
-                self._signal_data_channels.append(channel)
+                # only an unfinalized file can end with records whose VLSD entry was not written yet,
+                # in a finalized file the offsets may share or skip entries
+                if channel.channel_type == v4c.CHANNEL_TYPE_VLSD and self.identification.unfinalized_standard_flags & (
+                    v4c.FLAG_UNFIN_UPDATE_CG_COUNTER | v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+                ):
+                    self._signal_data_channels.append(channel)
 
             if cn_data_addr:
                 self._cn_data_map[cn_data_addr] = entry
@@ -1255,6 +1261,10 @@ class MDF4(MDF_Common[Group]):
                     info.block_limit,
                 )
 
+                # a block emptied by Group.adjust_cycles holds no records
+                if block_limit == 0:
+                    continue
+
                 if rm and invalidation_size:
                     invalidation_info = info.invalidation_block
                 else:
@@ -1330,7 +1340,7 @@ class MDF4(MDF_Common[Group]):
 
                             if invalidation_info.block_type % 2 == 0:
                                 # tranposed data
-                                cols = typing.cast(int, param)
+                                cols = typing.cast(int, invalidation_info.param)
                                 lines = invalidation_original_size // cols
                                 matrix_size = lines * cols
 
@@ -8219,6 +8229,10 @@ class MDF4(MDF_Common[Group]):
             offsets = offsets.astype("u8")
 
             data = self._load_signal_data(group, channel_index)
+            # invalid samples can hold any offset, keep only offsets with a complete length field
+            limit = max(len(data) - 3, 0)
+            if len(offsets) and offsets.max() >= limit:
+                offsets = offsets[offsets < limit]
 
             max_size = get_vlsd_max_sample_size(data, offsets, len(offsets))
 
