@@ -10388,13 +10388,17 @@ class MDF4(MDF_Common[Group]):
 
             blocks = []
 
-            # file history blocks
-            for fh in self.file_history:
-                address = fh.to_blocks(address, blocks, defined_texts)
+            if self.file_history:
+                # file history blocks
+                for fh in self.file_history:
+                    address = fh.to_blocks(address, blocks, defined_texts)
 
-            for i, fh in enumerate(self.file_history[:-1]):
-                fh.next_fh_addr = self.file_history[i + 1].address
-            self.file_history[-1].next_fh_addr = 0
+                for i, fh in enumerate(self.file_history[:-1]):
+                    fh.next_fh_addr = self.file_history[i + 1].address
+                self.file_history[-1].next_fh_addr = 0
+                self.header.file_history_addr = self.file_history[0].address
+            else:
+                self.header.file_history_addr = 0
 
             # data groups
             gp_rec_ids = []
@@ -10634,7 +10638,7 @@ class MDF4(MDF_Common[Group]):
                 self.header.first_dg_addr = addr_
             else:
                 self.header.first_dg_addr = 0
-            self.header.file_history_addr = self.file_history[0].address
+            
             # the channel hierarchy (CHBLOCK) is not written
             self.header.channel_tree_addr = 0
             if self.attachments:
