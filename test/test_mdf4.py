@@ -1494,6 +1494,14 @@ class TestMDF4(unittest.TestCase):
                 self.assertEqual(len(ret.samples), len(expected))
                 self.assertTrue(np.allclose(ret.samples, expected))
 
+    def test_concatenate_different_channel_names(self) -> None:
+        t = np.arange(3, dtype="f8")
+        with MDF() as first, MDF() as second:
+            first.append(Signal(t, t, name="a"))
+            second.append(Signal(t, t, name="b"))
+            with self.assertRaisesRegex(MdfException, "different channels"):
+                MDF.concatenate([first, second])
+
     def test_export_csv_can_frames(self) -> None:
         timestamps = np.array([0.0, 1.0])
         data_bytes = np.array([[0x86, 0, 0x13, 0xFF, 0x7D, 0xAD, 0x19, 0xFF], range(8)], dtype="u1")
