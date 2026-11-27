@@ -441,7 +441,8 @@ def extract_mux(
                     "invalidation_bits": None,
                 }
 
-                if is_j1939:
+                # J1939 reserved values apply to scalars, not byte-array samples.
+                if is_j1939 and samples.ndim == 1:
                     signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
 
             except:
@@ -601,7 +602,7 @@ def _emit_pdu_signals(
                 "invalidation_bits": invalidation_bits,
             }
 
-            if is_j1939:
+            if is_j1939 and samples.ndim == 1:
                 j1939_invalid = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
                 if invalidation_bits is not None:
                     j1939_invalid = j1939_invalid | invalidation_bits

@@ -220,6 +220,22 @@ class TestPduContainerExtraction(unittest.TestCase):
             self.assertEqual(bytes(np.asarray(blob[i]).tobytes()[:27]), bytes(row))
         self.assertTrue(np.array_equal(got[pdu.name]["W_u8"]["samples"], np.full(len(frames), 0xA5)))
 
+    def test_j1939_pdu_wide_signal_keeps_short_dlc_invalidation(self) -> None:
+        cont = build_wide_signal_container()
+        pdu = cont.pdus[0]
+        blob = bytes(range(27))
+        full = _encode_header(pdu.id, pdu.size, True) + blob + bytes([0xFB])
+        short = _encode_header(pdu.id, 26, True) + blob[:26]
+        payload = np.array([list(frame.ljust(FD_FRAME_BYTES, b"\x00")) for frame in (full, short)], dtype="u1")
+        extracted = extract_pdus(
+            payload, cont, message_id=CONTAINER_ID, bus=1, t=np.array([0.0, 1.0]), raw=True, is_j1939=True
+        )
+        signals = next(iter(extracted.values()))
+        wide = signals["W_blob"]
+        np.testing.assert_array_equal(wide["samples"][0, :27], list(blob))
+        np.testing.assert_array_equal(wide["invalidation_bits"], [False, True])
+        np.testing.assert_array_equal(signals["W_u8"]["invalidation_bits"], [True, True])
+
     def test_extract_pdus_short_header_dlc_invalidates(self) -> None:
         """When the header DLC is shorter than the declared PDU size the trailing
         bytes belong to the next PDU / container padding, so signals reaching into
