@@ -1119,6 +1119,65 @@ class TestMDF4(unittest.TestCase):
                 np.testing.assert_array_equal(samples["s.sub"]["s.sub.a"], [10, 20, 30, 40])
                 np.testing.assert_array_equal(samples["s.x"], t / 2)
 
+    def test_structure_member_invalidation_bits(self) -> None:
+        # the bit fields are read member by member, an invalid member sample
+        # must not drop the record, only the invalidation bit of the structure
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
+        record["frame.low"] = [0x21, 0x43, 0x65]
+        invalid = np.array([False, True, False])
+        masked = Signal(np.zeros(3, dtype="u1"), t, name="masked", invalidation_bits=invalid)
+        low_values, high_values = np.array([1, 3, 5], dtype="u1"), np.array([2, 4, 6], dtype="u1")
+
+        for structure_bit in (False, True):
+            with MDF(version="4.10") as mdf:
+                mdf.append([Signal(record, t, name="frame"), masked], common_timebase=True)
+                channels = mdf.groups[0].channels
+                structure, low, high = channels[1], channels[2], channels[3]
+                structure.bit_count = 8
+                low.bit_count = 4
+                high.byte_offset = low.byte_offset
+                high.bit_offset = 4
+                high.bit_count = 4
+                for channel in (low, high, structure) if structure_bit else (low, high):
+                    channel.flags = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    channel.pos_invalidation_bit = channels[4].pos_invalidation_bit
+                outfile = mdf.save(Path(TestMDF4.tempdir.name) / "member_invalidation.mf4", overwrite=True)
+
+            with self.subTest(structure_bit=structure_bit), MDF(outfile) as mdf:
+                # one record per fragment, the first fragment has no invalid record
+                mdf.configure(read_fragment_size=1)
+                keep = ~invalid if structure_bit else slice(None)
+                signal = mdf.get("frame")
+                np.testing.assert_array_equal(signal.timestamps, t[keep], strict=True)
+                np.testing.assert_array_equal(signal.samples["frame.low"], low_values[keep], strict=True)
+                np.testing.assert_array_equal(signal.samples["frame.high"], high_values[keep], strict=True)
+                np.testing.assert_array_equal(mdf.get("frame.low").samples, low_values[~invalid], strict=True)
+
+    def test_structure_canopen_member(self) -> None:
+        # the members of a structure with a bit field are read fragment by fragment,
+        # the CANopen date has to be decoded in every fragment
+        t = np.arange(3, dtype="<f8")
+        record = np.zeros(3, dtype=[("frame.nibble", "u1"), ("frame.date", "V7")])
+        record["frame.nibble"] = [0x21, 0x43, 0x65]
+        record["frame.date"] = np.array([b"\x09\x00\x01\x82\x61\x02\x25"] * 3, dtype="V7")
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            channels = mdf.groups[0].channels
+            channels[2].bit_count = 4
+            channels[3].data_type = v4c.DATA_TYPE_CANOPEN_DATE
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "canopen_member.mf4", overwrite=True)
+
+        nibbles = np.array([1, 3, 5], dtype="u1")
+        with MDF(outfile) as mdf:
+            mdf.configure(read_fragment_size=1)
+            for signal in (mdf.get("frame"), mdf.get("frame"), mdf.select(["frame"])[0]):
+                np.testing.assert_array_equal(signal.samples["frame.nibble"], nibbles, strict=True)
+                date = signal.samples["frame.date"]
+                self.assertEqual(date.dtype.names, v4c.CANOPEN_DATE_FIELDS)
+                self.assertEqual(date[0].tolist(), (9, 1, 2, 1, 2, 37, 1, 3))
+
     def test_virtual_channel_keeps_values(self) -> None:
         # a virtual data channel has no bits in the record (cn_bit_count 0) and
         # its raw value is the record index. Copying it to a new file stores

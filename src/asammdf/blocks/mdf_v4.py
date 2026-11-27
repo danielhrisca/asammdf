@@ -6863,13 +6863,19 @@ class MDF4(MDF_Common[Group]):
 
             count = 0
             for fragment in fragments:
+                # before the members, whose one piece read caches None for a fragment without invalid records
+                if channel_invalidation_present:
+                    invalidation_arrays.append(
+                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
+                    )
                 for i, ch in enumerate(dependency_list):
+                    # keep every record like the fast path, only the structure's own bits drop records
                     vals = self.get(
                         group=gp_nr,
                         index=ch.index,
                         samples_only=True,
                         data=fragment,
-                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        ignore_invalidation_bits=True,
                         record_offset=record_offset,
                         record_count=record_count,
                         raw=raw,
@@ -6877,10 +6883,6 @@ class MDF4(MDF_Common[Group]):
                     channel_values_list[i].append(vals)
                 if master_is_required:
                     masters.append(self.get_master(gp_nr, fragment, one_piece=True))
-                if channel_invalidation_present:
-                    invalidation_arrays.append(
-                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
-                    )
 
                 count += 1
 
@@ -7724,7 +7726,12 @@ class MDF4(MDF_Common[Group]):
                             if view != vals.dtype:
                                 vals = vals.view(view)
 
-                    elif channel_type == v4c.CHANNEL_TYPE_VALUE and channel.fast_path is None:
+                    elif (
+                        channel_type == v4c.CHANNEL_TYPE_VALUE
+                        # the fast path returns the raw bytes, CANopen values are decoded further down
+                        and data_type not in (v4c.DATA_TYPE_CANOPEN_DATE, v4c.DATA_TYPE_CANOPEN_TIME)
+                        and channel.fast_path is None
+                    ):
                         channel.fast_path = (
                             gp_nr,
                             record_size,
