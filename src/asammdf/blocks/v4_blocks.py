@@ -47,6 +47,7 @@ from .utils import (
     get_text_v4,
     handle_incomplete_block,
     is_file_like,
+    lookup_keys,
     MdfException,
     NoRecordInfo,
     RecordInfo,
@@ -3979,8 +3980,9 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         phys.append(tx_ref)
 
-                pairs = sorted(zip(raw, phys, strict=False))
-                raw_vals = np.array([e[0] for e in pairs], dtype="<i8")
+                # NaN keys never match a raw value and would break the sorted search
+                pairs = sorted(e for e in zip(raw, phys, strict=False) if e[0] == e[0])
+                raw_vals = lookup_keys([e[0] for e in pairs])
                 phys = [e[1] for e in pairs]
 
                 ref = self.referenced_blocks["default_addr"]
@@ -4000,8 +4002,9 @@ class ChannelConversion(_ChannelConversionBase):
 
                     phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-                    pairs = sorted(zip(raw, phys, strict=False))
-                    raw_vals = np.array([e[0] for e in pairs], dtype="<i8")
+                    # NaN keys never match a raw value and would break the sorted search
+                    pairs = sorted(e for e in zip(raw, phys, strict=False) if e[0] == e[0])
+                    raw_vals = lookup_keys([e[0] for e in pairs])
                     phys = [e[1] for e in pairs]
 
                     self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "big"}
@@ -4307,9 +4310,10 @@ class ChannelConversion(_ChannelConversionBase):
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                triplets = sorted(zip(lower, upper, phys, strict=False))
-                lower_vals = np.array([e[0] for e in triplets])
-                upper_vals = np.array([e[1] for e in triplets])
+                # ranges with a NaN bound never match a raw value and would break the sorted search
+                triplets = sorted(e for e in zip(lower, upper, phys, strict=False) if e[0] == e[0] and e[1] == e[1])
+                lower_vals = lookup_keys([e[0] for e in triplets])
+                upper_vals = lookup_keys([e[1] for e in triplets])
                 phys = [e[2] for e in triplets]
 
                 ref = self.referenced_blocks["default_addr"]
@@ -4332,9 +4336,10 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = [self[f"lower_{i}"] for i in range(nr)]
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                    triplets = sorted(zip(lower, upper, phys, strict=False))
-                    lower_vals = np.array([e[0] for e in triplets])
-                    upper_vals = np.array([e[1] for e in triplets])
+                    # ranges with a NaN bound never match a raw value and would break the sorted search
+                    triplets = sorted(e for e in zip(lower, upper, phys, strict=False) if e[0] == e[0] and e[1] == e[1])
+                    lower_vals = lookup_keys([e[0] for e in triplets])
+                    upper_vals = lookup_keys([e[1] for e in triplets])
                     phys = [e[2] for e in triplets]
 
                     self._cache = {
@@ -4361,8 +4366,8 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
                 idx2 = np.searchsorted(upper_vals, new_values, side="right")
             else:
-                idx1 = np.searchsorted(np.array(lower_vals.tolist(), dtype="<i8"), new_values, side="right") - 1
-                idx2 = np.searchsorted(np.array(upper_vals.tolist(), dtype="<i8"), new_values, side="left")
+                idx1 = np.searchsorted(lower_vals, new_values, side="right") - 1
+                idx2 = np.searchsorted(upper_vals, new_values, side="left")
 
             idx_ne = np.argwhere(idx1 != idx2).ravel()
             idx_eq = np.argwhere(idx1 == idx2).ravel()

@@ -25,6 +25,7 @@ from .utils import (
     get_fields,
     get_fmt_v3,
     get_text_v3,
+    lookup_keys,
     MdfException,
     NoRecordInfo,
     RecordInfo,
@@ -1598,12 +1599,13 @@ address: {hex(self.address)}
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
             if not ignore_value2text_conversions:
                 nr = self.ref_param_nr
-                raw_vals = np.array([self[f"param_val_{i}"] for i in range(nr)])
+                keys = [self[f"param_val_{i}"] for i in range(nr)]
                 phys = np.array([self[f"text_{i}"] for i in range(nr)])
 
-                x = sorted(zip(raw_vals, phys, strict=False))
-                raw_vals = np.array([e[0] for e in x], dtype="<i8")
-                phys = np.array([e[1] for e in x])
+                # NaN keys never match a raw value and would break the sorted search
+                x = sorted(e for e in zip(keys, phys, strict=False) if e[0] == e[0])
+                raw_vals = lookup_keys([e[0] for e in x])
+                phys = np.array([e[1] for e in x]) if x else phys[:0]
 
                 default = b""
 

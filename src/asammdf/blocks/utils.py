@@ -1703,6 +1703,19 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
     return array
 
 
+def lookup_keys(keys: list[Any]) -> NDArray[Any]:
+    """Keys of a value to text table as array for ``np.searchsorted``.
+
+    Python ints above int64 (64-bit DBC values) stay exact as uint64, NumPy would infer float64 for them.
+    Whole keys within int64 use int64, which is searched faster than float64.
+    """
+    if keys and all(isinstance(key, int) for key in keys) and min(keys) >= 0 and 2**63 - 1 < max(keys) <= 2**64 - 1:
+        return np.array(keys, dtype="<u8")
+    if all(-(2**63) <= key < 2**63 and key % 1 == 0 for key in keys):
+        return np.array([int(key) for key in keys], dtype="<i8")
+    return np.array(keys)
+
+
 def _csv_int2bin(val: int) -> str:
     """Format CAN id as bin.
 
