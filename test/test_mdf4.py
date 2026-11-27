@@ -341,6 +341,35 @@ class TestMDF4(unittest.TestCase):
                 [value.decode(signal.encoding) for value in signal.samples], ["M\u00fcnchen", "Z\u00fcrich"]
             )
 
+    def test_derived_files_keep_channel_limits(self) -> None:
+        source = Path(self.tempdir.name) / "limits.mf4"
+        flags = v4c.FLAG_CN_LIMIT_RANGE | v4c.FLAG_CN_EXTENDED_LIMIT_RANGE
+        # two channels of the same name with different limits
+        expected = [(-5, 5, -8, 8), (-1, 1, -2, 2)]
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(np.arange(5.0), np.arange(5.0), name="speed") for _ in expected])
+            for index, limits in enumerate(expected, 1):
+                channel = mdf.groups[0].channels[index]
+                channel.lower_limit, channel.upper_limit, channel.lower_ext_limit, channel.upper_ext_limit = limits
+                channel.flags |= flags
+            mdf.save(source, overwrite=True)
+
+        with MDF(source) as mdf:
+            derived = {
+                "cut": mdf.cut(start=1),
+                "filter": mdf.filter([("speed", 0, 1), ("speed", 0, 2)]),
+                "convert": mdf.convert("4.20"),
+                "resample": mdf.resample(0.5),
+                "concatenate": MDF.concatenate([source, source]),
+                "stack": MDF.stack([source, source]),
+            }
+        for name, out in derived.items():
+            with self.subTest(name), out:
+                channels = [out.groups[0].channels[index] for index in (1, 2)]
+                self.assertEqual([channel.flags & flags for channel in channels], [flags, flags])
+                limits = [(ch.lower_limit, ch.upper_limit, ch.lower_ext_limit, ch.upper_ext_limit) for ch in channels]
+                self.assertEqual(limits, expected)
+
     def test_display_name_equal_to_name_is_one_occurrence(self) -> None:
         # a display name that repeats the channel name registers the same entry
         # again, the channel must still be found once by that name

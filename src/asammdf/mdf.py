@@ -697,6 +697,22 @@ class MDF:
             if acq_source:
                 out_group.acq_source = acq_source.copy()
 
+    def _transfer_channel_limits(self, channels: Iterable[v3b.Channel | v4b.Channel], signals: list[Signal]) -> None:
+        # Signal does not carry the channel limits, take them from the source channel of each signal.
+        # append creates the channels after the master in signal order, names can repeat
+        new_channels = iter(channels)
+        next(new_channels, None)
+        limit_flags = v4c.FLAG_CN_LIMIT_RANGE | v4c.FLAG_CN_EXTENDED_LIMIT_RANGE
+        for sig in signals:
+            channel = next((channel for channel in new_channels if channel.name == sig.name), None)
+            if channel is None:
+                break
+            source = self.groups[sig.group_index].channels[sig.channel_index] if sig.group_index >= 0 else None
+            if isinstance(channel, v4b.Channel) and isinstance(source, v4b.Channel):
+                channel.flags |= source.flags & limit_flags
+                channel.lower_limit, channel.upper_limit = source.lower_limit, source.upper_limit
+                channel.lower_ext_limit, channel.upper_ext_limit = source.lower_ext_limit, source.upper_ext_limit
+
     def _transfer_metadata(self, other: "MDF", message: str = "") -> None:
         self._transfer_events(other)
         self._transfer_header_data(other, message)
@@ -1126,6 +1142,7 @@ class MDF:
                                 comment=cg.comment,
                             )
                             MDF._transfer_channel_group_data(out.groups[cg_nr].channel_group, cg)
+                            self._transfer_channel_limits(out.groups[cg_nr].channels, sigs)
                         else:
                             break
                     else:
@@ -1460,6 +1477,7 @@ class MDF:
                         comment=cg.comment,
                     )
                     MDF._transfer_channel_group_data(out.groups[cg_nr].channel_group, cg)
+                    self._transfer_channel_limits(out.groups[cg_nr].channels, signals)
 
                 else:
                     signals_samples = [(sig.samples, sig.invalidation_bits) for sig in signals]
@@ -1494,6 +1512,7 @@ class MDF:
                     common_timebase=True,
                 )
                 MDF._transfer_channel_group_data(out.groups[cg_nr].channel_group, cg)
+                self._transfer_channel_limits(out.groups[cg_nr].channels, signals)
 
             if progress is not None:
                 if callable(progress):
@@ -3279,6 +3298,7 @@ class MDF:
                             acq_source=getattr(cg, "acq_source", None),
                         )
                         MDF._transfer_channel_group_data(mdf.groups[cg_nr].channel_group, cg)
+                        self._transfer_channel_limits(mdf.groups[cg_nr].channels, sigs)
                     else:
                         break
 
@@ -3773,6 +3793,7 @@ class MDF:
                             common_timebase=True,
                         )
                         MDF._transfer_channel_group_data(merged.groups[cg_nr].channel_group, cg)
+                        mdf._transfer_channel_limits(merged.groups[cg_nr].channels, signals)
                         cg_map[group_index] = cg_nr
 
                     else:
@@ -4004,6 +4025,7 @@ class MDF:
                             common_timebase=True,
                         )
                         MDF._transfer_channel_group_data(stacked.groups[dg_cntr].channel_group, cg)
+                        mdf._transfer_channel_limits(stacked.groups[dg_cntr].channels, signals)
                     else:
                         signals_samples = typing.cast(list[tuple[NDArray[Any], None]], signals)
                         master = signals_samples[0][0]
@@ -4429,6 +4451,7 @@ class MDF:
                 comment=cg.comment,
             )
             MDF._transfer_channel_group_data(mdf.groups[dg_cntr].channel_group, cg)
+            self._transfer_channel_limits(mdf.groups[dg_cntr].channels, sigs)
 
             if progress is not None:
                 if callable(progress):
