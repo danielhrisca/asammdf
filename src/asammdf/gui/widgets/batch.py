@@ -403,13 +403,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "",
                     "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
                 ]
-                unknown_standard_can = sorted([e for e in call_info["unknown_ids"] if isinstance(e, int)])
-                unknown_j1939 = sorted([e for e in call_info["unknown_ids"] if not isinstance(e, int)])
-                for msg_id in unknown_standard_can:
-                    message.append(f"- 0x{msg_id:X}")
-
-                for pgn, sa in unknown_j1939:
-                    message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+                for msg_id in sorted(call_info["unknown_ids"]):
+                    if isinstance(msg_id, int):
+                        message.append(f"- 0x{msg_id:X}")
+                    else:
+                        message.append(f"- 0x{msg_id[0]:X} extended={bool(msg_id[1])}")
 
             file_name = source_file.with_suffix(".bus_logging.mdf" if version < "4.00" else ".bus_logging.mf4")
 
@@ -584,7 +582,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
                 ]
                 for msg_id in sorted(call_info["unknown_ids"]):
-                    message.append(f"- 0x{msg_id:X}")
+                    if isinstance(msg_id, int):
+                        message.append(f"- 0x{msg_id:X}")
+                    else:
+                        message.append(f"- 0x{msg_id[0]:X} extended={bool(msg_id[1])}")
 
             file_name = source_file.with_suffix(".bus_logging.csv")
 

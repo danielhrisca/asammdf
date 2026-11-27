@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtTest
 
 from test.asammdf.gui.test_base import DBC, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
+from test.test_CAN_bus_logging import can_logging
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
@@ -378,3 +379,32 @@ class TestPushButtons(TestBatchWidget):
                         str(max(ch.samples)).replace(" ", ""),
                         str(column.values.max()).replace(" ", ""),
                     )
+
+
+class TestBusSummary(TestBatchWidget):
+    def test_unknown_can_id(self):
+        """
+        Events:
+            - Extract the bus signals of a log with the frames 0x100 and 0x300 to MDF and to CSV,
+              the DBC only has 0x100.
+
+        Evaluate:
+            - Both summaries list 0x300 as an unknown standard CAN ID.
+        """
+        dbc_path = Path(self.test_workspace, "known.dbc")
+        dbc_path.write_text(
+            'VERSION ""\n\nBO_ 256 Known: 8 Vector__XXX\n SG_ Value : 0|8@1+ (1,0) [0|255] "" Vector__XXX\n'
+        )
+        mdf_path = Path(self.test_workspace, "log.mf4")
+        with can_logging([0x100, 0x300], [0, 0], [0.0, 0.0]) as mdf:
+            mdf.save(mdf_path)
+
+        self.setUpBatchWidget(measurement_files=[str(mdf_path)])
+        self.widget.aspects.setCurrentIndex(self.bus_aspect)
+        with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getOpenFileNames") as mo_getOpenFileNames:
+            mo_getOpenFileNames.return_value = [str(dbc_path)], None
+            QtTest.QTest.mouseClick(self.widget.load_can_database_btn, QtCore.Qt.MouseButton.LeftButton)
+        for button in (self.widget.extract_bus_btn, self.widget.extract_bus_csv_btn):
+            with self.subTest(button.objectName()):
+                self.mouse_click_on_btn_with_progress(button)
+                self.assertIn("- 0x300 extended=False", self.widget.output_info_bus.toPlainText().splitlines())
