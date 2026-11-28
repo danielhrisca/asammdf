@@ -1,13 +1,18 @@
 import inspect
+import time
 import unittest
 
-from asammdf.gui.utils import generate_python_function
+from PySide6 import QtCore, QtTest
+
+from asammdf.blocks.utils import Terminated
+from asammdf.gui.utils import generate_python_function, setup_progress
 from test.asammdf.gui.resources.functions import (
     Function1,
     gray2dec,
     maximum,
     rpm_to_rad_per_second,
 )
+from test.asammdf.gui.test_base import TestBase
 
 
 class TestUtils(unittest.TestCase):
@@ -183,3 +188,46 @@ class TestUtils(unittest.TestCase):
                 self.assertIsInstance(result, tuple)
                 self.assertTrue(callable(result[0]))
                 self.assertEqual(None, result[1])
+
+
+class TestProgressDialog(TestBase):
+    def test_Escape_FinishedOnce(self):
+        """
+        Events:
+            - Press Escape while the worker runs, twice while it stops, or after it ended
+              but before the delayed close scheduled by 'thread_complete'.
+            - Wait longer than the delayed close.
+        Evaluate:
+            - Evaluate that 'finished' is emitted only once.
+        """
+
+        def worker(progress):
+            for _ in range(500):
+                if progress.stop:
+                    time.sleep(0.2)
+                    raise Terminated()
+                time.sleep(0.01)
+
+        for case in ("running", "twice", "ended"):
+            with self.subTest(case):
+                progress = setup_progress(parent=None)
+                finished = []
+                progress.finished.connect(finished.append)
+
+                # Event
+                if case == "ended":
+                    progress.run_thread_with_progress(target=lambda: None, args=(), kwargs={})
+                    while progress.thread is not None:
+                        self.processEvents()
+                else:
+                    progress.run_thread_with_progress(target=worker, args=(), kwargs={})
+                    self.processEvents(0.1)
+                if case == "twice":
+                    QtCore.QTimer.singleShot(
+                        50, lambda dialog=progress: QtTest.QTest.keyClick(dialog, QtCore.Qt.Key.Key_Escape)
+                    )
+                QtTest.QTest.keyClick(progress, QtCore.Qt.Key.Key_Escape)
+                self.processEvents(0.4)
+
+                # Evaluate
+                self.assertEqual(1, len(finished))
