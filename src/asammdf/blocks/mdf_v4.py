@@ -6429,6 +6429,9 @@ class MDF4(MDF_Common[Group]):
                     else:
                         file_name = self._tempfile.name
 
+                    # the data blocks can hold fewer records than the channel group cycle count
+                    cycles_nr = min(cycles_nr, sum(block.original_size for block in blocks) // record_size)
+
                     signals = []
                     channels = []
                     info_rec = []

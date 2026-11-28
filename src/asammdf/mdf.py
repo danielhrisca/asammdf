@@ -4581,7 +4581,8 @@ class MDF:
                 return self._select_fallback(
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
-            cycles_nr = grp.channel_group.cycles_nr
+            # the data blocks can hold fewer records than the channel group cycle count
+            cycles_nr = min(grp.channel_group.cycles_nr, sum(block.original_size for block in blocks) // record_size)
             channel_indexes = groups[group_index]
 
             pairs = [(group_index, ch_index) for ch_index in channel_indexes]
@@ -5002,6 +5003,14 @@ class MDF:
                             signal.invalidation_bits[current_pos:next_pos] = False if inval is None else inval
 
                 current_pos = next_pos
+
+            # the data blocks can hold fewer records than the channel group cycle count
+            if signals and current_pos < cycles:
+                master = master[:current_pos]
+                for signal in signals:
+                    signal.samples = signal.samples[:current_pos]
+                    if signal.invalidation_bits is not None:
+                        signal.invalidation_bits = signal.invalidation_bits[:current_pos]
 
             for signal, pair in zip(signals, pairs, strict=False):
                 signal.timestamps = master
@@ -5642,8 +5651,19 @@ class MDF:
 
             self._mdf._set_temporary_master(None)
 
+            # in MDF 4 a stored time channel without data bytes has no samples, as in get
             masters = {
-                index: self._mdf.get_master(index) for index in self.virtual_groups if not self._is_vlsd_group(index)
+                index: (
+                    self._mdf.get_master(index)
+                    if self.version < "4.00"
+                    or self.groups[index].channel_group.samples_byte_nr
+                    or index not in self.masters_db
+                    or self.groups[index].channels[self.masters_db[index]].channel_type
+                    == v4c.CHANNEL_TYPE_VIRTUAL_MASTER
+                    else np.array([], dtype="<f8")
+                )
+                for index in self.virtual_groups
+                if not self._is_vlsd_group(index)
             }
 
             if raster is not None:
@@ -5722,12 +5742,17 @@ class MDF:
                         continue
 
                     group_master = signals[0].timestamps
+                    # the data blocks can hold no records although the cycle count is not 0
+                    if not len(group_master):
+                        if empty_channels == "skip":
+                            continue
+                        group_master = master
 
                     for sig in signals:
                         if len(sig) == 0:
                             if empty_channels == "zeros":
                                 sig.samples = np.zeros(
-                                    len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                                    len(master) if virtual_group.cycles_nr == 0 else len(group_master),
                                     dtype=sig.samples.dtype,
                                 )
                                 sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
@@ -5751,12 +5776,15 @@ class MDF:
                         if len(sig) == 0:
                             if empty_channels == "zeros":
                                 sig.samples = np.zeros(
-                                    len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                                    len(master) if virtual_group.cycles_nr == 0 else len(group_master),
                                     dtype=sig.samples.dtype,
                                 )
                                 sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
                         signals[s_index] = sig
+
+                    # signals without samples cannot be cut to the range of the group master
+                    signals = [sig for sig in signals if len(sig)]
 
                     if use_interpolation:
                         same_master = np.array_equal(master, group_master)
@@ -5806,6 +5834,9 @@ class MDF:
                             for sig in signals:
                                 sig.samples = sig.samples[idx]
                                 sig.timestamps = sig.timestamps[idx]
+
+                    if not signals:
+                        continue
 
                     size = len(index)
                     for sig in signals:
@@ -6137,8 +6168,19 @@ class MDF:
             master = raster
 
         else:
+            # in MDF 4 a stored time channel without data bytes has no samples, as in get
             masters = {
-                index: self._mdf.get_master(index) for index in self.virtual_groups if not self._is_vlsd_group(index)
+                index: (
+                    self._mdf.get_master(index)
+                    if self.version < "4.00"
+                    or self.groups[index].channel_group.samples_byte_nr
+                    or index not in self.masters_db
+                    or self.groups[index].channels[self.masters_db[index]].channel_type
+                    == v4c.CHANNEL_TYPE_VIRTUAL_MASTER
+                    else np.array([], dtype="<f8")
+                )
+                for index in self.virtual_groups
+                if not self._is_vlsd_group(index)
             }
 
             if masters:
@@ -6185,12 +6227,17 @@ class MDF:
                 continue
 
             group_master = signals[0].timestamps
+            # the data blocks can hold no records although the cycle count is not 0
+            if not len(group_master):
+                if empty_channels == "skip":
+                    continue
+                group_master = master
 
             for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
                         sig.samples = np.zeros(
-                            len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                            len(master) if virtual_group.cycles_nr == 0 else len(group_master),
                             dtype=sig.samples.dtype,
                         )
                         sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
@@ -6214,7 +6261,7 @@ class MDF:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
                         sig.samples = np.zeros(
-                            len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                            len(master) if virtual_group.cycles_nr == 0 else len(group_master),
                             dtype=sig.samples.dtype,
                         )
                         sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
