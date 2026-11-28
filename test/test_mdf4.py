@@ -1013,8 +1013,8 @@ class TestMDF4(unittest.TestCase):
                 np.testing.assert_array_equal(samples["frame.high"], [2, 4, 6])
 
     def test_structure_with_bit_fields_of_the_same_name(self) -> None:
-        # without the source both bit fields are named "frame", the field
-        # names follow the structure dtype as for byte aligned members
+        # both bit fields are named "frame", the field names follow the
+        # structure dtype as for byte aligned members
         t = np.arange(3, dtype="<f8")
         record = np.zeros(3, dtype=[("frame.low", "u1"), ("frame.high", "u1")])
         record["frame.low"] = [0x21, 0x43, 0x65]
@@ -1028,9 +1028,10 @@ class TestMDF4(unittest.TestCase):
             high.byte_offset = low.byte_offset
             high.bit_offset = 4
             high.bit_count = 4
+            low.name = high.name = "frame"
             outfile = mdf.save(Path(TestMDF4.tempdir.name) / "bit_fields_same_name.mf4", overwrite=True)
 
-        with MDF(outfile, remove_source_from_channel_names=True) as mdf:
+        with MDF(outfile) as mdf:
             for samples in (mdf.get(group=0, index=1).samples, mdf.select([(None, 0, 1)])[0].samples):
                 self.assertEqual(samples.dtype.names, ("frame", "frame$0"))
                 np.testing.assert_array_equal(samples["frame"], [1, 3, 5])
@@ -1057,6 +1058,23 @@ class TestMDF4(unittest.TestCase):
             for samples in (mdf.get("frame").samples, mdf.select(["frame"])[0].samples):
                 np.testing.assert_array_equal(samples["frame.count"], [1, 2, 3])
                 np.testing.assert_array_equal(samples["frame.index"], [0, 1, 2])
+
+    def test_remove_source_keeps_structure_member_names(self) -> None:
+        # the path separator also splits the member names, the structure was then taken for an array
+        t = np.arange(5, dtype="<f8")
+        record = np.zeros(5, dtype=[("frame.ID", "<u2"), ("frame.DataBytes", "u1", (8,))])
+        record["frame.ID"] = np.arange(5)
+        record["frame.DataBytes"] = np.arange(40).reshape(5, 8)
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(Signal(record, t, name="frame"))
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "remove_source_structure.mf4", overwrite=True)
+
+        with MDF(outfile, remove_source_from_channel_names=True) as mdf, mdf.cut() as cut:
+            for samples in (mdf.get("frame").samples, cut.get("frame").samples):
+                self.assertEqual(samples.dtype.names, ("frame.ID", "frame.DataBytes"))
+                np.testing.assert_array_equal(samples["frame.ID"], record["frame.ID"])
+                np.testing.assert_array_equal(samples["frame.DataBytes"], record["frame.DataBytes"])
 
     def test_appended_structure(self) -> None:
         # filter and to_dataframe(channels=...) append the structure to a new file in memory
