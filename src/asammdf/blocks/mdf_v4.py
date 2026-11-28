@@ -5527,7 +5527,8 @@ class MDF4(MDF_Common[Group]):
             if not self._use_ld_blocks:
                 fields.append((inval_bits_vals, invalidation_bytes_nr))
 
-        samples_bytes = data_block_from_arrays(fields, added_cycles, THREAD_COUNT)
+        # starting the copy threads takes longer than copying a single record
+        samples_bytes = data_block_from_arrays(fields, added_cycles, THREAD_COUNT if added_cycles > 1 else 1)
         size = len(samples_bytes)
         samples_view = memoryview(samples_bytes)
 
