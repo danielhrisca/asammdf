@@ -14,11 +14,44 @@ import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtTest
 
+from asammdf.blocks.utils import Terminated
 from test.asammdf.gui.test_base import DBC, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
+
+
+class TestErrorDialog(TestBatchWidget):
+    def test_failed_extraction(self):
+        """
+        Events:
+            - Extract the bus signals to MDF and to CSV, the extraction raises an error or is canceled.
+
+        Evaluate:
+            - Both buttons show an error dialog with the error, but not for the cancel.
+        """
+        self.setUpBatchWidget(measurement_files=[str(Path(self.resource, self.default_test_file))])
+        self.widget.aspects.setCurrentIndex(self.bus_aspect)
+        with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getOpenFileNames") as mo_getOpenFileNames:
+            mo_getOpenFileNames.return_value = [str(Path(self.test_workspace, "bus.dbc"))], None
+            QtTest.QTest.mouseClick(self.widget.load_can_database_btn, QtCore.Qt.MouseButton.LeftButton)
+        for button, thread in (
+            (self.widget.extract_bus_btn, "extract_bus_logging_thread"),
+            (self.widget.extract_bus_csv_btn, "extract_bus_csv_logging_thread"),
+        ):
+            for error in (ValueError("bad samples"), Terminated()):
+                with (
+                    self.subTest(button.objectName(), error=type(error).__name__),
+                    mock.patch.object(self.widget, thread, side_effect=error),
+                    mock.patch("asammdf.gui.widgets.batch.ErrorDialog") as mc_ErrorDialog,
+                ):
+                    self.mouse_click_on_btn_with_progress(button)
+                    if isinstance(error, Terminated):
+                        mc_ErrorDialog.assert_not_called()
+                    else:
+                        mc_ErrorDialog.return_value.exec.assert_called_once()
+                        self.assertIn("ValueError: bad samples", mc_ErrorDialog.call_args.args[2])
 
 
 @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")

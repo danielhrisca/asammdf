@@ -8,7 +8,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import extract_xml_comment
+from ...blocks.utils import extract_xml_comment, Terminated
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...blocks.v4_constants import (
@@ -297,6 +297,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
+        elif not isinstance(self._progress.error[1], Terminated):
+            ErrorDialog(
+                "Extract bus logging failed",
+                "The bus logging extraction failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
+
         self._progress = None
         self.processing_executed.emit("extract_bus_logging")
 
@@ -433,6 +441,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
+        elif not isinstance(self._progress.error[1], Terminated):
+            ErrorDialog(
+                "Extract bus logging to CSV failed",
+                "The bus logging extraction to CSV failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
 
         self._progress = None
         self.processing_executed.emit("extract_bus_csv_logging")
