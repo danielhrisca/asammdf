@@ -205,6 +205,23 @@ class TestBusFrameSelection(unittest.TestCase):
                 np.testing.assert_array_equal(wide.timestamps, [0.0, 0.01])
                 np.testing.assert_array_equal(out.get("EngRqedSpeed").samples, [1000.0])
 
+    def test_signal_beyond_message_length_is_skipped(self) -> None:
+        speed = '\n SG_ EngRqedSpeed : 8|16@1+ (0.125,0) [0|8031.875] "rpm" Vector__XXX'
+        wide = '\n SG_ Payload : 24|144@1+ (1,0) [0|0] "" Vector__XXX'
+        # the database keeps 8 bytes for TSC1, too short for the 144-bit signal
+        for signals, groups in ((speed + wide, 1), (wide, 0)):
+            with self.subTest(groups=groups):
+                dbc = load_can_database("j1939.dbc", contents=J1939_DBC.replace(speed, signals))
+                with can_logging([0x0C00000B] * 2, [1] * 2, [1000.0, 2000.0]) as mdf:
+                    with self.assertLogs("asammdf", "ERROR") as logs:
+                        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+                    self.assertIn('Could not extract signal "Payload"', logs.output[0])
+
+                    self.assertEqual(len(out.groups), groups)
+                    self.assertNotIn("Payload", out)
+                    if groups:
+                        np.testing.assert_array_equal(out.get("EngRqedSpeed").samples, [1000.0, 2000.0])
+
     def test_j1939_message_per_destination(self) -> None:
         dbc = load_can_database(
             "j1939.dbc",
