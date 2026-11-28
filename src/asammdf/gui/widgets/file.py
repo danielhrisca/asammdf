@@ -2076,13 +2076,11 @@ MultiRasterSeparator;&
                 f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
             ]
 
-            unknown_standard_can = sorted([e for e in call_info["unknown_ids"] if isinstance(e, int)])
-            unknown_j1939 = sorted([e for e in call_info["unknown_ids"] if not isinstance(e, int)])
-            for msg_id in unknown_standard_can:
-                message.append(f"- 0x{msg_id:X}")
-
-            for pgn, sa in unknown_j1939:
-                message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+            for msg_id in sorted(call_info["unknown_ids"]):
+                if isinstance(msg_id, int):
+                    message.append(f"- 0x{msg_id:X}")
+                else:
+                    message.append(f"- 0x{msg_id[0]:X} extended={bool(msg_id[1])}")
 
             message.append("\n\n")
 
@@ -2263,19 +2261,23 @@ MultiRasterSeparator;&
                 f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
             ]
             for dbc_name, found_ids in call_info["found_ids"].items():
-                for msg_id, msg_name in sorted(found_ids):
-                    try:
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-                    except:
-                        pgn, sa = msg_id
+                for msg_id_info, msg_name in sorted(found_ids):
+                    if msg_id_info[2]:
+                        pgn, sa = msg_id_info[:2]
                         message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
+                    else:
+                        msg_id, extended = msg_id_info[:2]
+                        message.append(f"- 0x{msg_id:X} {extended=} --> {msg_name} in <{dbc_name}>")
 
             message += [
                 "",
                 f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
             ]
             for msg_id in sorted(call_info["unknown_ids"]):
-                message.append(f"- 0x{msg_id:X}")
+                if isinstance(msg_id, int):
+                    message.append(f"- 0x{msg_id:X}")
+                else:
+                    message.append(f"- 0x{msg_id[0]:X} extended={bool(msg_id[1])}")
             message.append("\n\n")
 
         return message
