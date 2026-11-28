@@ -1221,6 +1221,26 @@ class TestMDF4(unittest.TestCase):
             mdf.append([raw])
             np.testing.assert_array_equal(mdf.get("down").samples, expected, strict=True)
 
+    def test_append_plain_2d_array(self) -> None:
+        timestamps = np.arange(5, dtype="f8")
+        samples = np.arange(15, dtype="<f8").reshape(5, 3)
+
+        with MDF(version="4.10") as mdf:
+            mdf.append(
+                [
+                    Signal(samples, timestamps, name="arr"),
+                    Signal(timestamps * 2, timestamps, name="x"),
+                    Signal(samples[:, :1], timestamps, name="col"),
+                ]
+            )
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "plain_2d.mf4", overwrite=True)
+
+        with MDF(outfile) as mdf:
+            self.assertTrue(np.array_equal(mdf.get("arr").samples["arr"], samples))
+            self.assertTrue(np.array_equal(mdf.get("x").samples, timestamps * 2))
+            # a column vector stays a scalar channel
+            np.testing.assert_array_equal(mdf.get("col").samples, samples[:, 0], strict=True)
+
     def test_event_with_nil_scope(self) -> None:
         # ETAS mdfCombine writes events with a single NIL scope link
         path = Path(self.tempdir.name) / "event_nil_scope.mf4"

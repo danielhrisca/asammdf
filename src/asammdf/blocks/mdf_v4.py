@@ -2476,6 +2476,17 @@ class MDF4(MDF_Common[Group]):
         for signal in signals:
             sig = signal
             samples = sig.samples
+            if (
+                samples.ndim > 1
+                and samples.size > len(samples)
+                and samples.dtype.kind in "iufc"
+                and samples.dtype != np.uint8
+            ):
+                # plain samples with several values per record become a channel array, column vectors stay
+                # scalar and uint8 rows stay byte arrays
+                samples = np.rec.fromarrays([samples], dtype=[(signal.name, samples.dtype, samples.shape[1:])])
+                signal = sig = copy(signal)
+                signal.samples = samples
             sig_dtype = samples.dtype
             sig_shape = samples.shape
             names = sig_dtype.names
