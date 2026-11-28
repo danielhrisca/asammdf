@@ -1,3 +1,4 @@
+import logging
 from traceback import format_exc
 import typing
 from typing import Any, Final
@@ -11,6 +12,8 @@ from . import v4_blocks as v4b
 from . import v4_constants as v4c
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
+
+logger = logging.getLogger("asammdf")
 
 MAX_VALID_J1939: Final = {
     # 2: 1,     removed (see https://github.com/danielhrisca/asammdf/issues/1237)
@@ -409,13 +412,18 @@ def extract_mux(
             payload_ = payload
 
         for sig in pair_signals:
-            samples = extract_signal(
-                sig,
-                payload_,
-                ignore_value2text_conversion=ignore_value2text_conversion,
-                raw=True,
-                is_ISOTP=is_ISOTP,
-            )
+            try:
+                samples = extract_signal(
+                    sig,
+                    payload_,
+                    ignore_value2text_conversion=ignore_value2text_conversion,
+                    raw=True,
+                    is_ISOTP=is_ISOTP,
+                )
+            except MdfException as exc:
+                # a signal that cannot be decoded from the frames must not abort the other signals
+                logger.error(f'{exc}, skipping it in message "{message.name}"')
+                continue
             if len(samples) == 0 and len(t_):
                 continue
 
@@ -468,6 +476,9 @@ def extract_mux(
                         is_extended=is_extended,
                     )
                 )
+
+        if not signals:
+            del extracted_signals[entry]
 
     return extracted_signals
 
