@@ -869,7 +869,8 @@ class MDF4(MDF_Common[Group]):
                 if path_name not in channel.display_names:
                     channel.display_names[path_name] = "source_path"
 
-            if self._remove_source_from_channel_names:
+            # structure members keep their full name, it is the path inside the structure and not a source
+            if self._remove_source_from_channel_names and primary:
                 channel.name = channel.name.split(path_separator, 1)[0]
                 channel.display_names = {
                     _name.split(path_separator, 1)[0]: val for _name, val in channel.display_names.items()
