@@ -18,6 +18,7 @@ from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
 from asammdf.blocks.utils import get_fmt_v4, MdfException
 from asammdf.blocks.v4_blocks import EventBlock, TextBlock
+from asammdf.signal import InvalidationArray
 
 CHANNEL_LEN = 100000
 
@@ -148,6 +149,51 @@ class TestMDF4(unittest.TestCase):
             finally:
                 tracemalloc.stop()
         self.assertLess(grown, 5 * cycles)
+
+    def test_concatenate_invalidation_bits(self) -> None:
+        timestamps = np.arange(10, dtype=np.float64)
+        invalid = timestamps == 3
+        # each pair gives the channels with an invalid sample in the first and in the second file
+        for case, (first, second) in enumerate((({0}, {1}), ({0}, set()), ({0}, set(range(9))), (set(), {1}))):
+            with self.subTest(first=first, second=second):
+                paths = []
+                for part, invalid_channels in enumerate((first, second)):
+                    signals = [
+                        Signal(
+                            timestamps, timestamps, name=f"sig{i}", invalidation_bits=invalid & (i in invalid_channels)
+                        )
+                        for i in range(9)
+                    ]
+                    with MDF(version="4.10") as mdf:
+                        mdf.append(signals, common_timebase=True)
+                        paths.append(
+                            mdf.save(Path(self.tempdir.name) / f"concatenate_{case}_{part}.mf4", overwrite=True)
+                        )
+
+                with MDF.concatenate(paths) as mdf:
+                    for i in range(9):
+                        bits = mdf.get(f"sig{i}", raw=True, ignore_invalidation_bits=True).invalidation_bits
+                        expected = np.concatenate((invalid & (i in first), invalid & (i in second)))
+                        np.testing.assert_array_equal(
+                            np.zeros_like(expected) if bits is None else bits, expected, strict=True
+                        )
+
+    def test_concatenate_shared_invalidation_bit(self) -> None:
+        timestamps = np.arange(10, dtype=np.float64)
+        # both channels share one bit in the first file, only the first channel has a bit in the second file
+        shared = InvalidationArray(timestamps == 3, (0, 0))
+        paths = []
+        for part, masks in enumerate(((shared, shared), (timestamps == 6, None))):
+            signals = [
+                Signal(timestamps, timestamps, name=f"sig{i}", invalidation_bits=mask) for i, mask in enumerate(masks)
+            ]
+            with MDF(version="4.10") as mdf:
+                mdf.append(signals, common_timebase=True)
+                paths.append(mdf.save(Path(self.tempdir.name) / f"concatenate_shared_{part}.mf4", overwrite=True))
+
+        with MDF.concatenate(paths) as mdf:
+            bits = mdf.get("sig0", raw=True, ignore_invalidation_bits=True).invalidation_bits
+        np.testing.assert_array_equal(np.flatnonzero(bits), [3, 16])
 
     def test_measurement(self) -> None:
         self.assertTrue(MDF4)
