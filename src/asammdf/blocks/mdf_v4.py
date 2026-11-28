@@ -4360,8 +4360,6 @@ class MDF4(MDF_Common[Group]):
 
             samples.tofile(self._tempfile)
 
-            self._tempfile.write(samples.tobytes())
-
             gp.data_blocks.append(
                 DataBlockInfo(
                     address=data_address,
