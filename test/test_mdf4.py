@@ -943,6 +943,22 @@ class TestMDF4(unittest.TestCase):
         for signal, value in zip(signals, expected.ravel(), strict=True):
             self.assertTrue(np.array_equal(signal.samples, [value, value]), signal.name)
 
+    def test_array_axis_in_other_group(self) -> None:
+        curve = np.rec.fromarrays(
+            [np.ones((3, 3), dtype="<f4"), np.zeros((3, 3), dtype="<f4")],
+            dtype=[("curve", "<f4", (3,)), ("axis", "<f4", (3,))],
+        )
+        axis = np.rec.fromarrays([np.array([[0, 1, 2], [0, 2, 4]], dtype="<f4")], dtype=[("axis", "<f4", (3,))])
+
+        with MDF(version="4.10") as mdf:
+            mdf.append([Signal(curve, [0.0, 1.0, 2.0], name="curve")])
+            mdf.append([Signal(axis, [0.0, 1.5], name="axis")])
+            mdf.groups[0].channels[1].composition[0].axis_channels[0] = (1, 1)
+            signal = mdf.select([("curve", 0, 1)])[0]
+
+        expected = np.array([[0, 1, 2], [0, 1, 2], [0, 2, 4]], dtype="<f4")
+        np.testing.assert_array_equal(signal.samples["axis"], expected, strict=True)
+
     def test_real_channel_wider_than_128_bits(self) -> None:
         # regression test: some measurement systems store a whole array (here
         # 100 float32 values) as one REAL channel of 3200 bits without a CA

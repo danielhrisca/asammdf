@@ -7169,6 +7169,7 @@ class MDF4(MDF_Common[Group]):
         masters: list[NDArray[Any]] = []
         invalidation_arrays: list[InvalidationArray | None] = []
         count = 0
+        refs: dict[int, Signal] = {}
 
         timestamps: NDArray[Any] | None
         for fragment in fragments:
@@ -7258,22 +7259,30 @@ class MDF4(MDF_Common[Group]):
                                     record_count=cycles,
                                     raw=True,
                                 )[0]
-                            else:
-                                channel_group = grp.channel_group
-                                record_size = channel_group.samples_byte_nr
-                                record_size += channel_group.invalidation_bytes_nr
-                                start = offset // record_size
-                                end = start + len(data_bytes) // record_size + 1
-                                ref = self.get(
+                            elif self.groups[ref_dg_nr].channel_group.cycles_nr >= grp.channel_group.cycles_nr:
+                                # same or more axis records: pair by record
+                                axis_values = self.get(
                                     group=ref_dg_nr,
                                     index=ref_ch_nr,
                                     samples_only=True,
                                     ignore_invalidation_bits=ignore_invalidation_bits,
-                                    record_offset=record_offset,
+                                    record_offset=offset,
                                     record_count=cycles,
                                     raw=True,
                                 )[0]
-                                axis_values = ref[start:end].copy()
+                            else:
+                                # fewer axis records: the last axis sample at or before each timestamp (or the
+                                # first one), read without the temporary master, which belongs to this group
+                                if i not in refs:
+                                    temporary_master, self._master = self._master, None
+                                    refs[i] = self.get(
+                                        group=ref_dg_nr,
+                                        index=ref_ch_nr,
+                                        ignore_invalidation_bits=ignore_invalidation_bits,
+                                        raw=True,
+                                    )
+                                    self._master = temporary_master
+                                axis_values = refs[i].interp(self.get_master(gp_nr, fragment, one_piece=True)).samples
 
                             axis_values = axis_values[axisname]
                             if len(axis_values) == 0 and cycles:
