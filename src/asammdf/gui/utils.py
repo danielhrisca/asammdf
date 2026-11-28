@@ -352,6 +352,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.output = None
         self.close_on_finish = True
         self.hide_on_finish = False
+        self.closed = False
 
         self.setMinimumDuration(0)
 
@@ -367,6 +368,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.output = None
         self.error = None
         self.thread_finished = False
+        self.closed = False
 
         self.close_on_finish = close_on_finish
         self.hide_on_finish = hide_on_finish
@@ -427,6 +429,11 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             QtCore.QTimer.singleShot(50, self.close)
 
     def close(self, reject=False):
+        # finish the dialog only once per run, later calls (Escape, the delayed close) do nothing
+        if self.closed:
+            return
+        self.closed = True
+
         if self.thread and not self.thread.isFinished():
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
