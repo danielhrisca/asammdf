@@ -1325,6 +1325,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         df.rename(columns=friendly_names, inplace=True)
 
         filters = []
+        _ts = []  # used in pandas query
         count = self.filters.count()
 
         for i in range(count):
@@ -1358,10 +1359,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.extend((column_name, "!=", column_name))
             else:
                 if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
-                    ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
-                    _ts = ts.tz_convert("UTC").to_datetime64()  # used in pandas query
+                    _ts.append(target)
 
-                    filters.extend((column_name, op, "@_ts"))
+                    filters.extend((column_name, op, f"@_ts[{len(_ts) - 1}]"))
 
                 elif is_byte_array:
                     target = str(target).replace(" ", "").strip('"')
@@ -1377,6 +1377,16 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
+                for n, text in enumerate(_ts):
+                    # one timestamp per condition, entered in the time zone that the column shows
+                    tz = df["timestamps"].dt.tz
+                    entered = pd.Timestamp(text)
+                    if entered is pd.NaT or entered.tzinfo is not None:
+                        _ts[n] = entered if entered is pd.NaT else entered.tz_convert(tz)
+                    else:
+                        _ts[n] = entered.tz_localize(tz, ambiguous=True)
+                        if _ts[n].replace(tzinfo=None) != entered:
+                            raise ValueError(f"{text} does not exist in the time zone {tz}")
                 new_df = df.query(" ".join(filters))
             except:
                 logger.exception(f"Failed to apply filter for tabular window: {' '.join(filters)}")
