@@ -1426,6 +1426,14 @@ class TestMDF4(unittest.TestCase):
         with MDF(version="4.10") as mdf, self.assertRaises(UnicodeDecodeError):
             mdf.append(DataFrame({"latin_1": ["München".encode("latin-1")]}))
 
+    def test_append_dataframe_writes_records_once(self) -> None:
+        df = DataFrame({"value": np.arange(1000, dtype=np.float64)}, index=np.arange(1000) * 0.1)
+        with MDF(version="4.10") as mdf:
+            start = mdf._mdf._tempfile.seek(0, 2)
+            mdf.append(df)
+            # one record per row: float64 time and float64 value
+            self.assertEqual(mdf._mdf._tempfile.seek(0, 2) - start, 1000 * 16)
+
     def test_save_with_data_block_limit(self) -> None:
         """Regression for #1298: save must tolerate DataBlockInfo.block_limit.
 
