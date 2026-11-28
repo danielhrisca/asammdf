@@ -8234,14 +8234,52 @@ class MDF4(MDF_Common[Group]):
                 skip_vlsd=True,
             )
             offsets = offsets.astype("u8")
+            # a stable sort is fast for offsets that are already in order
+            offsets.sort(kind="stable")
 
-            data = self._load_signal_data(group, channel_index)
-            # invalid samples can hold any offset, keep only offsets with a complete length field
-            limit = max(len(data) - 3, 0)
-            if len(offsets) and offsets.max() >= limit:
-                offsets = offsets[offsets < limit]
+            # only the 4 byte length fields are needed, read them in parts of about 1 MiB instead
+            # of loading all signal data (a length field can continue in the next part)
+            max_size = 0
+            parts: list[bytes] = []
+            size = position = 0
+            blocks = list(group.get_signal_data_blocks(channel_index))
+            for i, info in enumerate(blocks, 1):
+                if info.original_size:
+                    stream = self._tempfile if info.location == v4c.LOCATION_TEMPORARY_FILE else self._file
+                    if stream is None:
+                        raise RuntimeError("'_file' is None")
+                    stream.seek(info.address)
+                    new_data = stream.read(info.compressed_size)
+                    if info.block_type:
+                        new_data = decompress(new_data, info.block_type, info.original_size)
+                        if info.block_type % 2 == 0:
+                            # transposed data
+                            cols = info.param
+                            lines = info.original_size // cols
+                            matrix_size = lines * cols
+                            if matrix_size != info.original_size:
+                                new_data = (
+                                    frombuffer(new_data[:matrix_size], dtype=uint8)
+                                    .reshape((cols, lines))
+                                    .T.ravel()
+                                    .tobytes()
+                                    + new_data[matrix_size:]
+                                )
+                            else:
+                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                    parts.append(new_data)
+                    size += len(new_data)
 
-            max_size = get_vlsd_max_sample_size(data, offsets, len(offsets))
+                if size >= 1 << 20 or i == len(blocks):
+                    data = b"".join(parts)
+                    # invalid samples can hold any offset, use only offsets with a complete length field
+                    count = int(np.searchsorted(offsets, np.uint64(max(position + len(data) - 3, 0))))
+                    if count:
+                        max_size = max(max_size, get_vlsd_max_sample_size(data, offsets[:count] - position, count))
+                        offsets = offsets[count:]
+                    parts = [data[-3:]]
+                    size = len(parts[0])
+                    position += len(data) - size
 
             return max_size
 

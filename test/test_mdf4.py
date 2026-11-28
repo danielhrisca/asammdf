@@ -13,6 +13,7 @@ import numpy as np
 from pandas import DataFrame
 
 from asammdf import MDF, Signal
+from asammdf.blocks import cutils
 from asammdf.blocks import v4_blocks as v4b
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.mdf_v4 import MDF4
@@ -565,6 +566,25 @@ class TestMDF4(unittest.TestCase):
             row[: len(payload)] = list(payload)
         np.testing.assert_array_equal(signal.samples, expected, strict=True)
         np.testing.assert_array_equal(signal.timestamps, timestamps[[0, 1, 3]], strict=True)
+
+    def test_partial_read_of_vlsd_channel_reads_signal_data_in_parts(self) -> None:
+        # the longest sample sets the width of every read, but a partial read of a large
+        # VLSD channel (video frames) must not join all signal data to find it
+        # the length field of the longest frame lies across a block boundary
+        frames = np.array([b"A" * ((1 << 20) - 16)] + [bytes([65 + i]) * ((1 << 20) + i) for i in range(1, 4)])
+        with MDF(version="4.10", compact_vlsd=True) as mdf:
+            mdf.append(Signal(frames, np.arange(4, dtype=np.float64), name="frames", encoding="latin-1"))
+            mdf.configure(write_fragment_size=1 << 20)
+            path = mdf.save(Path(self.tempdir.name) / "vlsd_parts.mf4", overwrite=True)
+
+        with (
+            MDF(path) as mdf,
+            patch("asammdf.blocks.mdf_v4.get_vlsd_max_sample_size", wraps=cutils.get_vlsd_max_sample_size) as scan,
+        ):
+            signal = mdf.get("frames", record_offset=1, record_count=2)
+
+        np.testing.assert_array_equal(signal.samples, frames[1:3], strict=True)
+        self.assertLess(max(len(call.args[0]) for call in scan.call_args_list), 2 << 20)
 
     def test_open_sync_channel_linked_to_attachment(self) -> None:
         # the data link of a sync channel points to the attachment, not to signal data
