@@ -59,7 +59,7 @@ from typing_extensions import (
 )
 
 from .. import tool
-from ..signal import InvalidationArray, Signal
+from ..signal import convert, has_conversion, InvalidationArray, Signal
 from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
 from .compression_utils import decompress, lz_compress
@@ -6898,6 +6898,9 @@ class MDF4(MDF_Common[Group]):
                 vals = concatenate(flat_channel_values, out=out)
             else:
                 vals = flat_channel_values[0]
+
+            if not raw and has_conversion(vals.dtype):
+                vals = convert(vals)
         else:
             channel_values_list = typing.cast(list[list[NDArray[Any]]], channel_values)
             total_size = sum(len(_) for _ in channel_values_list[0])
