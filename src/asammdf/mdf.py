@@ -3700,6 +3700,9 @@ class MDF:
                 # save original group index for extension
                 # replace with the translated group index
                 if reorder_channel_groups:
+                    # no group of this file has the channels of this group of the first file
+                    if cg_translations[group_index] is None:
+                        raise MdfException(f"internal structure of file {mdf_index} is different; different channels")
                     cg_trans = typing.cast(dict[int, int], cg_translations)
                     origin_gp_idx = group_index
                     group_index = cg_trans[group_index]
